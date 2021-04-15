@@ -1,0 +1,44 @@
+name: github pages
+
+on:
+  push:
+    branches:
+      - main 
+
+jobs:
+  build_and_copy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+
+      - name: setup java 
+        uses: actions/setup-java@v1
+        with:
+            java-version: 16
+
+      - name: generate files using gradle
+        uses: eskatos/gradle-command-action@v1
+        with:
+            arguments: asciidoctor
+
+      - name: copy generated documentation files to e2immu-site
+        env:
+          REPO: satyamkapoor/hugotestagain
+          REPO_PATH: charts-release
+          SOURCE: build/docs/asciidoc/
+          TARGET: target/static/docs
+          GIT_USERNAME: action
+          GIT_EMAIL: action@github.com
+        run: |
+            git clone https://.:${{ secrets.GTOKEN }}@github.com/${{ env.REPO }} target
+            if [ -d ${{ env.TARGET }} ]; then rm -rf ${{ env.TARGET }}/*; fi
+            cp -r ${{ env.SOURCE }}* ${{ env.TARGET }}/
+            cd target
+            git config --local user.email "${{ env.GIT_EMAIL }}"
+            git config --local user.name "${{ env.GIT_USERNAME }}"
+            git add .
+            git commit -m "Github actions automatic build for `date +"%Y-%m-%d %H:%M"`"
+            git push origin --set-upstream main
+            
+
