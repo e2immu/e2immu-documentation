@@ -24,8 +24,7 @@ jobs:
 
       - name: copy generated documentation files to e2immu-site
         env:
-          REPO: satyamkapoor/hugotestagain
-          REPO_PATH: charts-release
+          REPO: e2immu/e2immu-site
           SOURCE: build/docs/asciidoc/
           TARGET: target/static/docs
           GIT_USERNAME: action
@@ -38,7 +37,7 @@ jobs:
             git config --local user.email "${{ env.GIT_EMAIL }}"
             git config --local user.name "${{ env.GIT_USERNAME }}"
             git add .
-            git commit -m "Github actions automatic build for `date +"%Y-%m-%d %H:%M"`"
+            git commit -m "Github actions automatic build - `date +"%Y-%m-%d %H:%M"`"
             git push origin --set-upstream main
             
 
