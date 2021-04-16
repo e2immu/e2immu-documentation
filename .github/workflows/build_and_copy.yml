@@ -31,7 +31,10 @@ jobs:
           GIT_EMAIL: action@github.com
         run: |
             git clone https://.:${{ secrets.GTOKEN }}@github.com/${{ env.REPO }} target
-            if [ -d ${{ env.TARGET }} ]; then rm -rf ${{ env.TARGET }}/*; fi
+            mkdir -p ${{ env.TARGET }}
+            rm -rf ${{ env.TARGET }}/* 
+            echo "ls ${{ env.SOURCE }}"
+            ls ${{ env.SOURCE }}
             cp -r ${{ env.SOURCE }}* ${{ env.TARGET }}/
             cd target
             git config --local user.email "${{ env.GIT_EMAIL }}"
