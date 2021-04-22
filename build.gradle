@@ -18,8 +18,7 @@ plugins {
 }
 
 repositories {
-        jcenter()
-        mavenCentral()
+    mavenCentral()
 }
 
 asciidoctor {

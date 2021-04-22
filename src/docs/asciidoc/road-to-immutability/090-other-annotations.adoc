@@ -272,7 +272,9 @@ class Finisher {
 
 === Utility class, extensions, singleton
 
-Using the simple and common definition:
+==== Utility classes
+
+We use the simple and common definition:
 
 ****
 *Definition*: a *utility class* is a level 2 immutable class which cannot be instantiated.
@@ -284,14 +286,16 @@ These definitions imply
 . it has a single, private, unused constructor,
 . and its static fields (if it has any) are sufficiently immutable.
 
+==== Extension classes
+
 In Java, many classes cannot easily be extended.
 Implementations of extensions typically use a utility class with the convention that the first parameter of the static method is the object of the extended method call:
 
 [source,java]
 ----
-@Extension(of=String[].class)
-class ExtendString {
-    private ExtendString() { throw new UnsupportedOperationException(); }
+@ExtensionClass(of=String[].class)
+class ExtendStringArray {
+    private ExtendStringArray() { throw new UnsupportedOperationException(); }
 
     public static String weave(@NotModified String[] strings) {
         // generate a new string by weaving the given strings (concat 1st chars, etc.)
@@ -303,13 +307,74 @@ class ExtendString {
 }
 ----
 
-We use the following criteria to designate a utility class as an extension:
+We use the following criteria to designate a class as an extension:
 
 ****
-*Definition*:
+A class is an extension class of a type `E` when
+
+* the class is level 2 immutable;
+* all non-private static methods with parameters must have a {nn} 1st parameter of type `E`, the type being extended.
+There must be at least one such method;
+* non-private static methods without parameters must return a value of type `E`, and must also be {nn}.
 ****
 
-Static classes can be used to 'extend' closed types, as promoted by the Xtend project.
+Static classes can be used to 'extend' closed types, as promoted by the https://www.eclipse.org/xtend/[Xtend^] project.
 Level 2 immutable classes can also play the role of extension facilitators, with the additional benefit of having some immutable data to be used as a context.
+
+Note that extension classes will often not be {container}, since the first parameter will be {modified} in many cases.
+
+==== Singleton classes
+
+A singleton class is a class which has a mechanism to limit the creation of instances to a maximum of one.
+The term 'singleton' then refers to this unique instance.
+
+The {e2immu} analyser currently recognizes two systems for limiting the number of instances:
+the creation of an instance in a single static field with a static constructor, and a precondition on a constructor using a private static boolean field.
+
+An example of the first strategy is:
+
+.First mechanism recognized to enforce a singleton
+[source,java]
+----
+@Singleton
+public class SingletonExample {
+
+    public static final SingletonExample SINGLETON = new SingletonExample(123);
+
+    private final int k;
+
+    private SingletonExample(int k) {
+        this.k = k;
+    }
+
+    public int multiply(int i) {
+        return k * i;
+    }
+}
+----
+
+An example of the second strategy is:
+
+.Second mechanism recognized to enforce a singleton
+[source,java]
+----
+@Singleton
+public class SingletonWithPrecondition {
+
+    private final int k;
+    private static boolean created;
+
+    public SingletonWithPrecondition(int k) {
+        if (created) throw new UnsupportedOperationException();
+        created = true;
+        this.k = k;
+    }
+
+    public int multiply(int i) {
+        return k * i;
+    }
+}
+----
+
 
 // ensure a newline at the end

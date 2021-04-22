@@ -6,7 +6,7 @@ Our focus up to now has been on modification of the explicit types: we have argu
 Now we will try to characterise modifications that are beyond the scope of the type.
 
 Please note that characterising _all_ modifications is a hopelessly complex, and unnecessary, task.
-We will, however, need to deal with what can be seen as the first of higher level modifications, if we want to be able to characterise the modifications going on in extremely important constructs such as iterators.
+We will, however, need to deal with what can be seen as the first level of higher level modifications, if we want to be able to characterise the modifications going on in extremely important constructs such as iterators.
 
 === Propagating modifications
 
@@ -74,8 +74,8 @@ public void forEach(@PropagateModification Consumer<T> consumer) {
 }
 ----
 
-The {nm} and {propagateModification} annotations are as described in the earlier section: from the point of view of `Circular`, no modifications occur because `accept` operates on fields of the implicitly immutable type `T`.
-By convention, the parameter `consumer` is not modified, so `Circular` can remain a container.
+From the point of view of `Circular`, no modifications occur because `accept` operates on fields of the implicitly immutable type `T`.
+No modifying methods are called on the parameter `consumer`, therefore it is not modified, and `Circular` can remain a container.
 
 How do we propagate the modification?
 In this example we will use `StringBuilder` as an archetypal modifiable type.
