@@ -95,8 +95,8 @@ static void replace(@Modified @NotModified1 Circular<StringBuilder> c) {
     c.forEach(sb -> c.add(new StringBuilder("x" + sb))); // <3>
 }
 ----
-<1> non-modifying method implies no modification on `c`
-<2> parameter-modifying lambda propagates modification to `c`
+<1> non-modifying method implies no modification on the implicitly immutable content of `c`
+<2> parameter-modifying lambda propagates modification to `c`'s implicitly immutable content
 <3> object-modifying lambda changing `c` but not its content
 
 We have introduced two new annotations, {m1} and {nm1}.
@@ -204,24 +204,164 @@ The call to `add` content links `e` to `this`.
 Because `e` is also content linked to `c`, the parameter `collection`
 holds implicitly immutable content linked to the implicitly immutable content of the instance.
 
-Again, note that {dependent2} implies independence, because it deals with the implicitly immutable content:
-
-====
-{dependent1} => {independent}
-
-{dependent2} => {independent}
-====
+Again, note that {dependent2} implies independence, because it deals with the implicitly immutable content.
 
 We're now properly armed to see how a for-each loop can be defined as an iterator whose implicitly immutable content links to that of a container.
 
 === Iterator, Iterable, loops
 
+Let us start with the simplest definition of an iterator, without `remove` method:
+
+.Iterator, without remove
+[source,java]
+----
+interface Iterator<T> {
+
+    @Modified
+    @Dependent1
+    T next();
+
+    @Modified
+    boolean hasNext();
+}
+----
+
+Either the `next` method, or the `hasNext` method, must make a change to the iterator, because it has to keep track of the next element.
+As such, we make both {modified}.
+Following the discussion in the previous section, `next` is {dependent1}, because it returns part of the implicitly immutable content held by the iterator.
+
+The interface `Iterable` is a supplier of iterators:
+
+.Iterable
+[source,java]
+----
+interface Iterable<T> {
+
+    @NotModified
+    @Dependent2
+    Iterator<T> iterator();
+}
+----
+
+First, creating an iterator should never be a modifying operation on a type.
+Typically, as we explore in the next section, it implies creating a sub-type, static or not, of the type implementing `Iterable`.
+Secondly, the iterator itself is independent of the fields of the implementing type, but has the ability to return its implicitly immutable content.
+
+The loop, on a variable `list` of type implementing `Iterable<T>`,
+
+[source,java]
+----
+for(T t: list) { ... }
+----
+
+can be interpreted as
+
+[source,java]
+----
+Iterator<T> iterator = list.iterator();
+while(it.hasNext()) {
+    T t = it.next();
+    ...
+}
+----
+
+The iterator is {dependent2}.
+Via the `next` method, it content-links the implicitly immutable content of the `list` to `t`.
+
+=== Independence of types
+
+A concrete implementation of an iterator is a sub-type, static or not, of the iterable type:
+
+[source,java]
+----
+@E2Container
+public class ImmutableArray<T> implements Iterable<T> {
+
+    @NotNull1
+    private final T[] elements;
+
+    @SuppressWarnings("unchecked")
+    public ImmutableArray(List<T> input) {
+        this.elements = (T[]) input.toArray();
+    }
+
+    @Override
+    @Independent
+    public Iterator<T> iterator() {
+        return new IteratorImpl();
+    }
+
+    @Container
+    @Independent
+    class IteratorImpl implements Iterator<T> {
+        private int i;
+
+        @Override
+        public boolean hasNext() {
+            return i < elements.length;
+        }
+
+        @Override
+        @NotNull
+        public T next() {
+            return elements[i++];
+        }
+    }
+}
+----
+
+For `ImmutableArray` to be level 2 immutable, the `iterator()` method must be independent of the field `elements`.
+How do we know this?
+The implementation type `IteratorImpl` cannot be level 2 immutable, because it needs to hold the state of the iterator.
+However, it should protect the fields of its enclosing type.
+We propose to add a definition for the independence of a type, very similar to the one enforced for level 2 immutability:
+
+****
+*Definition*: A type is *independent* when it follows these three rules:
+
+*Rule 1*: All constructor parameters linked to fields, and therefore all fields linked to constructor parameters, must be {nm};
+
+*Rule 2*: All fields linked to constructor parameters must be either private or level 2 immutable;
+
+*Rule 3*: All return values of methods must be independent of the fields linked to constructor parameters.
+****
+
+The static variant of `IteratorImpl` makes rules 1 and 2 more obvious:
+
+.Static iterator implementation
+[source,java]
+----
+@E2Container
+public class ImmutableArray<T> implements Iterable<T> {
+    ...
+
+    @Container
+    @Independent
+    static class IteratorImpl implements Iterator<T> {
+        private int i;
+        private final T[] elements;
+
+        private IteratorImpl(T[] elements) {
+            this.elements = elements;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return i < elements.length;
+        }
+
+        @Override
+        @NotNull
+        public T next() {
+            return elements[i++];
+        }
+    }
+}
+----
+
 === Extending implicitly immutable types
 
-With all abstract types on which only abstract methods without modification status are called.
-See the <<support-lazy>> example.
+Looking at the <<support-lazy>> example, which immutability properties should we give the field `Supplier<T> supplier`?
+The type `T` is implicitly immutable in `Lazy`, as it can be replaced by `java.lang.Object`.
+We propose to add abstract types, where _only_ the abstract method is called, to the set of implicitly immutable types of the enclosing type.
 
-=== Implications for immutability
-
-This leads us to the question of determining the static immutability type of abstract types.
-We need this information for fields of abstract type, because of the definition of immutability of the #TODO#

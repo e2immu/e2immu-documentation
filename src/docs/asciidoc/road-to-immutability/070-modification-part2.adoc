@@ -141,6 +141,7 @@ In this section we want to discuss a limited application of functional interface
 The general case, where abstract types come in via a parameter, will be taken up in <<higher-level-modifications>>.
 Consider the following example:
 
+.Concrete implementation of suppliers
 [source,java]
 ----
 class ApplyLocalFunctions {
@@ -187,3 +188,78 @@ A straightforward application of the rules of modification of fields makes  `get
 in `myIncrementer`, a modifying method is applied to `getAndIncrement`, and in `myExplicitIncrementer`, a modifying method is applied to `explicitGetAndIncrement`.
 
 Given that `ApplyLocalFunctions` is clearly {e1container}, and the inner classes hold no other data, the inner classes are {e1container} as well.
+
+Now, if we move away from suppliers, but use consumers, we obtain:
+
+.Concrete implementation of consumers
+[source,java]
+----
+class ApplyLocalFunctions2 {
+
+    @Container
+    static class Counter {
+        private int counter;
+
+        @NotModified
+        public int getCounter() {
+            return counter;
+        }
+
+        @Modified
+        public int increment() {
+            return ++counter;
+        }
+    }
+
+    @NotModified
+    private final Counter myCounter = new Counter();
+
+    @E2Immutable // <1>
+    private static final Consumer<Counter> incrementer = Counter::increment;
+
+    @E2Immutable
+    private static final Consumer<Counter> explicitIncrementer = new Consumer<Counter>() {
+        @Override
+        @NotModified
+        public void accept(@Modified Counter counter) { // <2>
+            counter.increment();
+        }
+    };
+
+    @E2Container // <3>
+    private static final Consumer<Counter> printer = counter ->
+        System.out.println("Have " + counter.getCounter());
+
+    @E2Container
+    private static final Consumer<Counter> explicitPrinter = new Consumer<Counter>() {
+        @Override
+        @NotModified
+        public void accept(@NotModified Counter counter) { // <4>
+            System.out.println("Have " + counter.getCounter());
+        }
+    };
+
+    private void apply(@Container(contract = true) Consumer<Counter> consumer) { // <5>
+        consumer.accept(myCounter);
+    }
+
+    public void useApply() {
+        apply(printer); // should be fine
+        apply(explicitPrinter);
+        apply(incrementer); // should cause an ERROR <6>
+        apply(explicitIncrementer); // should case an ERROR
+    }
+}
+----
+<1> The anonymous type is static, has no fields, so is at least {e2immutable}.
+It is not a container.
+This is clearly visible in the explicit variant...
+<2> Here we see why `incrementer` is not a container: the method modifies its parameters.
+<3> Now, we have a container, because in the anonymous type does not modify its parameters.
+<4> Explicitly visible here in `explicitPrinter`.
+<5> If we insist that all parameters are containers, ...
+<6> we can detect errors.
+Here, `incrementer` is not a container.
+
+//end of file
+

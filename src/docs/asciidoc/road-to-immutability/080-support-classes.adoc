@@ -238,17 +238,11 @@ The code analyser makes frequent use of this type, often with an additional guar
 === Lazy
 
 `Lazy` implements a lazily-initialized immutable field, of unbound generic type `T`.
-As such, it is eventually a level 2 immutable type.
+Properly implemented, it is an eventually level 2 immutable type.
 
 .Code fragment: Lazy
 [source,java]
 ----
-package org.e2immu.analyser.util;
-
-import org.e2immu.annotation.*;
-import java.util.Objects;
-import java.util.function.Supplier;
-
 @E2Container(after = "t")
 public class Lazy<T> {
 
