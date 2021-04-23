@@ -88,3 +88,6 @@ The fact that it cannot be instantiated is verified by
 ==== Extension classes
 
 An extension class is an eventually final type whose static methods all share the same type of first parameter.
+
+[#concept-finalizer]
+==== Finalizers

@@ -6,7 +6,6 @@
 :sectnums:
 :icons: font
 :toc: left
-:url-repo: https://github.com/e2immu/e2immu
 
 Effective and eventual immutability with _e2immu_, a static code analyser for Java.
 

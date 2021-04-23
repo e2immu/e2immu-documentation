@@ -12,12 +12,12 @@
 include::{includedir}/util/definitions.adoc[]
 
 include::{includedir}/manual/010-intro.adoc[]
+include::{includedir}/manual/020-install.adoc[]
 
 :sectnums!:
 
 == _Using e2immu_
 :sectnums:
-include::{includedir}/manual/020-install.adoc[]
 
 include::{includedir}/manual/030-use.adoc[]
 include::{includedir}/manual/032-cli.adoc[]
@@ -33,7 +33,8 @@ include::{includedir}/manual/040-concepts.adoc[]
 
 include::{includedir}/manual/060-reference.adoc[]
 include::{includedir}/manual/061-list.adoc[]
-include::{includedir}/manual/067-annotation-hierarchy.adoc[]
+include::{includedir}/manual/062-annotation-hierarchy.adoc[]
+include::{includedir}/manual/065-errors.adoc[]
 
 :sectnums!:
 

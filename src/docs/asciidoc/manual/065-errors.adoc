@@ -1,0 +1,123 @@
+== List of errors and warnings
+
+=== Opinionated
+
+The errors described in this section relate to bad practices that are not tolerated by the analyser:
+
+ASSIGNMENT_TO_FIELD_OUTSIDE_TYPE:: Assigning to a field outside the type of that field, is not allowed.
+Replace the assignment with a setter method.
+Try to do assignments as close as possible to object creation.
+
+METHOD_SHOULD_BE_MARKED_STATIC:: Methods which do not refer to the instance, should be marked `static`.
+
+NON_PRIVATE_FIELD_NOT_FINAL:: Non-private fields must be effectively final (marked {final}).
+Who knows what can happen to the field if you allow that?
+
+PARAMETER_SHOULD_NOT_BE_ASSIGNED_TO:: Parameters should not be assigned to.
+The implementation of the analyser assumes that parameters cannot be assigned to, so this is probably the one error you really do not want to see.
+
+[#evaluation-errors]
+=== Evaluation
+
+ASSERT_EVALUATES_TO_CONSTANT_FALSE:: The condition in the `assert` statement is always false.
+
+ASSERT_EVALUATES_TO_CONSTANT_TRUE:: The condition in the `assert` statement is always true.
+
+CONDITION_EVALUATES_TO_CONSTANT_ENN:: The null or not-null check in the `if` or `switch` statement evaluates to constant.
+This message is computed via a {nn} on a field.
+
+CONDITION_EVALUATES_TO_CONSTANT:: The condition in the `if` or `switch` statement evaluates to a constant.
+
+INLINE_CONDITION_EVALUATES_TO_CONSTANT:: The condition in the inline conditional operator `... ? ... : ...` evaluates to a constant.
+
+PART_OF_EXPRESSION_EVALUATES_TO_CONSTANT:: Part of a short-circuit boolean expression (involving `&&` or `||`) evaluates to a constant.
+
+=== Empty, unused
+
+Errors of this type are typically trivial to clean up, so why not do it immediately?
+
+EMPTY_LOOP:: Empty loop: the loop will run over an `Iterable` which the analyser believes is empty.
+
+IGNORING_RESULT_OF_METHOD_CALL:: Ignoring result of method call.
+That's fine when the method is modifying, but the call is pretty useless when the method is {nm}.
+
+UNNECESSARY_METHOD_CALL:: Unnecessary method call, like, e.g., calling `toString()` on a `String`.
+
+UNREACHABLE_STATEMENT:: Unreachable statement, often because of an error from the <<evaluation-errors>> category.
+
+UNUSED_LOCAL_VARIABLE:: Unused local variable.
+
+UNUSED_LOOP_VARIABLE:: Unused loop variable.
+
+UNUSED_PARAMETER:: Unused parameter.
+Not raised when the method is overriding another method.
+
+USELESS_ASSIGNMENT:: Useless assignment.
+
+TRIVIAL_CASES_IN_SWITCH:: Trivial cases in `switch`.
+
+PRIVATE_FIELD_NOT_READ:: Private field not read outside constructors.
+If this is intentional, turn it into a local variable.
+
+=== Verifying annotations
+
+The following errors relate to the annotations you added to your source code, to verify that a type, method or field has a given property.
+
+ANNOTATION_ABSENT:: Annotation missing.
+You wrote the annotation in the source code, but it is absent from the computation of the analyser.
+
+ANNOTATION_UNEXPECTEDLY_PRESENT:: You explicitly write that the annotation should be absent, using `absent=true`, still, the analyser computes it.
+
+CONTRADICTING_ANNOTATIONS:: Contradicting annotations
+
+WRONG_ANNOTATION_PARAMETER:: Wrong annotation parameter: the annotation is both in the source code, and computed by the analyser.
+However, the associated values are differing.
+
+WORSE_THAN_OVERRIDDEN_METHOD_PARAMETER:: Property value worse than overridden method's parameter
+
+WORSE_THAN_OVERRIDDEN_METHOD:: Property value worse than overridden method
+
+=== Immutability
+
+CALLING_MODIFYING_METHOD_ON_E2IMMU:: Calling a modifying method on level 2 immutable type is not allowed.
+This error is typically raised when the type is only dynamically computed to be level 2 immutable, such as in the case of the immutable version of a collection.
+
+DUPLICATE_MARK_CONDITION:: Duplicate mark precondition
+
+EVENTUAL_AFTER_REQUIRED:: Calling a method requiring `@Only(after)` on an object in state `@Only(before)`.
+
+EVENTUAL_BEFORE_REQUIRED:: Calling a method requiring `@Only(before)` on an object in state `@Only(after)`.
+
+INCOMPATIBLE_IMMUTABILITY_CONTRACT_AFTER_NOT_EE1:: Incompatible immutability contract: Contracted to be @E2Immutable after the mark, formal type is not (eventually) @E1Immutable.
+Variants exist for `@Only(before="...")`, and level 2 immutable.
+
+INCOMPATIBLE_PRECONDITION:: Incompatible preconditions
+
+WRONG_PRECONDITION:: Wrong precondition
+
+PRECONDITION_ABSENT:: Precondition missing
+
+ONLY_WRONG_MARK_LABEL:: @Only annotation, wrong mark label
+
+MODIFICATION_NOT_ALLOWED:: Illegal modification suspected
+
+=== Odds and ends
+
+CIRCULAR_TYPE_DEPENDENCY:: Methods that call each other circularly, make it difficult for the analyser to compute modifications correctly.
+
+DIVISION_BY_ZERO:: The analyser suspects division by zero here.
+
+FINALIZER_METHOD_CALLED_ON_FIELD_NOT_IN_FINALIZER:: A {finalizer} method can only be called on a field, when in another {finalizer} method.
+Please refer to <<concept-finalizer>>.
+
+FINALIZER_METHOD_CALLED_ON_PARAMETER=:: A {finalizer} method cannot be called on a parameter.
+Please refer to <<concept-finalizer>>.
+
+NULL_POINTER_EXCEPTION:: The analyser suspects that this will always raise a null-pointer exception.
+
+POTENTIAL_NULL_POINTER_EXCEPTION:: The analyser suspects, and only warns, for a potential null-pointer exception.
+
+TYPES_WITH_FINALIZER_ONLY_EFFECTIVELY_FINAL:: Fields of types with a {finalizer} method can only be assigned to an effectively final ({final}) field.
+Please refer to <<concept-finalizer>>.
+
+
