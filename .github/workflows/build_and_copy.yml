@@ -17,11 +17,16 @@ jobs:
         with:
             java-version: 16
 
-      - name: generate files using gradle
+      - name: generate html files using gradle
         uses: eskatos/gradle-command-action@v1
         with:
             arguments: asciidoctor
 
+      - name: generate PDF files using gradle
+        uses: eskatos/gradle-command-action@v1
+        with:
+            arguments: asciidoctorPdf
+              
       - name: copy generated documentation files to e2immu-site
         env:
           REPO: e2immu/e2immu-site
