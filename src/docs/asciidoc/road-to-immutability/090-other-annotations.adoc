@@ -12,24 +12,24 @@ The complement of not-null (marked {nn}) is nullable (marked {nullable}).
 * A method marked {nn} will never return a null result.
 This is very standard.
 * Calling a parameter marked {nn} will result in a null pointer exception at some point during the object life-cycle.
-* A {nn} or {nullable} annotation on a field is a consequence of nullability computations on the assignments to the field.
+* A {nn} or {nullable} annotation on a field is a consequence of not-null computations on the assignments to the field.
 
-To be able to compute the nullability of parameters, we must specify some sort of flow or direction to break chicken-and-egg situations.
+To be able to compute the not-null of parameters, we must specify some sort of flow or direction to break chicken-and-egg situations.
 We compute in the following order:
 
-. context nullability of parameters.
-. field nullability
-. external nullability of parameters linked to fields
+. context not-null of parameters.
+. field not-null
+. external not-null of parameters linked to fields
 
 First, we examine the parameter's usage in the method.
-Its occurrence in a not-null context directly influences the nullability of the parameter.
+Its occurrence in a not-null context directly influences the not-null of the parameter.
 
-==== Higher order nullability
+==== Higher order not-null
 
 We use the annotation {nn1} to indicate that none of the object's fields can be null.
 This concept is useful when working with collections.
 
-Consider the following nullability annotations on the `List` API:
+Consider the following {nn} variants on the `List` API:
 
 [source,java]
 ----
