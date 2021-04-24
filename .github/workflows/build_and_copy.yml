@@ -56,7 +56,7 @@ jobs:
             git config --local user.name "${{ env.GIT_USERNAME }}"
             echo "add files to git"
             git add .
-	          echo "git commit"
+            echo "git commit"
             git commit -m "Github actions automatic build - `date +"%Y-%m-%d %H:%M"`"
             echo "git push"
             git push origin --set-upstream main
