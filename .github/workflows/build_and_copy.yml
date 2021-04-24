@@ -17,15 +17,18 @@ jobs:
         with:
             java-version: 16
 
-      - name: generate html files using gradle
-        uses: eskatos/gradle-command-action@v1
-        with:
-            arguments: asciidoctor
-
       - name: generate PDF files using gradle
         uses: eskatos/gradle-command-action@v1
         with:
             arguments: asciidoctorPdf
+
+      - name: correct images path for HTML
+        run: sed -i '10s/{includedir}/../' src/docs/asciidoc/manual/000-main.adoc 	
+
+      - name: generate HTML files using gradle
+        uses: eskatos/gradle-command-action@v1
+        with:
+            arguments: asciidoctor
               
       - name: copy generated documentation files to e2immu-site
         env:
@@ -53,7 +56,7 @@ jobs:
             git config --local user.name "${{ env.GIT_USERNAME }}"
             echo "add files to git"
             git add .
-	    echo "git commit"
+	          echo "git commit"
             git commit -m "Github actions automatic build - `date +"%Y-%m-%d %H:%M"`"
             echo "git push"
             git push origin --set-upstream main
