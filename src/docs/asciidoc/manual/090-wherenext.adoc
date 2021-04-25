@@ -1,0 +1,9 @@
+
+
+There are many areas for improvement and extension:
+
+* much better information transfer between analyser, user, and source code
+* towards a full-option static code analyser
+* towards more automation for creating annotated API files
+* more plugins, for other build tools and other IDEs
+* ...

@@ -359,9 +359,11 @@ public class ImmutableArray<T> implements Iterable<T> {
 }
 ----
 
-=== Extending implicitly immutable types
+=== More on implicitly immutable types
 
 Looking at the <<support-lazy>> example, which immutability properties should we give the field `Supplier<T> supplier`?
 The type `T` is implicitly immutable in `Lazy`, as it can be replaced by `java.lang.Object`.
+
 We propose to add abstract types, where _only_ the abstract method is called, to the set of implicitly immutable types of the enclosing type.
+The reasoning is that whilst you can access the type, you still cannot know the effect of this action.
 

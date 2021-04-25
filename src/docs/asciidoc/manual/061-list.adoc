@@ -1,3 +1,5 @@
+
+[#list-of-annotations]
 === List of annotations
 
 For each of the annotations, we answer a couple of standard questions:
@@ -40,7 +42,7 @@ External methods not annotated will not interrupt.
 Summary:: Annotation computed when an eventually immutable type is guaranteed to be in its _before_ state, i.e., none of the marked methods have been called yet.
 As a dynamic type annotation (<<technical-dynamic-type-annotations>>), it is the opposite of {e1immutable},
 {e2immutable}, or its container variants {e1container}, {e2container}.
-They guarantee that an eventually immutable object is in its _after_ state, i.e., a marked method has been called and the object has become immutable.
+They guarantee that an eventually immutable object is in its _after_ state, i.e., a marked method has been called, and the object has become immutable.
 
 Mode:: not immediately relevant
 
@@ -89,7 +91,7 @@ public enum Enum_3 {
 | Basic {y} | Immu {y}| Contract {y}| Type {y} | Field {n} | Method {n} | Param {n}
 |===
 
-Summary:: The analyser computes this essential annotation for types which do not modify the parameters of their methods.
+Summary:: The analyser computes this essential annotation for types which do not modify the parameters of their constructors and non-private methods.
 See <<concept-containers>> for an in-depth discussion.
 
 Mode:: Use this annotation in green mode.
@@ -330,6 +332,8 @@ Example::
 
 ----
 
+#TODO#
+
 // ********************************************************************************************************************
 
 [#e2immutable-annotation]
@@ -342,15 +346,22 @@ Example::
 Summary:: This annotation indicates that a type is level 2 immutable, effectively or eventually.
 
 Mode:: This annotation is the default in the red mode.
+
 Details:: Level 2 immutability adds extra restrictions on top of level 1 immutability:
 
-. all fields must be not modified;
-. all fields of support data types must be either private, or level 2 immutable themselves;
-. all non-private methods and constructors must be marked {independent}, i.e.,
+. all fields must be {nm};
+. all fields must be either private, level 2 immutable, or of implicitly immutable type;
+. all non-private methods and constructors must be marked {independent}
 
-.. in the case of constructors, the parameters must not link to the fields of support data types;
-.. in the case of methods, neither the return value nor the parameters must link to the fields of support data types.
-A consequence of requirement of not modified fields, is that non-private methods cannot be modifying.
+Example::
+
+[source,java]
+----
+
+----
+
+#TODO#
+
 
 // ********************************************************************************************************************
 
@@ -360,6 +371,18 @@ A consequence of requirement of not modified fields, is that non-private methods
 |===
 | Basic {y} | Immu {n}| Contract {n}| Type {y} | Field {n} | Method {n} | Param {n}
 |===
+
+Summary:: An extension class is a level 2 immutable class which uses
+More details can be found in <<concept-extension-class>>.
+
+Example::
+
+[source,java]
+----
+
+----
+
+#TODO#
 
 // ********************************************************************************************************************
 
@@ -432,6 +455,14 @@ class ExampleManualVariableFinal {
 
 ==== @Finalizer
 
+
+[source,java]
+----
+
+----
+
+#TODO#
+
 // ********************************************************************************************************************
 
 ==== @Fluent
@@ -440,10 +471,21 @@ class ExampleManualVariableFinal {
 | Basic {y} | Immu {n}| Contract {y}| Type {n} | Field {n} | Method {y} | Param {n}
 |===
 
-Summary:: This annotation indicates that a method returns `this`.
+Summary:: This annotation indicates that a method returns `this`, allowing for method chaining.
 Mode:: There is no opposite for this annotation.
 Details:: Fluent methods do not return a real value.
 This is of consequence in the definition of independence for methods, as dependence on `this` is ignored.
+
+Example::
+
+[source,java]
+----
+@Fluent
+public Builder setValue(char c) {
+    this.c = c;
+    return this;
+}
+----
 
 // ********************************************************************************************************************
 
@@ -457,6 +499,17 @@ Summary:: This annotation indicates that a method returns its first parameter.
 Mode:: There is no opposite for this annotation.
 Details:: Apart for all the obvious consequences, this annotation has an explicit effect on the linking of variables: a method marked {identity} only links to the first parameter.
 
+Example::
+
+[source,java]
+----
+@Identity
+public static <T> requireNonNull(T t) {
+    if(t == null) throw new NullpointerException();
+    return t;
+}
+----
+
 // ********************************************************************************************************************
 
 ==== @IgnoreModifications
@@ -466,8 +519,10 @@ Details:: Apart for all the obvious consequences, this annotation has an explici
 |===
 
 Summary:: Helper annotation to mark that modifications on a field are to be ignored, because they fall outside the scope of the application.
+
 Mode:: There is no opposite for this annotation.
 It can only be used for contracting, the analyser cannot generate it.
+
 Example:: The only current use is on `System.out` and `System.err`.
 The `print` method family is obviously modifying to these fields, however, we judge it to be outside the scope of the application.
 
@@ -504,6 +559,8 @@ Mode:: There is no opposite.
 
 ==== @Linked1
 
+#TODO#
+
 // ********************************************************************************************************************
 
 ==== @Mark
@@ -511,6 +568,8 @@ Mode:: There is no opposite.
 |===
 | Basic {n} | Immu {y}| Contract {y}| Type {n} | Field {n} | Method {y} | Param {n}
 |===
+
+#TODO#
 
 [#modified-annotation]
 ==== @Modified
@@ -538,6 +597,7 @@ Mode:: the opposite annotation is {nm1}.
 In green mode, this one is the default; in red mode, {nm1} is the default.
 
 Example:: Applying a c
+#TODO#
 
 // ********************************************************************************************************************
 
@@ -593,6 +653,7 @@ Example::
 
 
 ----
+#TODO#
 
 // ********************************************************************************************************************
 
@@ -632,6 +693,7 @@ Here, the analyser computes the annotation:
 
 
 ----
+#TODO#
 
 // ********************************************************************************************************************
 

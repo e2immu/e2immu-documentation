@@ -1,0 +1,186 @@
+== Annotated APIs
+
+=== Purpose
+
+The modification status of a class often depends on _foreign_ method calls: calls on objects defined outside your own code base.
+In some situations, their source code is available, but that need not be the case.
+So to build up a fair picture, one could say that the {e2immu} analyser would have to parse all types and methods "from the ground up", and decide on their modification status in an incremental way.
+This procedure would be slow and hugely impractical.
+
+On top of the incremental problem, APIs often come in the form of an interface without implementation.
+Expressing the modification status by hand (the terminology we use is _contracting_, or writing the contract) is the only way forward.
+
+Thirdly, manually annotating APIs can help you _override_ the implied modification status, or any other feature supported by the analyser.
+Here are two simple examples why that can come in handy:
+
+[source,java]
+----
+interface List<E> extends Collection<E> {
+    ...
+    @Modified
+    boolean add(@NotNull E e);
+}
+----
+
+Here, we acknowledge that `add` modifies the list, but we prohibit passing `null` as an element.
+Secondly, we may decide to ignore modifications to the output stream `System.out`, by writing
+
+[source,java]
+----
+class System {
+
+    @IgnoreModifications
+    @NotNull
+    static final PrintStream out;
+
+    @NotNull
+    @IgnoreModifications
+    static final PrintStream err;
+
+    ...
+}
+----
+
+so that we can still claim that the following method is not modifying:
+
+[source,java]
+----
+@NotModified
+static int square(int x) {
+    int result = x*x;
+    System.out.println("The square of "+x+" is "+result);
+    return result;
+}
+----
+
+It should be clear from these examples, and from the terminology used throughout the rest of the documentation, that we express the modification status, and other aspects of the code, by means of Java annotations.
+
+In this section, we describe a practical way of annotating foreign APIs; we call it simply _Annotated API_ files.
+The <<annotationxml-files,next section>> deals with a more compact form, _annotation XML_ files, which are less readable but (maybe) simpler and faster to load.
+
+=== Preparing Annotated API files
+
+Should we then start to systematically annotate all the libraries that our project uses?
+That is one way of approaching the problem; however, because we have a source code analyser at hand, we can easily detect exactly which types, methods, and fields are used by our code.
+The analyser's command line interpreter (CLI) provides options for generating a template Annotated API file for a whole library, for selected packages, or for exactly those types, methods and fields required.
+
+The following Gradle task, taken from the `e2immu/annotation-store` project, contains the code to produce a single `IoVertxCore.java` file:
+
+.Part of _build-api.gradle_ in _e2immu/annotation-store_
+[source,groovy]
+----
+
+plugins {
+    id 'java'
+}
+
+task runIoVertxAAPI(type: JavaExec) {
+    group = "Execution"
+    description = "Prepare an AnnotatedAPI file for io.vertx.core"
+
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'org.e2immu.analyser.cli.Main'
+
+    Set<File> reducedClassPath = sourceSets.main.runtimeClasspath.toList()
+    reducedClassPath += sourceSets.test.runtimeClasspath
+    reducedClassPath.removeIf({ f -> f.path.contains("build/classes")
+        || f.path.contains("build/resources") })
+
+    args('--classpath=' + reducedClassPath.join(":") + ":jmods/java.base.jmod",
+            '-a',
+            "--write-annotated-api-packages=io.vertx.core",
+            "--source=none",
+            "-d=CONFIGURATION,BYTECODE_INSPECTOR")
+}
+----
+
+The task can be run with the command `./gradlew -b build-api.gradle runIoVertxAAPI`.
+
+=== The Annotated API file format
+
+Annotated API files are standard Java files, they will be inspected by a standard Java parser, so all normal syntax rules need to be followed.
+They deviate in the following way:
+
+* The primary types become sub-types of a primary type named after the package.
+* To ensure that there is no clash with preloaded primary types, they have a dollar `$` suffix.
+* A string constant, `PACKAGE_NAME`, specifies the package to which 'dollar types' are transferred.
+* All types become classes, all methods return a default value.
+Actually, none of the decorations to a type, method, or field matter, as long as the analyser can identify the structure uniquely.
+
+This excerpt from the annotated API file for `java.util` used by the tests in the analyser, shows what this looks like:
+
+.Start of the _JavaUtil.java_ annotated API file
+[source,java]
+----
+public class JavaUtil {
+    public static final String PACKAGE_NAME = "java.util";
+
+    static class Enumeration$ {
+        boolean hasMoreElements() { return false; }
+        E nextElement() { return null; }
+        Iterator<E> asIterator() { return null; }
+    }
+
+    static class Map$ {
+        static class Entry {
+            K getKey() { return null; }
+            V getValue() { return null; }
+    ...
+----
+
+Once all relevant types, methods and fields can be written, they can be annotated, as in:
+
+.A second part of the _JavaUtil.java_ annotated API file
+[source,java]
+----
+public class JavaUtil {
+    public static final String PACKAGE_NAME = "java.util";
+
+    ...
+
+    @Container
+    // this is not in line with the JDK, but we will block null keys!
+    static class Collection$<E>  {
+
+        boolean add$Postcondition(E e) { return contains(e); }
+        @Modified
+        boolean add(@Dependent1 @NotNull E e) { return true; }
+
+        @Independent
+        boolean addAll(@Dependent2 @NotNull1 java.util.Collection<? extends E> collection) {
+            return true;
+        }
+
+        static boolean clear$Clear$Size(int i) { return i == 0; }
+        @Modified
+        void clear() { }
+
+        static boolean contains$Value$Size(int i, Object o, boolean retVal) {
+            return i != 0 && retVal;
+        }
+        @NotModified
+        boolean contains(@NotNull Object object) { return true; }
+
+        ...
+    }
+}
+----
+
+Also on display here are <<companion-methods>>, static methods describing either how the state of a `Collection` instance changes after a modifying method call, or certain edge cases can be resolved using this state information.
+
+=== Annotation types
+
+All {e2immu} annotations have a parameter of the enum type `AnnotationType`, which takes 4 different values:
+
+VERIFY:: this is the default value inserted when parsing Java code.
+This corresponds to the standard use of {e2immu} annotations: normally the analyser will compute them for you, but you may want to assert their presence.
+
+VERIFY_ABSENT:: mostly for debugging: insert in the Java code by hand to make sure the analyser does not end up computing this assertion for you.
+
+COMPUTED:: added to annotations inserted by the analyser
+
+CONTRACT:: added to annotations inserted when parsing annotation XMLs or annotated APIs.
+This type indicates that a value has not been computed, but stipulated by the user.
+
+The list of available annotations can be found <<list-of-annotations,here>>.
+In Annotated API files, CONTRACT is the default type, and needs not be specified.
