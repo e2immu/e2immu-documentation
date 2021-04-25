@@ -32,6 +32,8 @@ include::{includedir}/manual/039-demo.adoc[]
 == _Reference_
 :sectnums:
 include::{includedir}/manual/040-concepts.adoc[]
+include::{includedir}/manual/043-preconditions.adoc[]
+include::{includedir}/manual/044-instance-state.adoc[]
 
 include::{includedir}/manual/060-reference.adoc[]
 include::{includedir}/manual/061-list.adoc[]

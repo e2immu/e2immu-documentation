@@ -2,3 +2,5 @@
 Main website: https://www.e2immu.org.
 
 == Introduction
+
+WARNING: This document is work in progress.
