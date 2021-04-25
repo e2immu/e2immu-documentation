@@ -1,5 +1,5 @@
 
-=== Using the Gradle plugin
+=== The Gradle plugin
 
 The easiest way to use the analyser is via the Gradle plugin.
 

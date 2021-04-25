@@ -1,5 +1,5 @@
 
-=== The e2immu analyser command line
+=== The analyser's command line
 
 The input to the analyser is largely controlled by the following primary locations
 

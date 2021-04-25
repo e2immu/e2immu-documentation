@@ -1,9 +1,89 @@
-
 == Installing e2immu
 
 === Obtaining the analyser
 
+For now, the analyser's binaries have not been uploaded to a central jar repository (like MavenCentral) yet.
+Please clone the following projects from GitHub:
 
-=== Building the analyser
+* https://github.com/e2immu/e2immu-support[e2immu-support^], a small jar containing the annotations and some support classes
+* https://github.com/e2immu/e2immu[e2immu^], the analyser
+
+The support jar has been compiled with the Java 10+ API; this can easily be stripped down to Java 8 if required.
+The analyser makes extensive use of the Java 16 API _and_ language features.
+
+The IntelliJ plugin is still in its infancy.
+It is not yet available in IntelliJ's plugin repository.
+To experiment with it, clone
+
+* https://github.com/e2immu/e2immu-annotation-store[e2immu-annotation-store^], the annotation store
+* https://github.com/e2immu/e2immu-intellij-plugin[e2immu-intellij-plugin^], the IntelliJ plugin
+
+=== The support jar
+
+The annotations and support classes can be compiled with any JDK providing the Java 10+ API.
+Execute:
+
+[source,shell script]
+----
+./gradlew publishToMavenLocal
+----
+
+to make the jar, with reference `org.e2immu:e2immu-support:0.2.0`, locally available.
+
+=== The analyser
+
+Please ensure you have at least a Java 16 JDK.
+Gradle 7.0 (lower versions do not play nice with Java 16) is provided via the Gradle wrapper.
+
+To make the jars available, publish them to your local Maven repository:
+
+[source,shell script]
+----
+./gradlew publishToMavenLocal
+----
+
+This pushes the following jars to your local Maven repository:
+
+* `org.e2immu:analyser:0.1.2`, the analyser
+* `org.e2immu:analyser-cli:0.1.2`, a small library extending the analyser with a command line
+* `org.e2immu:analyser-store-uploader:0.1.2`, a small library to upload annotations to the annotation store
+* `org.e2immu:gradle-plugin:0.1.2`, the Gradle plugin which you'll need to run the analyser in a practical setting
+
+Of course, version numbers may have changed when you read this.
+
+=== The annotation store
+
+The annotation store is a separate project, consisting of two Java classes.
+Build it with:
+
+[source,shell script]
+----
+./gradlew build
+----
+
+and start the annotation store with
+
+[source,shell script]
+----
+./gradlew run
+----
+
+The `build.gradle` file provides support to change the port, in case 8281 is already occupied.
+For example,
+
+[source,shell script]
+----
+./gradlew run -De2immu-port=9999
+----
+
+will start the annotation store listening to port 9999.
+Please make sure this change of port is reflected in the configuration of the IDE plugin, which also needs to connect to the annotation store.
+
+=== The IntelliJ plugin
+
+The plugin is compiled with Java 8 language features only.
+
+WARNING: At this point (April 2021), the analyser still crashes on the sources of the plugin!
+
 
 

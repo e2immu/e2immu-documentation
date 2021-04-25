@@ -24,6 +24,7 @@ include::{includedir}/manual/032-cli.adoc[]
 include::{includedir}/manual/034-gradle.adoc[]
 include::{includedir}/manual/036-annotatedapis.adoc[]
 include::{includedir}/manual/038-visualising.adoc[]
+include::{includedir}/manual/039-demo.adoc[]
 
 :sectnums!:
 

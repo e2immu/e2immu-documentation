@@ -23,8 +23,8 @@ repositories {
 
 asciidoctor {
     sources {
-        include 'manual/000-main.adoc'
-        include 'road-to-immutability/000-main.adoc'
+        include 'manual.adoc'
+        include 'road-to-immutability.adoc'
     }
     resources {
         from(sourceDir) {

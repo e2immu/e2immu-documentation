@@ -1,0 +1,82 @@
+
+== The annotation store as a demo project
+
+Next to playing a role in the communication between the IntelliJ plugin and the analyser, it serves as a demo project for the analyser.
+
+In `build.gradle`, the relevant lines are:
+
+[source,groovy]
+----
+plugins {
+    ...
+    id 'org.e2immu.analyser'
+}
+...
+e2immu {
+    debug = "OUTPUT" //INSPECT,BYTECODE_INSPECTOR,ANALYSER,DELAYED"
+    jmods = 'java.base.jmod,java.logging.jmod'
+    sourcePackages = "org.e2immu.kvstore"
+    readAnnotatedAPIPackages = "org.e2immu.kvstoreaapi"
+    writeAnnotationXML = true
+    writeAnnotationXMLPackages = "org.e2immu."
+    upload = true
+}
+----
+
+Because the analyser, as a Gradle plugin, is only available in your local Maven repository, the following lines need to be present in `settings.gradle`:
+
+[source,groovy]
+----
+pluginManagement {
+    repositories {
+        mavenLocal()
+        ...
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.namespace == 'org.e2immu') {
+                useModule('org.e2immu:gradle-plugin:0.1.2')
+            }
+        }
+    }
+}
+----
+
+Run the analyser:
+
+[source,shell script]
+----
+./gradlew e2immu-analyser
+----
+
+It should "fail" with 2 errors and 4 warnings.
+If you have not started an annotation store (yet), you should also see an `IOException` warning you that uploading to the annotation store failed.
+
+The `debug` options to `e2immu` listed above activate only the `OUTPUT` debug logger, which writes out the sources enriched with all annotations computed by the analyser.
+Run:
+
+[source,shell script]
+----
+./gradlew e2immu-analyser --debug
+----
+
+to find them, obviously among a lot of other debug output.
+
+Next to the `build.gradle` build file, there is a second one, `build-api.gradle`.
+It provides two tasks, `runIoVertxInspected` and `runIoVertxUsage`, which run the analyser via its command line interpreter rather than the Gradle plugin.
+Their primary goal is to produce templates for annotated API files.
+The former contains the option `--write-annotated-api=INSPECTED`, the latter the option `--write-annotated-api=USAGE`.
+
+Executing:
+
+[source,shell script]
+----
+./gradlew -b build-api.gradle runIoVertxUsage
+----
+
+runs the analyser without annotated API sources, which produces a lot of warnings, but also writes template files in the folder:
+
+[source,shell script]
+----
+build/annotatedAPIs/org/e2immu/kvstoreaapi/
+----
