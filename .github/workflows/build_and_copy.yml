@@ -23,7 +23,7 @@ jobs:
             arguments: asciidoctorPdf
 
       - name: correct images path for HTML
-        run: sed -i '10s/{includedir}/../' src/docs/asciidoc/manual.adoc 	
+        run: sed -i '10s/{includedir}/./' src/docs/asciidoc/manual.adoc 	
 
       - name: generate HTML files using gradle
         uses: eskatos/gradle-command-action@v1

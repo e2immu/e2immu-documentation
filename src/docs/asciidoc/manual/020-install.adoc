@@ -1,3 +1,5 @@
+
+[#installing]
 == Installing e2immu
 
 === Obtaining the analyser
