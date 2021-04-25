@@ -17,27 +17,48 @@ jobs:
         with:
             java-version: 16
 
-      - name: generate files using gradle
+      - name: generate PDF files using gradle
+        uses: eskatos/gradle-command-action@v1
+        with:
+            arguments: asciidoctorPdf
+
+      - name: correct images path for HTML
+        run: sed -i '10s/{includedir}/../' src/docs/asciidoc/manual/000-main.adoc 	
+
+      - name: generate HTML files using gradle
         uses: eskatos/gradle-command-action@v1
         with:
             arguments: asciidoctor
-
+              
       - name: copy generated documentation files to e2immu-site
         env:
           REPO: e2immu/e2immu-site
           SOURCE: build/docs/asciidoc/
+          SOURCE_MANUAL: build/docs/asciidocPdf/manual/000-main.pdf
+          TARGET_MANUAL: target/static/docs/manual.pdf
+          SOURCE_TUTORIAL: build/docs/asciidocPdf/road-to-immutability/000-main.pdf
+          TARGET_TUTORIAL: target/static/docs/road-to-immutability.pdf
           TARGET: target/static/docs
           GIT_USERNAME: action
           GIT_EMAIL: action@github.com
         run: |
             git clone https://.:${{ secrets.GTOKEN }}@github.com/${{ env.REPO }} target
             if [ -d ${{ env.TARGET }} ]; then rm -rf ${{ env.TARGET }}/*; fi
+            echo "copying HTMLs ------"
             cp -r ${{ env.SOURCE }}* ${{ env.TARGET }}/
+            echo "copying manual ------"
+            cp ${{ env.SOURCE_MANUAL }} ${{ env.TARGET_MANUAL }}
+            echo "copying tutorial ------"
+            cp ${{ env.SOURCE_TUTORIAL }} ${{ env.TARGET_TUTORIAL }}
             cd target
+            echo "configure git"
             git config --local user.email "${{ env.GIT_EMAIL }}"
             git config --local user.name "${{ env.GIT_USERNAME }}"
+            echo "add files to git"
             git add .
+            echo "git commit"
             git commit -m "Github actions automatic build - `date +"%Y-%m-%d %H:%M"`"
+            echo "git push"
             git push origin --set-upstream main
             
 
