@@ -1,4 +1,4 @@
-= The road to immutability
+= The Road to Immutability
 :source-highlighter: coderay
 :source-language: java
 :description: A walk-through of the concepts and definitions of _e2immu_

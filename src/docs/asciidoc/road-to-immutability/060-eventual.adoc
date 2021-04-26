@@ -240,4 +240,54 @@ In the case of eventual level 2 immutability,
 
 Eventual finality simply adds a  `@Final(after="mark")` annotation to each of these situations.
 
+=== Frameworks and contracts
+
+A fair number of Java frameworks introduce dependency injection and initializer methods.
+This concept is, in many cases, compatible with the idea of eventual immutability: once dependency injection has taken place, and an initializing method has been called, the framework stops intervening in the value of the fields.
+
+It is therefore not difficult to imagine, and implement in the analyser, a _before_ state (initialization still ongoing) and an _after_ state (initialization done) associated with the particular framework.
+The example below shows how this could be done for the `Verticle` interface of the https://vertx.io[vertx.io framework^].
+
+.Excerpts and annotations of Verticle.java and AbstractVerticle.java
+[source]
+----
+@E1Container(after = "init")
+interface Verticle {
+
+    @Mark("init")
+    void init(Vertx vertx, Context context);
+
+    @Only(after = "init")
+    Vertx getVertx();
+
+    @Only(after = "init")
+    void start(Promise<Void> startPromise) throws Exception;
+
+    @Only(after = "init")
+    void stop(Promise<Void> startPromise) throws Exception;
+}
+
+public abstract class AbstractVerticle implements Verticle {
+    @Final(after="init")
+    protected Vertx vertx;
+
+    @Final(after="init")
+    protected Context context;
+
+    @Override
+    public Vertx getVertx() {
+        return vertx;
+    }
+
+    @Override
+    public void init(Vertx vertx, Context context) {
+        this.vertx = vertx;
+        this.context = context;
+    }
+    ...
+}
+----
+
+Currently, early 2021, contracted eventual immutability has not been implemented yet in the analyser.
+
 // ensure a newline at the end

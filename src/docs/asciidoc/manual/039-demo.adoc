@@ -1,9 +1,11 @@
 
+[#demo-project]
 == The annotation store as a demo project
 
-Next to playing a role in the communication between the IntelliJ plugin and the analyser, it serves as a demo project for the analyser.
+This section assumes you have installed the analyser and its supporting jars, as described in <<installing>>.
 
-In `build.gradle`, the relevant lines are:
+Next to playing a role in the communication between the IntelliJ plugin and the analyser, the annotation store serves as a demo project for the analyser.
+In its `build.gradle` file, the relevant lines to run the analyser are:
 
 [source,groovy]
 ----

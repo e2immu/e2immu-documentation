@@ -1,6 +1,7 @@
 
+== Analyser details
 
-== Preconditions
+=== Preconditions
 
 #TODO#
 

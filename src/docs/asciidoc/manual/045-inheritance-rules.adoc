@@ -1,0 +1,5 @@
+
+[#inheritance-rules]
+=== Inheritance rules of annotations
+
+#TODO#

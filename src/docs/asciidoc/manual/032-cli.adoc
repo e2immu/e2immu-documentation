@@ -21,9 +21,8 @@ Then there are typical options like
 
 - `--quiet` (short `-q`): do not write warnings, errors, etc to the standard output.
 They are still uploaded when the `--upload` option is activated.
-- `--debug=<logtargets>`: log targets to activate for debug output
+- `--debug=<logtargets>`: log targets to activate for debug output. Their names can be found in the class `org.e2immu.analyser.util.Logger.LogTarget`.
 - `--ignore-errors`: do not end the analyser in an error state when errors have been raised by the analyser.
-They are still uploaded when the `--upload` option is activated.
 
 The following options are available to control the output to the annotation server:
 
@@ -33,16 +32,16 @@ The following options are available to control the output to the annotation serv
 - `--upload-packages=<packages>`: a comma-separated list of package names for which annotations are to be uploaded.
 The default is to upload all annotations of all types encountered during the parsing process.
 
-The following options are available to control the files written:
+The following options are available to control the output of Annotation XML files written:
 
 - `--write-annotation-xml` (short: `-w`): create annotation files to be included in the resources, and hence the jar of the project.
 - `--write-annotation-xml-packages=<packages>`: a comma-separated list of package names for which annotation.xml files are to be written.
 The default is to write them for all the packages of `.java` files parsed
 - `--write-annotation-xml-dir=<directory>`: alternative location to write the Xml files.
-Defaults to the resources directory of the project.
+The value defaults to the resources directory of the project.
 - `--write-annotated-api` (short: `-a`)
 - `--write-annotated-api-packages=<packages>`: a comma-separated list of package names for which annotated API files are to be written.
-The default is to write them for all the packages of `.java` files parsed
+The default is to write them for all the packages of `.java` files parsed.
 - `--write-annotated-api-dir=<directory>`: alternative location to write the annotated API files.
 The default is the main directory of the project
 
