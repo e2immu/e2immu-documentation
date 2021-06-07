@@ -323,6 +323,7 @@ Level 2 immutable classes can also play the role of extension facilitators, with
 
 Note that extension classes will often not be {container}, since the first parameter will be {modified} in many cases.
 
+[#singleton-classes]
 ==== Singleton classes
 
 A singleton class is a class which has a mechanism to limit the creation of instances to a maximum of one.

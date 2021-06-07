@@ -366,3 +366,159 @@ No getter should ever be modifying.
 The other direction is more interesting, while equally simple to explain: deriving from a parent class cannot increase the immutability level.
 Explicitly changing a modifying method into a non-modifying one is not allowed by the analyser.
 
+We will allow interfaces to be used to set expectations: when `java.util.Set` is defined to be a {container}, it makes sense to demand that every implementation of `Set` is a {container} as well.
+This rule will extend to {e1immutable}, {e2immutable}, and {independent}.
+
+[#static-side-effects]
+=== Static side effects
+
+Up to now, we have made no distinction between static fields and instance fields: modifications are modifications.
+Inside a primary type, we will stick to this rule.
+In the following example, each call to `getK` increments a counter, which is a modifying operation because the type owns the counter:
+
+.Modifications on static fields are modifications
+[source,java]
+----
+@E1Container
+public class CountAccess<K> {
+    private final K k;
+
+    @Modified
+    private static final AtomicInteger counter = new AtomicInteger();
+
+    public CountAccess(K k) {
+        this.k = k;
+    }
+
+    @Modified
+    public K getK() {
+        counter.getAndIncrement();
+        return k;
+    }
+
+    @NotModified
+    public static int countAccessToK() {
+        return counter.get();
+    }
+}
+----
+
+We can explicitly ignore modifications with the {ignoreModifications} annotation, which may make sense from a semantic point of view:
+
+.Modification on static field explicitly ignored
+[source,java]
+----
+@E2Container
+public class CountAccess<K> {
+    private final K k;
+
+    @IgnoreModifications
+    private static final AtomicInteger counter = new AtomicInteger();
+
+    public CountAccess(K k) {
+        this.k = k;
+    }
+
+    @NotModified
+    public K getK() {
+        counter.getAndIncrement();
+        return k;
+    }
+
+    @NotModified
+    public static int countAccessToK() {
+        return counter.get();
+    }
+}
+----
+
+The next section, on <<value-based-classes>>, briefly explores these semantic differences.
+
+Note that when the modification takes place inside the constructor, it is "ignored", because constructors are meant to be modifying:
+
+.Modification takes place inside constructor
+[source,java]
+----
+@E2Container
+public class HasUniqueIdentifier<K> {
+    public final K k;
+    public final int identifier;
+
+    @NotModified
+    private static final AtomicInteger generator = new AtomicInteger();
+
+    public HasUniqueIdentifier(K k) {
+        this.k = k;
+        identifier = generator.getAndIncrement();
+    }
+}
+----
+
+When static modifying methods are called, on a field not belonging to the primary type or any of the parent types, or directly on a type expression which does not refer to any of the types in the primary type or parent types, we will make an exception to this rule, and classify the modification as a _static side effect_.
+This leads to consistency with the rules of level 2 immutable types, which only look at the fields and assume that when methods do not modify the fields, they are actually non-modifying.
+
+Without an {ignoreModifications} annotation on the field `System.out` (which we would typically add), printing to the console results in
+
+[source,java]
+----
+@StaticSideEffects
+@NotModified
+public K getK() {
+    System.out.println("Getting "+k);
+    return k;
+}
+----
+
+We leave it up to the programmer or designer to determine whether static calls deserve a {sse} warning, or not.
+In almost all instances, we prefer a singleton instance (see <<singleton-classes>>) over a class with modifying static methods.
+In singletons the normal modification rules apply, unless {ignoreModifications} decorates the static field which allows access to the singleton.
+
+[#value-based-classes]
+=== Value-based classes
+
+Quoting from the JDK 8 documentation, value-based classes are
+
+. final and immutable (though may contain references to mutable objects);
+. have implementations of equals, hashCode, and toString which are computed solely from the instance's state and not from its identity or the state of any other object or variable;
+. make no use of identity-sensitive operations such as reference equality (==) between instances, identity hash code of instances, or synchronization on an instances's intrinsic lock;
+. are considered equal solely based on equals(), not based on reference equality (==);
+. do not have accessible constructors, but are instead instantiated through factory methods which make no commitment as to the identity of returned instances;
+. are freely substitutable when equal, meaning that interchanging any two instances x and y that are equal according to equals() in any computation or method invocation should produce no visible change in behavior.
+
+Item 1 requires level 1 immutability (all fields are {final}) but does not specify any of the restrictions we require for level 2 immutability.
+Item 2 implies that should `equals`, `hashCode` or `toString` make a modification to the object, its state changes, which would then change the object with respect to other objects.
+We could conclude that these three methods cannot be modifying.
+
+Loosely speaking, objects of a value-based class can be identified by the values of their fields.
+Level 2 immutability (or deeper) is not requirement to be a value-based class.
+However, most level 2 immutable types will become value-classes.
+Revisiting the example from the previous section, we can construct a counter-example:
+
+.Level 2 immutable type which is not value-based
+[source,java]
+----
+@E2Container
+public class HasUniqueIdentifier<K> {
+    public final K k;
+    public final int identifier;
+
+    @NotModified
+    private static final AtomicInteger generator = new AtomicInteger();
+
+    public HasUniqueIdentifier(K k) {
+        this.k = k;
+        identifier = generator.getAndIncrement();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if(this == other) return true;
+        if(other instanceof HasUniqueIdentifier<?> hasUniqueIdentifier) {
+            return identifier == hasUniqueIdentifier.identifier;
+        }
+        return false;
+    }
+}
+----
+
+The `equals` method violates item 2 of the value-class definition, maybe not to the letter but at least in its spirit: the field `k` is arguably the most important field, and its value is not taken into account when computing equality.
