@@ -372,6 +372,58 @@ In other words, you can add new parameter-modifying methods, but you cannot chan
 
 This topic will return in greater detail in the section <<higher-level-modifications>>.
 
+[#abstract-methods]
+=== Abstract methods
+
+Because `java.lang.Object` is a level 2 container, trivial extensions are, too:
+
+[source,java]
+----
+@E2Container
+interface EmptyInterface { }
+
+@E2Container
+class Empty { }
+
+@E2Container
+class ImplementsEmpty implements EmptyInterface { }
+
+@E2Container
+class ExtendsEmpty extends ImplementsEmpty { }
+----
+
+Things only become interesting when methods enter the picture.
+Annotation-wise, we stipulate that
+
+****
+Unless otherwise explicitly annotated, we will assume that abstract methods, be they in interfaces or abstract classes, are {nm}.
+****
+
+Furthermore, we will also add a 4th rule for level 2 immutability of type `T`:
+
+****
+*Rule 4*: Abstract methods must be non-modifying.
+****
+
+The consequence of these choices is that implementations and extensions of abstract and non-abstract types that do not add new non-private methods, will still have the same container and level 2 immutability properties.
+This allows us, e.g., to see every implementation of `java.util.Set` as a container, if we limit to the public methods of `Set`.
+Similarly, we can treat any implementation of `Comparable`, defined as:
+
+.Comparable annotated
+[source,java]
+----
+interface Comparable<T> {
+    // @NotModified implicitly present
+    int compareTo(@NotModified T other);
+}
+----
+
+as a level 2 immutable type when the only method we can access is `compareTo`.
+
+Note that if a type `T` obeys all rules of level 2 immutability, it follows that parameters of type `T`, or any super-type of `T`, in abstract methods in type `T`, are non-modifying.
+This is because no extension or implementation of `T` will have any modifying methods available to make modifications.
+Note that this statement does not apply to `Comparable`, because the type `T` of `other` is typically an implementation or extension of `Comparable`, rather than `Comparable` itself or a super-type.
+
 [#static-side-effects]
 === Static side effects
 

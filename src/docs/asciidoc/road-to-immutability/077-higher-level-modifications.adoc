@@ -60,31 +60,18 @@ We also make use of the `Consumer` functional interface:
 ----
 @FunctionalInterface
 interface Consumer<T> {
+    @Modified
     void accept(T t);
 }
 ----
 
-Note that method and parameter remain unmarked in terms of modification: we will accept the implicit `@Modified` annotation both on the `accept` method, and its parameter `t`.
-Doing the opposite, i.e., specifying `@NotModified` on `accept`, would prohibit any implementation of `accept` from being modifying, which is overly restrictive.
-Similarly, specifying `@NotModified` on `t` would exclude many valid implementations of the consumer concept.
+Note that the parameter `t` is implicitly marked {modified}.
+As detailed in the first section on <<abstract-methods>>, the default modification status for abstract methods is {nm}.
+we have to be explicit about `accept`, because requiring all implementations to be non-modifying would be overly restrictive.
 
-Note that there are functional interfaces where `@NotModified` makes sense, e.g.,
+Using the `Consumer` interface we introduce a `forEach` method in `Circular` which iterates over the two elements:
 
-.Comparable
-[source,java]
-----
-interface Comparable<T> {
-    @NotModified
-    int compareTo(@NotModified T other);
-}
-----
-
-While not explicitly marked as `@FunctionalInterface` in the JDK, `Comparable` has a single abstract method.
-We expect comparisons to be non-modifiable, both with respect to the fields of the implementing type (this), as to the `other` object (that).
-
-Using the `Consumer` we introduce a `forEach` method which iterates over the two elements:
-
-.forEach in Circular
+.A _forEach_ method in _Circular_
 [source,java]
 ----
 public void forEach(Consumer<T> consumer) {
@@ -103,11 +90,11 @@ If `accept` were not an abstract method, we'd have to obey the definitions of th
 2. Because `t`, the parameter of `accept`, is `@Modified`, we have to mark `forEach` as `@Modified`.
 
 The result of the first reasoning would violate the `@Container` property on `Circular`, and we'd be very reluctant to do that.
-The second one would make `forEach` structurally modifying, which again goes against our intuition.
+The second one would make `forEach` modifying in `Circular`, which again goes against our intuition.
 
 Luckily, there are a number of observations that come to the rescue:
 
-. Because the implementation comes 'from the outside', the only modifications that should really concern us here in `Circular` is the modifications to `accept` 's parameter `t`.
+. Because the implementation comes 'from the outside' (is external to `Circular`), the only modifications that should really concern us are the modifications to `accept` 's parameter `t`.
 Other modifications are, for example, to the fields of the type in which the implementation is present, and they are far outside our scope.
 . Because `accept` is abstract, we can have both non-modifying, and modifying implementations.
 . Modifications to `t` propagate to the fields of `Circular`, `x` and `y`, so they would have an impact on the modification status of `forEach`.
@@ -116,8 +103,8 @@ Other modifications are, for example, to the fields of the type in which the imp
 The last point allows us to keep `forEach` non-modifying.
 The first and second point allow us to argue that calling `accept` here is not necessarily a modifying operation to `consumer`: it'll depend on the concrete implementation.
 Here, we have no knowledge of the presence of fields in the implementation that can potentially be modified.
-The third point, finally, gives us an incentive to mark the fact that our fields have been passed on to a potentially modifying abstract method within the parameter `consumer`.
-This information will come in useful later; we will use the {propagateModification} annotation for this purpose.
+The third point, finally, gives us an incentive to mark the fact that our fields have been passed on to a (potentially) modifying (abstract) method within the parameter `consumer`.
+This information will come in useful later; we will use the {dependent1} annotation for this purpose.
 
 This results in the following annotations for `forEach` in `Circular`:
 
@@ -125,7 +112,7 @@ This results in the following annotations for `forEach` in `Circular`:
 [source,java]
 ----
 @NotModified
-public void forEach(@NotModified @PropagateModification Consumer<T> consumer) {
+public void forEach(@NotModified @Dependent1 Consumer<T> consumer) {
     consumer.accept(x);
     consumer.accept(y);
 }
@@ -137,7 +124,7 @@ Looking at the more general case of a `forEach` implementation iterating over a 
 [source,java]
 ----
 @NotModified
-public void forEach(@NotModified @PropagateModification Consumer<T> consumer) {
+public void forEach(@NotModified @Dependent1 Consumer<T> consumer) {
     for(T t: list) consumer.accept(t);
 }
 ----
@@ -148,7 +135,7 @@ Or stated differently, modifications to the parameter of the concrete implementa
 === Propagating modifications
 
 Let us apply the `forEach` method to `StringBuilder`.
-Note that a modification annotation on a parameter detects any modification to any field in the object graph of the parameter.
+Recall from the section on <<modification>> that a modification annotation on a parameter detects any modification to any field in the object graph of the parameter.
 
 .Propagating the modification of _forEach_
 [source,java]
@@ -177,7 +164,19 @@ void addToStrings(@NotModified Circular<StringBuilder> c) {
 <4> Example of modification to fields outside the scope of `Circular`.
 
 It is item 2, `addNewLine`, that is of importance here.
-Thanks to the {propagateModification} annotation, we know of a modification to `c`.
+Thanks to the {dependent1} annotation, we know of a modification to `c`.
+It helps to see the for-loop written out, if we temporarily assume that we have added an implementation of `Iterable` to `Circular`:
+
+[source,java]
+----
+static void addNewLine(@Modified Circular<StringBuilder> c) {
+    for(StringBuilder sb: c) {
+      sb.append("\n"));
+    }
+}
+----
+
+We really need the link between `sb` and `c` for the modification on `sb` to propagate to `c`.
 
 Without storing additional information (e.g., using an annotation like `@Modified1` on `c` in `addNewLine`), however, we cannot make the distinction between a modification to the string builders inside `x` and `y`, or an assignment to `x` or `y` in `Circular`, as in item 3.
 In other words, we cannot determine {m} on the parameters of `useAddNewLine` in the following example:
@@ -427,12 +426,4 @@ public class ImmutableArray<T> implements Iterable<T> {
     }
 }
 ----
-
-=== More on implicitly immutable types
-
-Looking at the <<support-lazy>> example, which immutability properties should we give the field `Supplier<T> supplier`?
-The type `T` is implicitly immutable in `Lazy`, as it can be replaced by `java.lang.Object`.
-
-We propose to add abstract types, where _only_ the abstract method is called, to the set of implicitly immutable types of the enclosing type.
-The reasoning is that whilst you can access the type, you still cannot know the effect of this action.
 
