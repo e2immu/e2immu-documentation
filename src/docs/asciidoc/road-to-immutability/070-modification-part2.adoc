@@ -111,7 +111,7 @@ Rule 4: in an array access `v = a[index]`, `v` links to `a`.
 Note: links between `b`, `c`, and `d` are possible, but are covered by the {modified} annotation:
 when a parameter is {nm}, no modifications at all are possible, not even indirectly.
 
-=== Abstract methods and functional interfaces
+=== Locally implemented abstract methods
 
 Abstract methods are present in interfaces, and abstract classes.
 Their very definition is that no implementation is present at the place of definition: only the ins (parameters) and outs (return type) are pre-defined.

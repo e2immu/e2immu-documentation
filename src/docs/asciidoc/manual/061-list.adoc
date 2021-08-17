@@ -584,23 +584,6 @@ Mode:: It is the default in the green mode, when {nm} is not visible.
 
 // ********************************************************************************************************************
 
-[#modified1-annotation]
-==== @Modified1
-
-|===
-| Basic {n} | Immu {n}| Contract {n}| Type {y} | Field {n} | Method {n} | Param {y}
-|===
-
-Summary:: This annotation is part of the <<concept-higher-order-modification,higher-order modifications>>.
-
-Mode:: the opposite annotation is {nm1}.
-In green mode, this one is the default; in red mode, {nm1} is the default.
-
-Example:: Applying a c
-#TODO#
-
-// ********************************************************************************************************************
-
 [#mutableModifiesArguments-annotation]
 ==== @MutableModifiesArguments
 
@@ -647,46 +630,6 @@ Summary:: Core annotation which indicates that no <<concept-modified,modificatio
 Mode:: It is the default in the red mode, when its opposite {modified} is not present.
 
 Example::
-
-[source,java]
-----
-
-
-----
-#TODO#
-
-// ********************************************************************************************************************
-
-[#notModified1-annotation]
-==== @NotModified1
-
-|===
-| Basic {n} | Immu {y}| Contract {y}| Type {n} | Field {y} | Method {y} | Param {y}
-|===
-
-Summary:: This annotation is part of the <<concept-higher-order-modification,higher-order modifications>>.
-Contracted to a parameter of an abstract type, it indicates that the abstract method cannot be implemented in a modifying way.
-Computed on parameters of any type with <<concept-implicitly-immutable,implicitly immutable content>>, it signifies that
-
-
-Mode:: It exists only in the green mode; there is no opposite.
-It can only be used for contracting, the analyser cannot generate it.
-
-This annotation is a dynamic type annotation on functional types in fields, methods and parameters.
-The analyser can compute it in certain circumstances; in other cases, the user can show intent by requesting this property.
-
-Note that because suppliers have no parameters, only modifications to the closure apply.
-Functional interfaces are always normally {nm}: there are no modifying methods on them apart from the abstract method.
-
-Example:: We first show an example of a {nm1} contract:
-
-[source,java]
-----
-
-
-----
-
-Here, the analyser computes the annotation:
 
 [source,java]
 ----

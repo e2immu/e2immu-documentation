@@ -359,15 +359,18 @@ This means, for example, that the analyser will block a modifying `equals()` met
 Note that this rule applies to implementations of methods of all super-types: no implementation of `java.util.Collection.size()`
 will be allowed to be modifying.
 
-The guiding principle here is that of _consistency_ or _expectation_: software developers are expecting that `equals` is non-modifying.
+The guiding principle here is that of _consistency of expectation_: software developers are expecting that `equals` is non-modifying.
 They know that a setter will make an assignment, but they'll expect a getter to simply return a value.
 No getter should ever be modifying.
 
 The other direction is more interesting, while equally simple to explain: deriving from a parent class cannot increase the immutability level.
 Explicitly changing a modifying method into a non-modifying one is not allowed by the analyser.
 
-We will allow interfaces to be used to set expectations: when `java.util.Set` is defined to be a {container}, it makes sense to demand that every implementation of `Set` is a {container} as well.
-This rule will extend to {e1immutable}, {e2immutable}, and {independent}.
+Following the same principles, we observe that types deriving from a {container} super-type need not be a container themselves.
+So while we may state that `Collection` is a container, it is perfectly possible to implement a collection which has public methods which modify their parameters, _as long as the methods of `Collection` do not modify their parameters_.
+In other words, you can add new parameter-modifying methods, but you cannot change the modification status of `size`!
+
+This topic will return in greater detail in the section <<higher-level-modifications>>.
 
 [#static-side-effects]
 === Static side effects
@@ -434,8 +437,7 @@ public class CountAccess<K> {
 
 The next section, on <<value-based-classes>>, briefly explores these semantic differences.
 
-Note that when the modification takes place inside the constructor, it is still not ignored, because for static fields,
-static code blocks act as the constructor:
+Note that when the modification takes place inside the constructor, it is still not ignored, because for static fields, static code blocks act as the constructor:
 
 .Modification takes place inside constructor
 [source,java]
@@ -456,6 +458,7 @@ public class HasUniqueIdentifier<K> {
 ----
 
 Only modifications in a static code block are ignored:
+
 [source,java]
 ----
 
@@ -470,7 +473,6 @@ public class CountAccess<K> {
     ...
 }
 ----
-
 
 When static modifying methods are called, on a field not belonging to the primary type or any of the parent types, or directly on a type expression which does not refer to any of the types in the primary type or parent types, we will make an exception to this rule, and classify the modification as a _static side effect_.
 This leads to consistency with the rules of level 2 immutable types, which only look at the fields and assume that when methods do not modify the fields, they are actually non-modifying.

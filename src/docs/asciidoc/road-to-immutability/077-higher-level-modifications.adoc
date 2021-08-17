@@ -1,5 +1,5 @@
 [#higher-level-modifications]
-== Higher-level modifications
+== Abstract methods and higher-level modifications
 
 From a type's point of view, fields are either of an explicit type, they are accessible, or they are of implicitly immutable type, in other words, replaceable by `Object` and inaccessible.
 Our focus up to now has been on modification of the explicit types: we have argued that they are the only ones that matter for practical immutability.
@@ -8,7 +8,9 @@ Now we will try to characterise modifications that are beyond the scope of the t
 Please note that characterising _all_ modifications is a hopelessly complex, and unnecessary, task.
 We will, however, need to deal with what can be seen as the first level of higher level modifications, if we want to be able to characterise the modifications going on in extremely important constructs such as iterators.
 
-=== Propagating modifications
+These observations occur naturally in the context of abstract methods: the specification of the `java.util.Collection` interface, or the functional interfaces like `java.util.function.Function`.
+
+=== Setting the scene
 
 The basis of this section is an example container class called `Circular`:
 
@@ -50,6 +52,7 @@ class Circular<T> {
 }
 ----
 
+The `Circular` class is an extremely simple collection; it acts as a stand-in for many JDK collections like `java.util.List` or `java.util.Set`.
 We also make use of the `Consumer` functional interface:
 
 .Consumer
@@ -61,55 +64,123 @@ interface Consumer<T> {
 }
 ----
 
-Note that method and parameter remain unmarked in terms of modification.
+Note that method and parameter remain unmarked in terms of modification: we will accept the implicit `@Modified` annotation both on the `accept` method, and its parameter `t`.
+Doing the opposite, i.e., specifying `@NotModified` on `accept`, would prohibit any implementation of `accept` from being modifying, which is overly restrictive.
+Similarly, specifying `@NotModified` on `t` would exclude many valid implementations of the consumer concept.
+
+Note that there are functional interfaces where `@NotModified` makes sense, e.g.,
+
+.Comparable
+[source,java]
+----
+interface Comparable<T> {
+    @NotModified
+    int compareTo(@NotModified T other);
+}
+----
+
+While not explicitly marked as `@FunctionalInterface` in the JDK, `Comparable` has a single abstract method.
+We expect comparisons to be non-modifiable, both with respect to the fields of the implementing type (this), as to the `other` object (that).
+
 Using the `Consumer` we introduce a `forEach` method which iterates over the two elements:
 
 .forEach in Circular
 [source,java]
 ----
-@NotModified
-public void forEach(@PropagateModification Consumer<T> consumer) {
+public void forEach(Consumer<T> consumer) {
     consumer.accept(x);
     consumer.accept(y);
 }
 ----
 
-From the point of view of `Circular`, no modifications occur because `accept` operates on fields of the implicitly immutable type `T`.
-No modifying methods are called on the parameter `consumer`, therefore it is not modified, and `Circular` can remain a container.
+Now we need to do some careful reasoning to determine the modification status of `forEach`, and to find out which annotation to add to `consumer`.
 
-How do we propagate the modification?
-In this example we will use `StringBuilder` as an archetypal modifiable type.
+=== The _forEach_ method
 
-.Propagating the modification of forEach
+If `accept` were not an abstract method, we'd have to obey the definitions of the previous chapters, and reason:
+
+1. Because `accept` is `@Modified`, we mark the parameter `consumer` as `@Modified`.
+2. Because `t`, the parameter of `accept`, is `@Modified`, we have to mark `forEach` as `@Modified`.
+
+The result of the first reasoning would violate the `@Container` property on `Circular`, and we'd be very reluctant to do that.
+The second one would make `forEach` structurally modifying, which again goes against our intuition.
+
+Luckily, there are a number of observations that come to the rescue:
+
+. Because the implementation comes 'from the outside', the only modifications that should really concern us here in `Circular` is the modifications to `accept` 's parameter `t`.
+Other modifications are, for example, to the fields of the type in which the implementation is present, and they are far outside our scope.
+. Because `accept` is abstract, we can have both non-modifying, and modifying implementations.
+. Modifications to `t` propagate to the fields of `Circular`, `x` and `y`, so they would have an impact on the modification status of `forEach`.
+. However, this impact is limited because `x` and `y` are of implicitly immutable type: external modifications to data of implicitly immutable type are outside our scope.
+
+The last point allows us to keep `forEach` non-modifying.
+The first and second point allow us to argue that calling `accept` here is not necessarily a modifying operation to `consumer`: it'll depend on the concrete implementation.
+Here, we have no knowledge of the presence of fields in the implementation that can potentially be modified.
+The third point, finally, gives us an incentive to mark the fact that our fields have been passed on to a potentially modifying abstract method within the parameter `consumer`.
+This information will come in useful later; we will use the {propagateModification} annotation for this purpose.
+
+This results in the following annotations for `forEach` in `Circular`:
+
+.The _forEach_ method in _Circular_, annotated
 [source,java]
 ----
-static void print(@NotModified @NotModified1 Circular<StringBuilder> c) {
+@NotModified
+public void forEach(@NotModified @PropagateModification Consumer<T> consumer) {
+    consumer.accept(x);
+    consumer.accept(y);
+}
+----
+
+Looking at the more general case of a `forEach` implementation iterating over a list or array,
+
+.Generic _forEach_ implementation
+[source,java]
+----
+@NotModified
+public void forEach(@NotModified @PropagateModification Consumer<T> consumer) {
+    for(T t: list) consumer.accept(t);
+}
+----
+
+we state that the four observations above still hold: implicitly immutable content inside the `list` is potentially modified by an implementation of `consumer`.
+Or stated differently, modifications to the parameter of the concrete implementation are propagated into the implicitly immutable content of `list`.
+
+=== Propagating modifications
+
+Let us apply the `forEach` method to `StringBuilder`.
+Note that a modification annotation on a parameter detects any modification to any field in the object graph of the parameter.
+
+.Propagating the modification of _forEach_
+[source,java]
+----
+static void print(@NotModified Circular<StringBuilder> c) {
     c.forEach(System.out::println); // <1>
 }
 
-static void addNewLine(@NotModified @Modified1 Circular<StringBuilder> c) {
+static void addNewLine(@Modified Circular<StringBuilder> c) {
     c.forEach(sb -> sb.append("\n")); // <2>
 }
 
-static void replace(@Modified @NotModified1 Circular<StringBuilder> c) {
+static void replace(@Modified Circular<StringBuilder> c) {
     c.forEach(sb -> c.add(new StringBuilder("x" + sb))); // <3>
 }
+
+List<String> strings = ...
+@Modified // <4>
+void addToStrings(@NotModified Circular<StringBuilder> c) {
+    c.forEach(sb -> strings.add(sb.toString()));
+}
 ----
-<1> non-modifying method implies no modification on the implicitly immutable content of `c`
-<2> parameter-modifying lambda propagates modification to `c`'s implicitly immutable content
-<3> object-modifying lambda changing `c` but not its content
+<1> Non-modifying method implies no modification on the implicitly immutable content of `c`.
+<2> Parameter-modifying lambda propagates modification to `c` 's implicitly immutable content.
+<3> Object-modifying lambda changing `c` but not its content (the string builder it holds).
+<4> Example of modification to fields outside the scope of `Circular`.
 
-We have introduced two new annotations, {m1} and {nm1}.
-Their meaning is intuitively clear from the example:
-the method `print` does not modify the implicitly immutable content of `Circular`, whereas the `addNewLine` method will do so.
-Conversely, `replace` modifies the `Circular` parameter directly, ignoring its content.
+It is item 2, `addNewLine`, that is of importance here.
+Thanks to the {propagateModification} annotation, we know of a modification to `c`.
 
-It is clear that we make a distinction between modifying the `Circular` instance, and modifying its content, the objects of type `StringBuilder`.
-Does this contradict the initial definition of modification of a parameter?
-Yes, but it allows us to be more specific.
-
-How can we use this additional firepower?
-Consider the following two examples:
+Without storing additional information (e.g., using an annotation like `@Modified1` on `c` in `addNewLine`), however, we cannot make the distinction between a modification to the string builders inside `x` and `y`, or an assignment to `x` or `y` in `Circular`, as in item 3.
+In other words, we cannot determine {m} on the parameters of `useAddNewLine` in the following example:
 
 .Using print and addNewLine
 [source,java]
@@ -125,22 +196,20 @@ static String usePrint(@NotModified StringBuilder sb1,
     return circular.stream().collect(Collectors.joining());
 }
 
-static String useAddNewLine(@Modified StringBuilder sb1,
+static String useAddNewLine(@Modified StringBuilder sb1, //<2>
                             @Modified StringBuilder sb2,
                             @Modified StringBuilder sb3) {
     Circular<StringBuilder> circular = new Circular<>();
     circular.add(sb1);
     circular.add(sb2);
     circular.add(sb3);
-    addNewLine(circular); // <2>
+    addNewLine(circular); // <3>
     return circular.stream().collect(Collectors.joining());
 }
 ----
 <1> `circular` now holds `sb1`
-<2> {m1} implies that the elements held by circular are modified (but not circular itself)
-
-Proper propagation of the modifications relies on knowing that `circular` holds the parameters `sb1`, `sb2` and `sb3`.
-(We will assume it is too complicated to assess whether `sb1` is still held by `circular` or not.) This will be accomplished by computing 'content links', which give rise to 'content (in)dependence', all in a way very similar to ordinary linking and (in)dependence.
+<2> impossible to determine
+<3> The {modified} on `addNewLine` implies that `circular` has been modified, but we do not know if any of `sb1`, `sb2`, `sb3` has been affected.
 
 [#content-linking]
 === Content linking
