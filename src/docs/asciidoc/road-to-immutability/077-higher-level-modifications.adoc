@@ -84,27 +84,25 @@ Now we need to do some careful reasoning to determine the modification status of
 
 === The _forEach_ method
 
-If `accept` were not an abstract method, we'd have to obey the definitions of the previous chapters, and reason:
+Following the normal definitions of modification, we reason:
 
 1. Because `accept` is `@Modified`, we mark the parameter `consumer` as `@Modified`.
 2. Because `t`, the parameter of `accept`, is `@Modified`, we have to mark `forEach` as `@Modified`.
 
-The result of the first reasoning would violate the `@Container` property on `Circular`, and we'd be very reluctant to do that.
-The second one would make `forEach` modifying in `Circular`, which again goes against our intuition.
+The result of the first statement would violate the `@Container` property on `Circular`, and we'd be very reluctant to do that.
+The second one would make `forEach` modifying in `Circular`, which again goes against our intuition: looping in itself is not modifying.
 
-Luckily, there are a number of observations that come to the rescue:
+Luckily, there are a number of observations that come to the rescue.
 
-. Because the implementation comes 'from the outside' (is external to `Circular`), the only modifications that should really concern us are the modifications to `accept` 's parameter `t`.
-Other modifications are, for example, to the fields of the type in which the implementation is present, and they are far outside our scope.
-. Because `accept` is abstract, we can have both non-modifying, and modifying implementations.
-. Modifications to `t` propagate to the fields of `Circular`, `x` and `y`, so they would have an impact on the modification status of `forEach`.
-. However, this impact is limited because `x` and `y` are of implicitly immutable type: external modifications to data of implicitly immutable type are outside our scope.
+First, because the implementation comes 'from the outside' (is external to `Circular`), the only modifications that should really concern us in a `forEach` method are the modifications to `accept` 's parameter `t`.
+Other modifications are, for example, to the fields of the type in which the implementation is present, and we believe them to be outside our scope.
+However, if we replace `Consumer` with `Set` and `accept` with `add`, we encounter a modification that we do not really want to ignore, in an otherwise equal setting.
+Therefore, we will have to revert to a contracted {ignoreModifications} annotation on the parameter `consumer`, if we want to avoid `Circular` losing the `@Container` property.
 
-The last point allows us to keep `forEach` non-modifying.
-The first and second point allow us to argue that calling `accept` here is not necessarily a modifying operation to `consumer`: it'll depend on the concrete implementation.
-Here, we have no knowledge of the presence of fields in the implementation that can potentially be modified.
-The third point, finally, gives us an incentive to mark the fact that our fields have been passed on to a (potentially) modifying (abstract) method within the parameter `consumer`.
-This information will come in useful later; we will use the {dependent1} annotation for this purpose.
+The second modification, however, is one we can ignore in the `Circular` type, and _defer_ or propagate to the place where a concrete implementation of the consumer is presented.
+We can ignore it, because `x` and `y` are fields of implicitly immutable type; what happens to their content is outside our zone of control.
+(Note that if they were parameters, this would not hold: recall from the section on <<modification>> that the rules for modification on parameters refer to any change in the parameter's object graph.) The fact that implicitly immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent2} annotation.
+It will take care of the propagation of modifications from the concrete implementation into the implicitly immutable content.
 
 This results in the following annotations for `forEach` in `Circular`:
 
@@ -112,7 +110,7 @@ This results in the following annotations for `forEach` in `Circular`:
 [source,java]
 ----
 @NotModified
-public void forEach(@NotModified @Dependent1 Consumer<T> consumer) {
+public void forEach(@IgnoreModifications @Dependent2 Consumer<T> consumer) {
     consumer.accept(x);
     consumer.accept(y);
 }
@@ -124,18 +122,16 @@ Looking at the more general case of a `forEach` implementation iterating over a 
 [source,java]
 ----
 @NotModified
-public void forEach(@NotModified @Dependent1 Consumer<T> consumer) {
+public void forEach(@IgnoreModifications @Dependent2 Consumer<T> consumer) {
     for(T t: list) consumer.accept(t);
 }
 ----
 
-we state that the four observations above still hold: implicitly immutable content inside the `list` is potentially modified by an implementation of `consumer`.
-Or stated differently, modifications to the parameter of the concrete implementation are propagated into the implicitly immutable content of `list`.
+Modifications to the parameter, made by the concrete implementation, are propagated into the implicitly immutable content of `list`, as described in the next section.
 
 === Propagating modifications
 
 Let us apply the `forEach` method to `StringBuilder`.
-Recall from the section on <<modification>> that a modification annotation on a parameter detects any modification to any field in the object graph of the parameter.
 
 .Propagating the modification of _forEach_
 [source,java]
@@ -164,7 +160,7 @@ void addToStrings(@NotModified Circular<StringBuilder> c) {
 <4> Example of modification to fields outside the scope of `Circular`.
 
 It is item 2, `addNewLine`, that is of importance here.
-Thanks to the {dependent1} annotation, we know of a modification to `c`.
+Thanks to the {dependent2} annotation, we know of a modification to `c`.
 It helps to see the for-loop written out, if we temporarily assume that we have added an implementation of `Iterable` to `Circular`:
 
 [source,java]
@@ -178,7 +174,7 @@ static void addNewLine(@Modified Circular<StringBuilder> c) {
 
 We really need the link between `sb` and `c` for the modification on `sb` to propagate to `c`.
 
-Without storing additional information (e.g., using an annotation like `@Modified1` on `c` in `addNewLine`), however, we cannot make the distinction between a modification to the string builders inside `x` and `y`, or an assignment to `x` or `y` in `Circular`, as in item 3.
+Without storing additional information (e.g., using an as yet undefined annotation like `@Modified1` on `c` in `addNewLine`), however, we cannot make the distinction between a modification to the string builders inside `x` and `y`, or an assignment to `x` or `y` in `Circular`, as in item 3.
 In other words, we cannot determine {m} on the parameters of `useAddNewLine` in the following example:
 
 .Using print and addNewLine
@@ -232,7 +228,7 @@ public void add(@Dependent1 T t) {
 
 Note that content dependence implies normal independence, exactly because we are dealing with parameters of implicitly immutable type.
 Thanks to this annotation, the statement `circular.add(sb1)` can content link `sb1` to circular.
-When propagating the modification of `addNewLine`'s parameter, all variables content linked to the argument get marked.
+When propagating the modification of `addNewLine` 's parameter, all variables content linked to the argument get marked.
 
 A second way, next to assignment, of adding to content links is Java's for-each loop:
 

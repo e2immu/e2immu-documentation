@@ -1,5 +1,5 @@
 [#modification-part2]
-== Modification, part2
+== Modification, part 2
 
 This section goes deeper into modification, linking and independence.
 We start with cyclic references.

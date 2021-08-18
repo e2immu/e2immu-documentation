@@ -372,6 +372,9 @@ In other words, you can add new parameter-modifying methods, but you cannot chan
 
 This topic will return in greater detail in the section <<higher-level-modifications>>.
 
+Finally, note that sealed types (since JDK 17) reject the 'you can always extend' assumptions of Java types.
+In this case, all sub-types are known, and visible.
+
 [#abstract-methods]
 === Abstract methods
 
@@ -399,13 +402,16 @@ Annotation-wise, we stipulate that
 Unless otherwise explicitly annotated, we will assume that abstract methods, be they in interfaces or abstract classes, are {nm}.
 ****
 
-Furthermore, we will also add a 4th rule for level 2 immutability of type `T`:
+Furthermore, we will also impose special variants of the rules for level 2 immutability of an abstract type `T`, to be obeyed by the abstract methods:
 
 ****
-*Rule 4*: Abstract methods must be non-modifying.
+*Variant of rule 1*: Abstract methods must be non-modifying.
+
+*Variant of rule 3*: Abstract methods returning values must be {independent}, i.e., the object they return must be independent of the fields.
+They cannot expose the fields via parameters: parameters of non-primitive, non-level 2 immutable type must be {independent}.
 ****
 
-The consequence of these choices is that implementations and extensions of abstract and non-abstract types that do not add new non-private methods, will still have the same container and level 2 immutability properties.
+The consequence of these choices is that implementations and extensions of abstract and non-abstract types will have the opportunity to have the same level 2 immutability properties.
 This allows us, e.g., to see every implementation of `java.util.Set` as a container, if we limit to the public methods of `Set`.
 Similarly, we can treat any implementation of `Comparable`, defined as:
 
@@ -420,9 +426,11 @@ interface Comparable<T> {
 
 as a level 2 immutable type when the only method we can access is `compareTo`.
 
-Note that if a type `T` obeys all rules of level 2 immutability, it follows that parameters of type `T`, or any super-type of `T`, in abstract methods in type `T`, are non-modifying.
-This is because no extension or implementation of `T` will have any modifying methods available to make modifications.
-Note that this statement does not apply to `Comparable`, because the type `T` of `other` is typically an implementation or extension of `Comparable`, rather than `Comparable` itself or a super-type.
+Note that independence in the variant of rule 3 is guaranteed when the return value or parameter is of unbound parameter type.
+The property _implicitly immutable type_, which includes unbound parameter types but is wider, cannot be reliably computed in the presence of abstract methods.
+
+While it is possible to compute the immutability and container status of interface types, using the rules presented above, it makes more sense to use the annotations as contracts: they save a lot of annotation work on the abstract methods in the interface.
+We repeat that no implementation of a level 2 immutable interface is guaranteed to be level 2 immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.
 
 [#static-side-effects]
 === Static side effects
