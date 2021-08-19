@@ -46,7 +46,7 @@ NOTE: This is purely an opinion: we'd rather not use null as elements of a colle
 You are free to annotate differently!
 
 Higher orders are possible as well.
-A second level is useful when working with entry sets:
+A second level would be useful when working with entry sets:
 
 [source,java]
 ----
@@ -56,8 +56,7 @@ V put(@NotNull K key, @NotNull V value);
 ----
 
 Note how the map copy is only {nn}, while the entry set is not null, the entries in this set are not null, and the keys and values are neither.
-
-We do not plan to go beyond {nn2}, however.
+There is currently no plan to implement beyond {nn1}, however.
 
 [#identity-and-fluent]
 === Identity and fluent methods

@@ -101,7 +101,7 @@ Therefore, we will have to revert to a contracted {ignoreModifications} annotati
 
 The second modification, however, is one we can ignore in the `Circular` type, and _defer_ or propagate to the place where a concrete implementation of the consumer is presented.
 We can ignore it, because `x` and `y` are fields of implicitly immutable type; what happens to their content is outside our zone of control.
-(Note that if they were parameters, this would not hold: recall from the section on <<modification>> that the rules for modification on parameters refer to any change in the parameter's object graph.) The fact that implicitly immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent2} annotation.
+(Note that if they were parameters, this would not hold: recall from the section on <<modification>> that the rules for modification on parameters refer to any change in the parameter's object graph.) The fact that implicitly immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent1} annotation.
 It will take care of the propagation of modifications from the concrete implementation into the implicitly immutable content.
 
 This results in the following annotations for `forEach` in `Circular`:
@@ -110,19 +110,23 @@ This results in the following annotations for `forEach` in `Circular`:
 [source,java]
 ----
 @NotModified
-public void forEach(@IgnoreModifications @Dependent2 Consumer<T> consumer) {
+public void forEach(@IgnoreModifications @Dependent1 Consumer<T> consumer) {
     consumer.accept(x);
     consumer.accept(y);
 }
 ----
 
-Looking at the more general case of a `forEach` implementation iterating over a list or array,
+Note that we assume that we'll need {ignoreModifications} for almost every use of a functional interface from `java.util.function` occurring as a parameter.
+These types are for generic use; one should use them to represent some specific data type where modifications are of concern to the current type.
+Therefore, we make this annotation implicit in exactly this context.
+
+Looking at the more general case of a `forEach` implementation iterating over a list or array, we therefore end up with:
 
 .Generic _forEach_ implementation
 [source,java]
 ----
 @NotModified
-public void forEach(@IgnoreModifications @Dependent2 Consumer<T> consumer) {
+public void forEach(@Dependent1 Consumer<T> consumer) {
     for(T t: list) consumer.accept(t);
 }
 ----
@@ -160,7 +164,7 @@ void addToStrings(@NotModified Circular<StringBuilder> c) {
 <4> Example of modification to fields outside the scope of `Circular`.
 
 It is item 2, `addNewLine`, that is of importance here.
-Thanks to the {dependent2} annotation, we know of a modification to `c`.
+Thanks to the {dependent1} annotation, we know of a modification to `c`.
 It helps to see the for-loop written out, if we temporarily assume that we have added an implementation of `Iterable` to `Circular`:
 
 [source,java]
@@ -250,14 +254,14 @@ boolean add(@NotNull @Dependent1 E e) { return true; }
 ----
 
 indicating that after calling `add`, the argument will become part of the implicitly immutable content of the collection.
-We need yet another annotation, {dependent2}, to indicate that the implicitly immutable content of two objects are linked.
+We need yet another annotation, {dependent1}, to indicate that the implicitly immutable content of two objects are linked.
 Looking at a possible implementation of `addAll`:
 
 .addAll
 [source,java]
 ----
 @Modified
-boolean addAll(@NotNull1 @Dependent2 Collection<? extends E> collection) {
+boolean addAll(@NotNull1 @Dependent1 Collection<? extends E> collection) {
     boolean modified = false;
     for (E e : c) if (add(e)) modified = true;
     return modified;
@@ -268,7 +272,7 @@ The call to `add` content links `e` to `this`.
 Because `e` is also content linked to `c`, the parameter `collection`
 holds implicitly immutable content linked to the implicitly immutable content of the instance.
 
-Again, note that {dependent2} implies independence, because it deals with the implicitly immutable content.
+Again, note that {dependent1} implies independence, because it deals with the implicitly immutable content.
 
 We're now properly armed to see how a for-each loop can be defined as an iterator whose implicitly immutable content links to that of a container.
 
@@ -302,7 +306,7 @@ The interface `Iterable` is a supplier of iterators:
 interface Iterable<T> {
 
     @NotModified
-    @Dependent2
+    @Dependent1
     Iterator<T> iterator();
 }
 ----
@@ -329,7 +333,7 @@ while(it.hasNext()) {
 }
 ----
 
-The iterator is {dependent2}.
+The iterator is {dependent1}.
 Via the `next` method, it content-links the implicitly immutable content of the `list` to `t`.
 
 === Independence of types

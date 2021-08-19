@@ -147,7 +147,7 @@ public class JavaUtil {
         boolean add(@Dependent1 @NotNull E e) { return true; }
 
         @Independent
-        boolean addAll(@Dependent2 @NotNull1 java.util.Collection<? extends E> collection) {
+        boolean addAll(@Dependent1 @NotNull1 java.util.Collection<? extends E> collection) {
             return true;
         }
 

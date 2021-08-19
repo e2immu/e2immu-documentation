@@ -1,4 +1,3 @@
-
 [#list-of-annotations]
 === List of annotations
 
@@ -186,36 +185,6 @@ public class Dependent1_0<T> {
 
 // ********************************************************************************************************************
 
-[#dependent2-annotation]
-==== @Dependent2
-
-|===
-| Basic {n} | Immu {n} | Contract {n} | Type {n} | Field {n} | Method {y} | Param {y}
-|===
-
-Summary:: This annotation is one of the <<concept-higher-order-modification>> annotations.
-It is only computed for <<concept-linking,independent>> parameters or methods.
-When computed on a parameter, it indicates that part of the <<concept-implicitly-immutable,implicitly immutable content>>
-of the argument will be assigned to the fields of the method's type.
-When computed on a method, it signifies that part of the implicitly immutable content of the return value is assigned to the fields of the method's type.
-
-This annotation is central to iteration over the implicitly immutable content of a type.
-
-Mode:: This annotation has no opposite.
-By definition, implies {independent}.
-
-Example:: This annotation has been contracted in many collection-framework methods, such as
-
-[source,java]
-----
-boolean Collections.addAll(@Dependent2 Collection<? extends E> coll);
-
-@Dependent2
-Stream<E> Collections.stream();
-----
-
-// ********************************************************************************************************************
-
 [#e1container-annotation]
 ==== @E1Container
 
@@ -372,8 +341,7 @@ Example::
 | Basic {y} | Immu {n}| Contract {n}| Type {y} | Field {n} | Method {n} | Param {n}
 |===
 
-Summary:: An extension class is a level 2 immutable class which uses
-More details can be found in <<concept-extension-class>>.
+Summary:: An extension class is a level 2 immutable class which uses More details can be found in <<concept-extension-class>>.
 
 Example::
 
@@ -455,7 +423,6 @@ class ExampleManualVariableFinal {
 
 ==== @Finalizer
 
-
 [source,java]
 ----
 
@@ -515,10 +482,11 @@ public static <T> requireNonNull(T t) {
 ==== @IgnoreModifications
 
 |===
-| Basic {n} | Immu {y}| Contract {y}| Type {n} | Field {y} | Method {n} | Param {n}
+| Basic {n} | Immu {y}| Contract {y}| Type {n} | Field {y} | Method {n} | Param {y}
 |===
 
-Summary:: Helper annotation to mark that modifications on a field are to be ignored, because they fall outside the scope of the application.
+Summary:: Helper annotation to mark that modifications on a field or parameter are to be ignored, because they fall outside the scope of the application.
+This annotation is implicit on parameters of a functional interface type of of `java.util.function` (e.g., `Consumer`, `Function`, etc.).
 
 Mode:: There is no opposite for this annotation.
 It can only be used for contracting, the analyser cannot generate it.
@@ -636,6 +604,7 @@ Example::
 
 
 ----
+
 #TODO#
 
 // ********************************************************************************************************************
@@ -660,14 +629,7 @@ It is the opposite of {nullable}.
 | Basic {n} | Immu {n}| Contract {y}| Type {n} | Field {y} | Method {y} | Param {y}
 |===
 
-// ********************************************************************************************************************
-
-[#notNull2-annotation]
-==== @NotNull2
-
-|===
-| Basic {n} | Immu {n}| Contract {y}| Type {n} | Field {y} | Method {y} | Param {y}
-|===
+Summary:: the content of an object is {nn}, meaning that all the accessible fields of the object are {nn}.
 
 // ********************************************************************************************************************
 
