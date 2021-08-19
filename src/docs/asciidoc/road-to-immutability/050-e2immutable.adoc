@@ -119,20 +119,8 @@ In order to hold an arbitrary (or even modestly large) amount of objects, a type
 The rest of the definition of level 2 immutability is essentially about expressing the immutability of this support data.
 After construction, a level 2 immutable type will still hold a fixed number of objects, and the type will not change their content, nor exchange them for other objects, nor allow others to exchange them.
 
-We will introduce two additional rules to the definition of level 2 immutability.
-They will only be of relevance for _some_ fields; requiring them for all fields results in too strong a definition, and we have seen higher up that there are situations where the first rule is sufficient.
-Rather than specifying which fields need to follow the additional rules, it is easier to say which fields are exempt from them:
-
-. fields that are of level 2 immutable type themselves;
-. fields whose type can be replaced by an unbound type parameter.
-
-Note that for all modification purposes we can replace unbound type parameters with `java.lang.Object`, which is level 2 immutable.
-We will call those fields _implicitly immutable_, and the total of the values of fields of implicitly immutable type the _implicitly immutable content_ of the type.
-Their primary characteristic is that their content is inaccessible from within the type
-
-Constructor parameters of unbound type parameter, or method return types of unbound type parameter are always independent, in the same way that level 2 immutable types are: inside the class, there's no way of modifying them.
-
-We now add rules 2 and 3 to the definition, and obtain:
+We will introduce two additional rules to express the immutability of this support data.
+Together with the first rule, and building on level 1 immutability, we obtain:
 
 ****
 *Definition: level 2 immutability*:
@@ -141,20 +129,28 @@ We now add rules 2 and 3 to the definition, and obtain:
 
 *Rule 1*: All fields are {nm}.
 
-*Rule 2*: All fields are either private, or of level 2 immutable or implicitly immutable type.
+*Rule 2*: All fields are either private, or of level 2 immutable type.
 
 *Rule 3*: All constructors and non-private methods are independent of the fields.
 ****
 
-Rule 2 is there to ensure that the content of the object cannot be modified by means of access to the non-private fields.
-Rule 3 ensures that the content of the object cannot be modified externally.
+Rule 2 is there to ensure that the modifiable fields of the object cannot be modified by means of access to the non-private fields.
+Rule 3 ensures that the modifiable fields of the object cannot be modified externally by obtaining references to the fields via a parameter or return value.
+
+Note that:
+
+* All primitive types are level 2 immutable.
+* Fields whose type is an unbound type parameters are level 2 immutable, as this type parameter could be substituted by `java.lang.Object`, which is level 2 immutable.
+* Constructor parameters of unbound type parameter, or method return types of unbound type parameter are always independent, in the same way that level 2 immutable types are: inside the class, there's no way of modifying them.
+* A consequence of rule 1 is that all methods in a level 2 immutable type must be {nm}.
+* The section on <<abstract-methods>> will detail how level 2 immutability is computed for abstract types (interfaces, abstract classes).
+* This definition is recursive, with `java.lang.Object` the level 2 immutable base of the recursion.
+All other types must extend from it.
 
 The first rule can be reached _eventually_ if there is one or more methods that effect a transition from the mutable to the immutable state.
 This typically means that all methods that assign or modify fields become off-limits after calling this marker method.
 Eventuality for rules 2 and 3 seems too far-fetched.
 We address the topic of eventual immutability fully in the section <<eventual-immutability>>.
-
-The section <<higher-level-modifications>> will discuss modification and independence of types with abstract methods, such as functional interface types.
 
 Let us go to examples immediately.
 
@@ -425,9 +421,6 @@ interface Comparable<T> {
 ----
 
 as a level 2 immutable type when the only method we can access is `compareTo`.
-
-Note that independence in the variant of rule 3 is guaranteed when the return value or parameter is of unbound parameter type.
-The property _implicitly immutable type_, which includes unbound parameter types but is wider, cannot be reliably computed in the presence of abstract methods.
 
 While it is possible to compute the immutability and container status of interface types, using the rules presented above, it makes more sense to use the annotations as contracts: they save a lot of annotation work on the abstract methods in the interface.
 We repeat that no implementation of a level 2 immutable interface is guaranteed to be level 2 immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.

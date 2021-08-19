@@ -87,8 +87,6 @@ We discern a number of special cases:
 . When `method` has the annotation {independent}, `v` cannot link to `a`.
 . If `a` is of {independent} type (which includes all {e2immutable} types), all its methods are independent; therefore, `v` cannot link to `a`.
 
-It is important to note that the analyser only computes independence for non-modifying methods, so that all methods of implicitly immutable return type are automatically independent.
-
 ****
 Rule 3: in an assignment `v = new A(b)`, `v` potentially links to `b`.
 ****

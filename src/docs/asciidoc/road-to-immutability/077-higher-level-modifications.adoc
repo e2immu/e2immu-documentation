@@ -1,14 +1,71 @@
 [#higher-level-modifications]
 == Abstract methods and higher-level modifications
 
-From a type's point of view, fields are either of an explicit type, they are accessible, or they are of implicitly immutable type, in other words, replaceable by `Object` and inaccessible.
-Our focus up to now has been on modification of the explicit types: we have argued that they are the only ones that matter for practical immutability.
-Now we will try to characterise modifications that are beyond the scope of the type.
+[#hidden-immutable-content]
+=== Hidden immutable content
 
+From the point of view of the definition of level 2 immutability, fields are either already level 2 immutable, or they are mutable (modifiable) and the rules have to ensure that the modifications cannot take place.
+
+Inside the group of fields of level 2 immutable types, we can make another distinction: between those types whose content is accessible, and those whose content is invisible because they are only represented by a (typically very) shallow interface which is level 2 immutable.
+In the case of unbound parameter types, we chose to represent them in the type by `java.lang.Object`, or an empty interface which is very shallow indeed.
+
+Let's go back to the simplest definition of a `Pair`,
+
+[source,java]
+----
+@E2Container
+public class Pair<K, V> {
+    public final K k;
+    public final V v;
+    public Pair(K k, V v) {
+        this.k = k;
+        this.v = v;
+    }
+}
+----
+
+Think of `K` and `V` as empty interfaces, which hide away all data held by any concrete instance.
+
+On the opposite end of the spectrum we find
+
+[source,java]
+----
+@E2Container
+public record Coordinate(int x, int y, int z) {}
+----
+
+where all data is readily accessible, and, because of the finality of the class, no extensions can ever be made to add more (hidden, when presented with `Coordinate`) data.
+
+In this continuum, we have to draw a line, and state that
+
+****
+Fields of abstract level 2 immutable types belong to the _hidden immutable content_ of the type.
+Fields of unbound parameter types, potentially represented by an empty interface, belong to this category.
+****
+
+The term _hidden immutable_ stems from the fact that inside the type, immutability is mostly obtained by inaccessibility: it cannot be modified because it cannot even be reached.
+The more data that is inaccessible to a given type, the further this type is away from being _deeply immutable_, yet still being level 2 immutable.
+One could say that, recursively,
+
+****
+level 2 immutable type's content = accessible immutable content + hidden immutable content
+****
+
+As stated earlier, the base of the recursion is `java.lang.Object`, and in practice also the primitive types and some essential level 2 immutable types like `java.lang.String`.
+Container types from the Collections framework like `java.util.List` provide the support data to build larger, more meaningful level 2 immutable types.
+
+Note that, outside the type, the hidden immutable content need not be hidden nor immutable at all:
+
+[source,java]
+----
+Pair<StringBuilder, Integer> twoBuilders = new Pair<>(new StringBuilder("x"), 1);
+twoBuilders.k.append("!");
+----
+
+In the rest of this chapter, we will attempt to catch some modifications made by concrete implementations of abstract methods.
+The machinery provided in the earlier chapters will be shown to be insufficient.
 Please note that characterising _all_ modifications is a hopelessly complex, and unnecessary, task.
 We will, however, need to deal with what can be seen as the first level of higher level modifications, if we want to be able to characterise the modifications going on in extremely important constructs such as iterators.
-
-These observations occur naturally in the context of abstract methods: the specification of the `java.util.Collection` interface, or the functional interfaces like `java.util.function.Function`.
 
 === Setting the scene
 
@@ -100,9 +157,9 @@ However, if we replace `Consumer` with `Set` and `accept` with `add`, we encount
 Therefore, we will have to revert to a contracted {ignoreModifications} annotation on the parameter `consumer`, if we want to avoid `Circular` losing the `@Container` property.
 
 The second modification, however, is one we can ignore in the `Circular` type, and _defer_ or propagate to the place where a concrete implementation of the consumer is presented.
-We can ignore it, because `x` and `y` are fields of implicitly immutable type; what happens to their content is outside our zone of control.
-(Note that if they were parameters, this would not hold: recall from the section on <<modification>> that the rules for modification on parameters refer to any change in the parameter's object graph.) The fact that implicitly immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent1} annotation.
-It will take care of the propagation of modifications from the concrete implementation into the implicitly immutable content.
+We can ignore it here, because `x` and `y` are fields of hidden immutable type; what happens to their content happens outside the primary type, outside our zone of control.
+(Note that if they were parameters, this would not hold: recall from the section on <<modification>> that the rules for modification on parameters refer to any change in the parameter's object graph.) The fact that hidden immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent1} annotation.
+It will take care of the propagation of modifications from the concrete implementation into the hidden immutable content.
 
 This results in the following annotations for `forEach` in `Circular`:
 
@@ -131,7 +188,7 @@ public void forEach(@Dependent1 Consumer<T> consumer) {
 }
 ----
 
-Modifications to the parameter, made by the concrete implementation, are propagated into the implicitly immutable content of `list`, as described in the next section.
+Modifications to the parameter, made by the concrete implementation, are propagated into the hidden immutable content of `list`, as described in the next section.
 
 === Propagating modifications
 
@@ -158,8 +215,8 @@ void addToStrings(@NotModified Circular<StringBuilder> c) {
     c.forEach(sb -> strings.add(sb.toString()));
 }
 ----
-<1> Non-modifying method implies no modification on the implicitly immutable content of `c`.
-<2> Parameter-modifying lambda propagates modification to `c` 's implicitly immutable content.
+<1> Non-modifying method implies no modification on the hidden immutable content of `c`.
+<2> Parameter-modifying lambda propagates modification to `c` 's hidden immutable content.
 <3> Object-modifying lambda changing `c` but not its content (the string builder it holds).
 <4> Example of modification to fields outside the scope of `Circular`.
 
@@ -214,7 +271,7 @@ static String useAddNewLine(@Modified StringBuilder sb1, //<2>
 === Content linking
 
 Going back to `Circular`, we see that the `add` method binds the parameter `t` to the instance by means of assignment.
-Let us call this binding of parameters of implicitly immutable types _content linking_, and mark it using {dependent1}, _content dependence_:
+Let us call this binding of parameters of hidden immutable types _content linking_, and mark it using {dependent1}, _content dependence_:
 
 .Extra annotation on add
 [source,java]
@@ -230,7 +287,7 @@ public void add(@Dependent1 T t) {
 }
 ----
 
-Note that content dependence implies normal independence, exactly because we are dealing with parameters of implicitly immutable type.
+Note that content dependence implies normal independence, exactly because we are dealing with parameters of hidden immutable type.
 Thanks to this annotation, the statement `circular.add(sb1)` can content link `sb1` to circular.
 When propagating the modification of `addNewLine` 's parameter, all variables content linked to the argument get marked.
 
@@ -253,8 +310,8 @@ The `Collection` API will contain an `add` method annotated as:
 boolean add(@NotNull @Dependent1 E e) { return true; }
 ----
 
-indicating that after calling `add`, the argument will become part of the implicitly immutable content of the collection.
-We need yet another annotation, {dependent1}, to indicate that the implicitly immutable content of two objects are linked.
+indicating that after calling `add`, the argument will become part of the hidden immutable content of the collection.
+We reuse the annotation {dependent1} to indicate that the hidden immutable content of two objects are linked.
 Looking at a possible implementation of `addAll`:
 
 .addAll
@@ -270,11 +327,11 @@ boolean addAll(@NotNull1 @Dependent1 Collection<? extends E> collection) {
 
 The call to `add` content links `e` to `this`.
 Because `e` is also content linked to `c`, the parameter `collection`
-holds implicitly immutable content linked to the implicitly immutable content of the instance.
+holds hidden immutable content linked to the hidden immutable content of the instance.
 
-Again, note that {dependent1} implies independence, because it deals with the implicitly immutable content.
+Again, note that {dependent1} implies independence, because it deals with the hidden immutable content.
 
-We're now properly armed to see how a for-each loop can be defined as an iterator whose implicitly immutable content links to that of a container.
+We're now properly armed to see how a for-each loop can be defined as an iterator whose hidden immutable content links to that of a container.
 
 === Iterator, Iterable, loops
 
@@ -296,7 +353,7 @@ interface Iterator<T> {
 
 Either the `next` method, or the `hasNext` method, must make a change to the iterator, because it has to keep track of the next element.
 As such, we make both {modified}.
-Following the discussion in the previous section, `next` is {dependent1}, because it returns part of the implicitly immutable content held by the iterator.
+Following the discussion in the previous section, `next` is {dependent1}, because it returns part of the hidden immutable content held by the iterator.
 
 The interface `Iterable` is a supplier of iterators:
 
@@ -313,7 +370,7 @@ interface Iterable<T> {
 
 First, creating an iterator should never be a modifying operation on a type.
 Typically, as we explore in the next section, it implies creating a sub-type, static or not, of the type implementing `Iterable`.
-Secondly, the iterator itself is independent of the fields of the implementing type, but has the ability to return its implicitly immutable content.
+Secondly, the iterator itself is independent of the fields of the implementing type, but has the ability to return its hidden immutable content.
 
 The loop, on a variable `list` of type implementing `Iterable<T>`,
 
@@ -334,7 +391,7 @@ while(it.hasNext()) {
 ----
 
 The iterator is {dependent1}.
-Via the `next` method, it content-links the implicitly immutable content of the `list` to `t`.
+Via the `next` method, it content-links the hidden immutable content of the `list` to `t`.
 
 === Independence of types
 
