@@ -390,6 +390,31 @@ Because the unbound case is simply a way of saying that the type parameter exten
 The analyser simply treats the parameterized type `T` as if it were the type `E`.
 In the case of unbound parameter types and `java.lang.Object`, we find an {e2container} type.
 
+The analyser recognises types that can be replaced by an unbound parameter type, when they are used _transparently_: to methods are called on it, save the ones from `java.lang.Object`; none of its fields are accessed, and it is not used as an argument to parameters where anything more specific than `java.lang.Object` is required.
+It will issue a warning, and internally treat the type as an unbound parameter type, and hence {e2container}, even if the type is obviously modifiable.
+
+The following trivial example should clarify:
+
+.Example of types _transparent_ in a class
+[source,java]
+----
+public class OddPair {
+    private final Set<String> set;
+    private final StringBuilder sb;
+
+    public OddPair(Set<String> set, StringBuilder sb) {
+        this.set = set;
+        this.sb = sb;
+    }
+
+    public Set<String> getSet() { return set; }
+    public StringBuilder getSb() { return sb; }
+}
+----
+
+Nowhere in `OddPair` do we make actual use of the fact that `set` is of type `Set`, or `sb` is of type `StringBuilder`.
+The analyser encourages you to replace `Set` by some unbound parameter type, say `K`, and `StringBuilder` by some other, say `V`.
+
 [#abstract-methods]
 === Abstract methods
 
@@ -446,15 +471,13 @@ As for as the modification status of the _parameters_ of abstract methods is con
 
 ****
 Unless otherwise explicitly annotated, or their types are level 2 immutable, we will assume that the parameters of abstract methods, be they in interfaces or abstract classes, are {modified}.
+Overriding the method, the contract can change from {modified} to {nm}, but not from {nm} to {modified}.
 ****
-
-#TODO# inheritance.
-Starts off with {modified}, can turn into {nm}, but can never turn back?
 
 While it is possible to compute the immutability and container status of interface types, using the rules presented above, it often makes more practical sense to use the annotations as contracts: they may save a lot of annotation work on the abstract methods in the interface.
 We repeat that no implementation of a level 2 immutable interface is guaranteed to be level 2 immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.
 
-We continue this section with some examples which will form the backbone of the examples in <<higher-level-modifications>>.
+We continue this section with some examples which will form the backbone of the examples in <<immutable-content>>.
 
 If semantically used correctly, types implementing the `HasSize` interface expose a single numeric aspect of their content:
 
@@ -498,7 +521,7 @@ interface NonEmptyImmutableList<T> extends HasSize {
 ----
 <1> Whilst in the abstract case, `T` will always be {independent} (because it represents the level 2 immutable type `java.lang.Object`), contracting the {independent} annotation here will force all implementations to have an independent `first` method.
 <2> The parameter `consumer` would normally be {modified}, which would break the {container} property that we wish for `NonEmptyImmutableList`.
-However, as detailed and explained in <<higher-level-modifications>>, the abstract types in `java.util.function` receive an implicit {ignoreModifications} annotation.
+However, as detailed and explained in <<immutable-content>>, the abstract types in `java.util.function` receive an implicit {ignoreModifications} annotation.
 
 The `Consumer` interface is defined and annotated as:
 
@@ -594,16 +617,45 @@ static class OneWithOne<T> implements NonEmptyList<T> {
 
 Obviously, a {e2container} implementation is not possible: the immutability status of an extension (`OneWithOne`, `One`) cannot be better than that of the type it is extending from (`NonEmptyList`).
 
-We end the section by showing how implementations of the `accept` method in `Consumer` make modifications:
+We end the section by showing how concrete implementations of the `accept` method in `Consumer` make modifications.
+First, modifications to the parameter:
 
-.Modifications by _Consumer.accept_
+.Modification to the parameter of _Consumer.accept_
 [source,java]
 ----
 One<StringBuilder> one = new One<>();
 one.setFirst(new StringBuilder());
-one.visit(sb -> sb.append("!")); // <1>
+one.visit(sb -> sb.append("!"));
 ----
-<1> Here, `append` modifies its parameter `sb`.
+
+The last statement is maybe more easily seen as:
+
+.Modification to the parameter of _Consumer.accept_, written out
+[source,java]
+----
+one.visit(new Consumer<StringBuilder> {
+   @Override
+   public void accept(StringBuilder sb) {
+       sb.append("!");
+   }
+});
+----
+
+Second, modifications to the fields of the type:
+
+.The method _Consumer.accept_ modifying a field
+[source,java]
+----
+@E1Container
+class ReceiveStrings implements Consumer<String> {
+    public final List<String> list = new ArrayList<>();
+
+    @Override
+    public void accept(String string) {
+        list.add(string);
+    }
+}
+----
 
 [#static-side-effects]
 === Static side effects

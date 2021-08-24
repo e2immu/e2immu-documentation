@@ -1,13 +1,13 @@
-[#higher-level-modifications]
-== Abstract methods and higher-level modifications
+[#immutable-content]
+== Immutable content
 
-[#hidden-immutable-content]
-=== Hidden immutable content
+[#inaccessible-immutable-content]
+=== Inaccessible immutable content
 
-From the point of view of the definition of level 2 immutability, fields are either already level 2 immutable, or they are mutable (modifiable) and the rules have to ensure that the modifications cannot take place.
+From the point of view of the definition of level 2 immutability, fields are either already level 2 immutable, or they are mutable (modifiable) and the rules of level 2 immutability have to ensure that no modifications can take place.
 
-Inside the group of fields of level 2 immutable types, we can make another distinction: between those types whose content is accessible, and those whose content is invisible because they are only represented by a (typically very) shallow interface which is level 2 immutable.
-In the case of unbound parameter types, we chose to represent them in the type by `java.lang.Object`, or an empty interface which is very shallow indeed.
+Inside the combined object graphs of the fields of a level 2 immutable type, we can make another distinction: between those types whose content is accessible, and those whose content is 'invisible' because they are only represented by a (typically very) shallow interface which is level 2 immutable.
+In the case of unbound parameter types, as specified in <<generics>>, we chose to represent them in the type by `java.lang.Object`, or an empty interface, which is very shallow indeed.
 
 Let's go back to the simplest definition of a `Pair`,
 
@@ -17,6 +17,7 @@ Let's go back to the simplest definition of a `Pair`,
 public class Pair<K, V> {
     public final K k;
     public final V v;
+
     public Pair(K k, V v) {
         this.k = k;
         this.v = v;
@@ -24,9 +25,10 @@ public class Pair<K, V> {
 }
 ----
 
-Think of `K` and `V` as empty interfaces, which hide away all data held by any concrete instance.
+Think of `K` and `V` as empty interfaces, which hide away almost all data held by any concrete instance.
+(The reason for the _almost_ is the presence, for every object, of an implementation of `toString` and `equals`, however little informative they may be.)
 
-On the opposite end of the spectrum we find
+On the opposite end of the spectrum we find:
 
 [source,java]
 ----
@@ -34,38 +36,35 @@ On the opposite end of the spectrum we find
 public record Coordinate(int x, int y, int z) {}
 ----
 
-where all data is readily accessible, and, because of the finality of the class, no extensions can ever be made to add more (hidden, when presented with `Coordinate`) data.
+In `Coordinate`, all the data is readily accessible, and, because of the finality of the class, no extensions can ever be made to add more (hidden, when presented with `Coordinate`) data.
 
-In this continuum, we have to draw a line, and state that
+In this continuum between accessible and inaccessible, it seems impossible to draw a line, and, luckily, our definitions do not require us to do so.
+The reason we bring up this point is to highlight the distinction between level 2 immutability and deep immutability:
+Outside the level 2 immutable type, the inaccessible immutable content need not be inaccessible, nor immutable, at all!
 
-****
-Fields of abstract level 2 immutable types belong to the _hidden immutable content_ of the type.
-Fields of unbound parameter types, potentially represented by an empty interface, belong to this category.
-****
-
-The term _hidden immutable_ stems from the fact that inside the type, immutability is mostly obtained by inaccessibility: it cannot be modified because it cannot even be reached.
-The more data that is inaccessible to a given type, the further this type is away from being _deeply immutable_, yet still being level 2 immutable.
-One could say that, recursively,
-
-****
-level 2 immutable type's content = accessible immutable content + hidden immutable content
-****
-
-As stated earlier, the base of the recursion is `java.lang.Object`, and in practice also the primitive types and some essential level 2 immutable types like `java.lang.String`.
-Container types from the Collections framework like `java.util.List` provide the support data to build larger, more meaningful level 2 immutable types.
-
-Note that, outside the type, the hidden immutable content need not be hidden nor immutable at all:
-
+.Outside of _Pair_, there are no restrictions on immutability
 [source,java]
 ----
 Pair<StringBuilder, Integer> twoBuilders = new Pair<>(new StringBuilder("x"), 1);
 twoBuilders.k.append("!");
 ----
 
-In the rest of this chapter, we will attempt to catch some modifications made by concrete implementations of abstract methods.
+In the rest of this chapter, we will attempt to catch and propagate some modifications made by concrete implementations of abstract methods.
 The machinery provided in the earlier chapters will be shown to be insufficient.
-Please note that characterising _all_ modifications is a hopelessly complex, and unnecessary, task.
-We will, however, need to deal with what can be seen as the first level of higher level modifications, if we want to be able to characterise the modifications going on in extremely important constructs such as iterators.
+Please note that characterising _all_ such modifications is a hopelessly complex, and unnecessary, task.
+We will, however, need to deal with what can be seen as the first level of modifications to the immutable content, if we want to be able to characterise the modifications going on in extremely important constructs such as iterators.
+
+=== Constant content
+
+We briefly note that the point of propagating modifications on the immutable content, the topic of this chapter, is not relevant when this immutable content is deeply immutable or _constant_:
+
+****
+A type is _constant_ when the following both hold:
+
+. the type cannot be extended (it is explicitly marked `final`), and
+. recursively defined, its fields are effectively final and hold constant values, and its methods return constant values.
+The basis for the recursion are the primitives and `java.lang.String`, holding literal constant values.
+****
 
 === Setting the scene
 
@@ -124,7 +123,7 @@ interface Consumer<T> {
 
 Note that the parameter `t` is implicitly marked {modified}.
 As detailed in the first section on <<abstract-methods>>, the default modification status for abstract methods is {nm}.
-we have to be explicit about `accept`, because requiring all implementations to be non-modifying would be overly restrictive.
+We have to be explicit about `accept`, because requiring all implementations to be non-modifying would be overly restrictive.
 
 Using the `Consumer` interface we introduce a `forEach` method in `Circular` which iterates over the two elements:
 
@@ -483,4 +482,3 @@ public class ImmutableArray<T> implements Iterable<T> {
     }
 }
 ----
-
