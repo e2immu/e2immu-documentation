@@ -1,3 +1,4 @@
+[#containers]
 == Containers
 
 Loosely speaking, a container is a type to which you can safely pass on your objects, it will not modify them.

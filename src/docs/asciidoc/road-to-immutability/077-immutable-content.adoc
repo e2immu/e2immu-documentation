@@ -54,126 +54,99 @@ The machinery provided in the earlier chapters will be shown to be insufficient.
 Please note that characterising _all_ such modifications is a hopelessly complex, and unnecessary, task.
 We will, however, need to deal with what can be seen as the first level of modifications to the immutable content, if we want to be able to characterise the modifications going on in extremely important constructs such as iterators.
 
-=== Constant content
+=== Visitors
 
-We briefly note that the point of propagating modifications on the immutable content, the topic of this chapter, is not relevant when this immutable content is deeply immutable or _constant_:
+Let's go back to `NonEmptyImmutableList`, first defined in <<abstract-methods>>:
 
-****
-A type is _constant_ when the following both hold:
-
-. the type cannot be extended (it is explicitly marked `final`), and
-. recursively defined, its fields are effectively final and hold constant values, and its methods return constant values.
-The basis for the recursion are the primitives and `java.lang.String`, holding literal constant values.
-****
-
-=== Setting the scene
-
-The basis of this section is an example container class called `Circular`:
-
-.First methods of Circular
+.Revisiting _NonEmptyImmutableList_
 [source,java]
 ----
-@Container
-class Circular<T> {
+@E2Container
+interface NonEmptyImmutableList<T> extends HasSize {
 
-    private T x;
-    private T y;
-    private boolean next;
-
-    public Circular() {
-    }
-
+    // implicitly present: @NotModified
     @Independent
-    public Circular(Circular<T> c) {
-        x = c.x;
-        y = c.y;
-        next = c.next;
-    }
+    T first();
 
-    @Modified
-    public void add(T t) {
-        if (next) {
-            this.y = t;
-        } else {
-            this.x = t;
-        }
-        next = !next;
-    }
+    // implicitly present: @NotModified
+    void visit(Consumer<T> consumer); // @IgnoreModifications
 
-    @NotModified
-    @E2Container
-    public Stream<T> stream() {
-        return Stream.of(x, y);
+    @Constant
+    @Override
+    default boolean isEmpty() {
+        return false;
     }
 }
 ----
 
-The `Circular` class is an extremely simple collection; it acts as a stand-in for many JDK collections like `java.util.List` or `java.util.Set`.
-We also make use of the `Consumer` functional interface:
+We start the discussion with the following level 2 immutable implementation of this interface:
 
-.Consumer
+.Level 2 immutable implementation of _NonEmptyImmutableList_
 [source,java]
 ----
-@FunctionalInterface
-interface Consumer<T> {
-    @Modified
-    void accept(T t);
+@E2Container
+class ImmutableOne<T> implements NonEmptyImmutableList<T> {
+    private final T t;
+
+    public ImmutableOne(@Dependent1 T t) {
+        this.t = t;
+    }
+
+    @Override
+    public int size() {
+        return 1;
+    }
+
+    @Override
+    public T first() {
+        return t;
+    }
+
+    @Override
+    public void visit(Consumer<T> consumer) {
+        consumer.accept(t);
+    }
 }
 ----
 
-Note that the parameter `t` is implicitly marked {modified}.
-As detailed in the first section on <<abstract-methods>>, the default modification status for abstract methods is {nm}.
-We have to be explicit about `accept`, because requiring all implementations to be non-modifying would be overly restrictive.
+We need the `visit` method (1) to be non-modifying, and (2) not to modify its parameter `consumer`.
+However, following the normal definitions of modification, it follows that:
 
-Using the `Consumer` interface we introduce a `forEach` method in `Circular` which iterates over the two elements:
+1. Because `accept` is {modified}, we should mark the parameter `consumer` as {modified}.
+2. Because `t`, the parameter of `accept`, is {modified}, we should mark `visit` as {modified}.
 
-.A _forEach_ method in _Circular_
-[source,java]
-----
-public void forEach(Consumer<T> consumer) {
-    consumer.accept(x);
-    consumer.accept(y);
-}
-----
-
-Now we need to do some careful reasoning to determine the modification status of `forEach`, and to find out which annotation to add to `consumer`.
-
-=== The _forEach_ method
-
-Following the normal definitions of modification, we reason:
-
-1. Because `accept` is `@Modified`, we mark the parameter `consumer` as `@Modified`.
-2. Because `t`, the parameter of `accept`, is `@Modified`, we have to mark `forEach` as `@Modified`.
-
-The result of the first statement would violate the `@Container` property on `Circular`, and we'd be very reluctant to do that.
-The second one would make `forEach` modifying in `Circular`, which again goes against our intuition: looping in itself is not modifying.
+The result of the first statement would violate the `@Container` property on `ImmutableOne`, and we'd be very reluctant to do that:
+according to the intuitive definition in <<containers>>, `ImmutableOne` is a type that holds data, but does not change it.
+This statement still holds in the presence of a `visit` method, which is nothing but a way of exposing the object similar to `first`.
+The second one would make `visit` modifying, which again goes against our intuition: looping over elements is, in itself, not modifying.
 
 Luckily, there are a number of observations that come to the rescue.
 
-First, because the implementation comes 'from the outside' (is external to `Circular`), the only modifications that should really concern us in a `forEach` method are the modifications to `accept` 's parameter `t`.
-Other modifications are, for example, to the fields of the type in which the implementation is present, and we believe them to be outside our scope.
+First, we believe it is correct to assume that concrete implementation of `Consumer` can be semantically unrelated to `ImmutableOne`.
+As a consequence, we could say that the only modifications that concern us in this `visit` method are the modifications to `accept` 's parameter `t`.
+Other modifications, for example those to the fields of the type in which the implementation is present, may seem to be outside our scope.
 However, if we replace `Consumer` with `Set` and `accept` with `add`, we encounter a modification that we do not really want to ignore, in an otherwise equal setting.
-Therefore, we will have to revert to a contracted {ignoreModifications} annotation on the parameter `consumer`, if we want to avoid `Circular` losing the `@Container` property.
+Therefore, it does not look like we can reason away potential modifications by `accept`.
+We will have to revert to a contracted {ignoreModifications} annotation on the parameter `consumer`, if we want to avoid `ImmutableOne` losing the `@Container` property.
 
-The second modification, however, is one we can ignore in the `Circular` type, and _defer_ or propagate to the place where a concrete implementation of the consumer is presented.
-We can ignore it here, because `x` and `y` are fields of hidden immutable type; what happens to their content happens outside the primary type, outside our zone of control.
-(Note that if they were parameters, this would not hold: recall from the section on <<modification>> that the rules for modification on parameters refer to any change in the parameter's object graph.) The fact that hidden immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent1} annotation.
+The second modification, however, is one we will ignore in the `ImmutableOne` type, and _defer_ or _propagate_ to the place where a concrete implementation of the consumer is presented.
+We can ignore it here, because `t` is of level 2 immutable type; what happens to its content happens outside the zone of control of `ImmutableOne`.
+The fact that immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent1} annotation.
 It will take care of the propagation of modifications from the concrete implementation into the hidden immutable content.
 
-This results in the following annotations for `forEach` in `Circular`:
+This results in the following annotations for `visit` in `ImmutableOne`:
 
-.The _forEach_ method in _Circular_, annotated
+.The _visit_ method in _ImmutableOne_, fully annotated
 [source,java]
 ----
 @NotModified
-public void forEach(@IgnoreModifications @Dependent1 Consumer<T> consumer) {
-    consumer.accept(x);
-    consumer.accept(y);
+public void visit(@IgnoreModifications @Dependent1 Consumer<T> consumer) {
+    consumer.accept(t);
 }
 ----
 
-Note that we assume that we'll need {ignoreModifications} for almost every use of a functional interface from `java.util.function` occurring as a parameter.
-These types are for generic use; one should use them to represent some specific data type where modifications are of concern to the current type.
+Note that we assume that we will need {ignoreModifications} for almost every use of a functional interface from `java.util.function` occurring as a parameter.
+These types are for generic use; one should never use them to represent some specific data type where modifications are of concern to the current type.
 Therefore, we make this annotation implicit in exactly this context.
 
 Looking at the more general case of a `forEach` implementation iterating over a list or array, we therefore end up with:
@@ -187,35 +160,173 @@ public void forEach(@Dependent1 Consumer<T> consumer) {
 }
 ----
 
-Modifications to the parameter, made by the concrete implementation, are propagated into the hidden immutable content of `list`, as described in the next section.
+Modifications to the parameter, made by the concrete implementation, are propagated into the immutable content of `list`, as described in the next section.
+The {dependent1} annotation appears because immutable content in `list` is exposed to the `consumer` parameter.
+This annotation does not appear for the modifiable content of the level 2 immutable type (earlier also referred to as the _support data_).
+Parameters of modifiable type are already shielded from external modification by the {independent} annotation, which is "trivial" for level 2 immutable types.
+
+=== Modifiable content
+
+In the following example, a field of level 2 immutable type holds explicitly mutable data:
+
+[source,java]
+----
+@E2Container
+class EncapsulatedImmutableArrayOfHasSize implements NonEmptyImmutableList<HasSize> {
+
+    private final ImmutableOne<HasSize[]> one;
+
+    public EncapsulatedImmutableArrayOfHasSize(int size,
+            @Dependent1 Supplier<HasSize> generator) { // <1>
+        HasSize[] elements = new HasSize[size];
+        Arrays.setAll(elements, i -> generator.get());
+        one = new ImmutableOne<>(elements);
+    }
+
+    @Override
+    public int size() {
+        return Arrays.stream(one.first()).mapToInt(HasSize::size).sum();
+    }
+
+    @Override
+    @Dependent1
+    public HasSize first() {
+        return one.first()[0];
+    }
+
+    @NotModified
+    public HasSize get(int index) {
+        return one.first()[index];
+    }
+
+    @Override
+    public void visit(@Dependent1 Consumer<HasSize> consumer) {
+        for (HasSize element : one.first()) consumer.accept(element);
+    }
+}
+----
+<1> See further, in <<content-linking>>: the immutable content of this type links to the `generator` parameter.
+
+The object graph of the field `one` consists of a level 2 immutable type (`ImmutableOne`), which in turn holds an array of level 2 immutable type objects (`HasSize`).
+
+As an aside, we note that arrays are essentially level 1 immutable constructs: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
+Indeed, consider the following semi-realistic implementation:
+
+.An array is a level 1 immutable container
+[source,java]
+----
+@E1Container
+interface Array<T> {
+    int length();
+
+    T get(int index);
+
+    @Modified
+    void set(int index, T t);
+}
+
+@E1Container
+interface ConsecutiveBytes {
+    int size();
+
+    byte[] get(int pos, int n);
+
+    @Modified
+    void set(int pos, byte[] bytes);
+}
+
+@E1Container
+class ArrayImpl<T> implements Array<T> {
+    private static final int bytesInObject = 4;
+    private final ConsecutiveBytes bytes;
+
+    public ArrayImpl(int size) {
+        bytes = new ConsecutiveBytes(size * bytesInObject);
+    }
+
+    @Override
+    public int length() { return bytes.size() / bytesInObject; }
+
+    @Override
+    public T get(int i) {
+        return (T) bytes.get(i * bytesInObject, bytesInObject);
+    }
+
+    @Override
+    public void set(int index, T t) {
+        bytes.set(index * bytesInObject, bytesInObject);
+    }
+}
+----
+
+Returning the to initial topic, we see that the array is not transparent (see <<generics>>) in `EncapsulatedImmutableArrayOfHasSize`:
+its values are set in the constructor, and read in almost all methods.
+The array clearly is modifiable, and its content is clearly level 2 immutable.
+
+It is clear that the array belongs to the support data or modifiable data, whilst the content of the array is part of the immutable content of the type `EncapsulatedImmutableArrayOfHasSize`.
+
+We state that the `one` object, which holds the array, belongs to the support data.
+In general,
+
+****
+The *immutable content* of a level 1 immutable type are those parts of the object graphs of the fields that are level 2 immutable, and do not contain accessible, modifiable sub-fields.
+The rest of the content is called the *modifiable content* of the level 1 immutable type.
+In the case of a level 2 immutable type, we have occasionally called the modifiable content *support data*.
+****
+
+Why do we say level 1 immutable here?
+We want to be able to use the concept of immutable content, {dependent1}, and propagation of modification in types like `Collection`, `Set` and `List`!
+They will often not be level 2 immutable, yet they have a `forEach` or `visit` independent of their immutable status.
+It is the modifiable content which is insufficiently shielded, or which is actively modified, that prevents a level 1 immutable type from becoming level 2 immutable.
+The immutable content cannot be the differentiator between level 1 and level 2 immutable.
+
+=== Constant content
+
+We briefly note that the point of propagating modifications on the immutable content, the topic of this chapter, is not relevant when this immutable content is deeply immutable.
+It is even more irrelevant when the content is _constant_:
+
+****
+A type is _constant_ when the following both hold:
+
+. the type cannot be extended (it is explicitly marked `final`), and
+. recursively defined, its fields are effectively final and hold constant values, and its methods return constant values.
+The basis for the recursion are the primitives and `java.lang.String`, holding literal constant values.
+****
+
+Apart from mentioning it occasionally, we do not want to spend too much time on deeply immutable constructs.
 
 === Propagating modifications
 
-Let us apply the `forEach` method to `StringBuilder`.
+Let us apply the `visit` method of `NonEmptyImmutableList` to `StringBuilder`:
 
-.Propagating the modification of _forEach_
+.Propagating the modification of _visit_
 [source,java]
 ----
-static void print(@NotModified Circular<StringBuilder> c) {
-    c.forEach(System.out::println); // <1>
+static void print(@NotModified ImmutableOne<StringBuilder> one) {
+    one.visit(System.out::println); // <1>
 }
 
-static void addNewLine(@Modified Circular<StringBuilder> c) {
-    c.forEach(sb -> sb.append("\n")); // <2>
+static void addNewLine(@Modified ImmutableOne<StringBuilder> one) {
+    one.visit(sb -> sb.append("\n")); // <2>
 }
+----
+<1> Non-modifying method implies no modification on the hidden immutable content of `c`.
+<2> Parameter-modifying lambda propagates modification to `c` 's hidden immutable content.
 
-static void replace(@Modified Circular<StringBuilder> c) {
-    c.forEach(sb -> c.add(new StringBuilder("x" + sb))); // <3>
+Having placed the `ImmutableOne` object `one` as a parameter, we are certain that the modification annotation catches any modification to the whole object graph, including those to inaccessible content
+
+[source,java]
+----
+static void replace(@Modified ImmutableO<StringBuilder> c) {
+    one.visit(sb -> c.add(new StringBuilder("x" + sb))); // <3>
 }
 
 List<String> strings = ...
 @Modified // <4>
 void addToStrings(@NotModified Circular<StringBuilder> c) {
-    c.forEach(sb -> strings.add(sb.toString()));
+c.forEach(sb -> strings.add(sb.toString()));
 }
 ----
-<1> Non-modifying method implies no modification on the hidden immutable content of `c`.
-<2> Parameter-modifying lambda propagates modification to `c` 's hidden immutable content.
 <3> Object-modifying lambda changing `c` but not its content (the string builder it holds).
 <4> Example of modification to fields outside the scope of `Circular`.
 
