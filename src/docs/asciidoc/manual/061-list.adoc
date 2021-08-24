@@ -669,43 +669,6 @@ Please find an example with a useful `@Only(after="...")` method in <<testMark-a
 
 // ********************************************************************************************************************
 
-[#propagateModification-annotation]
-==== @PropagateModification
-
-|===
-| Basic {n} | Immu {n} | Contract {n}| Type {n} | Field {y} | Method {n} | Param {y}
-|===
-
-Summary:: This annotation is part of the <<concept-higher-order-modification,higher-order modifications>>.
-The analyser adds this annotation when an abstract method without modification information is called on a parameter.
-This abstract method can be modifying or not, and in general it cannot be known which is the case.
-The annotation then informs the analyser that modifications need computing at caller-time.
-+
-The annotation is also possible on fields, in case the parameter becomes the effectively final value of a field.
-
-Mode:: There is no opposite.
-
-Example:: A typical implementation of `forEach` is a nice example:
-
-[source,java]
-----
-@FunctionalInterface
-public interface Consumer<T> {
-    void accept(T t); // <1>
-    ...
-}
-@Container
-public interface Set<T> {
-    default void forEach(@PropagateModification Consumer<T> consumer) {
-      for(T t: this) consumer.accept(t);
-    }
-    ...
-}
-----
-<1> No modification information present on `accept`.
-
-// ********************************************************************************************************************
-
 [#singleton-annotation]
 ==== @Singleton
 

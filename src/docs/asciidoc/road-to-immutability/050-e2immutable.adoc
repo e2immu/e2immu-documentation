@@ -438,9 +438,7 @@ class ExtendsEmptyClass extends ImplementsMarker { }
 Things only become interesting when methods enter the picture.
 Annotation-wise, we stipulate that
 
-****
-Unless otherwise explicitly annotated, we will assume that abstract methods, be they in interfaces or abstract classes, are {nm}.
-****
+IMPORTANT: Unless otherwise explicitly annotated, we will assume that abstract methods, be they in interfaces or abstract classes, are {nm}.
 
 Furthermore, we will also impose special variants of the rules for level 2 immutability of an abstract type `T`, to be obeyed by the abstract methods:
 
@@ -469,10 +467,8 @@ as a level 2 immutable type when the only method we can access is `compareTo`.
 
 As for as the modification status of the _parameters_ of abstract methods is concerned, we start off with {modified} rather than with {nm}:
 
-****
-Unless otherwise explicitly annotated, or their types are level 2 immutable, we will assume that the parameters of abstract methods, be they in interfaces or abstract classes, are {modified}.
+IMPORTANT: Unless otherwise explicitly annotated, or their types are level 2 immutable, we will assume that the parameters of abstract methods, be they in interfaces or abstract classes, are {modified}.
 Overriding the method, the contract can change from {modified} to {nm}, but not from {nm} to {modified}.
-****
 
 While it is possible to compute the immutability and container status of interface types, using the rules presented above, it often makes more practical sense to use the annotations as contracts: they may save a lot of annotation work on the abstract methods in the interface.
 We repeat that no implementation of a level 2 immutable interface is guaranteed to be level 2 immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.
@@ -540,6 +536,7 @@ They are also allowed to modify their parameter, as we will demonstrate shortly.
 
 Let's downgrade from {e2container} to {e1container} by adding a modifying method:
 
+[#NonEmptyList]
 .Not level 2 immutable anymore: _NonEmptyList_
 [source,java]
 ----

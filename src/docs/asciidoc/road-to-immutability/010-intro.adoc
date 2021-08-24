@@ -1,4 +1,5 @@
 Main website: https://www.e2immu.org.
+Second major iteration, end of August 2021.
 
 [dedication]
 == Dedication

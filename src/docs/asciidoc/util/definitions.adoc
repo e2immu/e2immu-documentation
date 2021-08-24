@@ -33,7 +33,6 @@
 :nn1: pass:normal[ `@NotNull1` ]
 :nn: pass:normal[ `@NotNull` ]
 :nullable: pass:normal[ `@Nullable` ]
-:propagateModification: pass:normal[ `@PropagateModification` ]
 :sse: pass:normal[ `@StaticSideEffects` ]
 :supportData: pass:normal[ `@SupportData` ]
 :testMark: pass:normal[ `@TestMark` ]

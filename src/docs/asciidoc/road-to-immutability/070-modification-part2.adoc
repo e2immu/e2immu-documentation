@@ -82,17 +82,19 @@ This is especially clear when `a == this`.
 
 We discern a number of special cases:
 
-. When `v` is of primitive or {e2immutable} type, there cannot be any linking; `v` does not link to `a` nor `b`.
-. If `b` is of primitive or {e2immutable} type, `v` cannot link to `b`.
+. When `v` is of {e2immutable} type, there cannot be any linking; `v` does not link to `a` nor `b`.
+. If `b` is of {e2immutable} type, `v` cannot link to `b`.
 . When `method` has the annotation {independent}, `v` cannot link to `a`.
 . If `a` is of {independent} type (which includes all {e2immutable} types), all its methods are independent; therefore, `v` cannot link to `a`.
+
+Recall that primitives, `java.lang.Object`, `java.lang.String`, and unbound parameter types, are {e2immutable}.
 
 ****
 Rule 3: in an assignment `v = new A(b)`, `v` potentially links to `b`.
 ****
 
 . When the constructor `A` is independent, `v` cannot link to `b`.
-. When `b` is of primitive or {e2immutable} type, `v` cannot link to `b`.
+. When `b` is of {e2immutable} type, `v` cannot link to `b`.
 . If `A` is {e2immutable}, then `v` cannot link to `b` nor `c`, because all constructors are independent.
 
 Most of the other linking computations are consequences of the basic rules above.
@@ -136,7 +138,7 @@ We will not make any distinction between a functional interface and an abstract 
 If one were forced to make one, the _intention to hold data_ would be the dividing line between a functional interface, which conveys no such intention, and an abstract type, which does.
 
 In this section we want to discuss a limited application of functional interfaces: that where the SAMs have a local implementation.
-The general case, where abstract types come in via a parameter, will be taken up in <<immutable-content>>.
+The general case, where objects of abstract types come in via a parameter, will be taken up in <<immutable-content>>.
 Consider the following example:
 
 .Concrete implementation of suppliers
