@@ -98,19 +98,19 @@ class SimpleImmutableSet1<T> {
 
     @Only(before="frozen")
     public boolean add(T t) {
-        if(frozen) throw new UnsupportedOperationException();
+        if(frozen) throw new IllegalStateException();
         set.add(t);
     }
 
     @Mark("frozen")
     public void freeze() {
-        if(frozen) throw new UnsupportedOperationException();
+        if(frozen) throw new IllegalStateException();
         frozen = true;
     }
 
     @Only(after="frozen")
     public Stream<T> stream() {
-        if(!frozen) throw new UnsupportedOperationException();
+        if(!frozen) throw new IllegalStateException();
         return set.stream();
     }
 
@@ -140,14 +140,14 @@ class SimpleImmutableSet2<T> {
 
     @Mark("set")
     public void initialize(Set<T> data) {
-        if(!set.isEmpty()) throw new UnsupportedOperationException();
+        if(!set.isEmpty()) throw new IllegalStateException();
         if(data.isEmpty()) throw new IllegalArgumentException();
         set.addAll(data);
     }
 
     @Only(after="set")
     public Stream<T> stream() {
-        if(set.isEmpty()) throw new UnsupportedOperationException();
+        if(set.isEmpty()) throw new IllegalStateException();
         return set.stream();
     }
 
@@ -237,10 +237,6 @@ Since in an IDE it is not too easy to have multiple visual markers, it seems bes
 
 When a type is effectively level 1 immutable (not eventually), all fields are effectively final.
 The analyser wants to emphasise the rules needed to obtain (eventual) level 2 immutability, by clearly indicating which fields break the level 2 immutability rules.
-In the case of eventual level 2 immutability,
-
-* modifications to the support data cease after a given mark
-* the analyser disallows modifications to the other fields.
 
 Eventual finality simply adds a  `@Final(after="mark")` annotation to each of these situations.
 

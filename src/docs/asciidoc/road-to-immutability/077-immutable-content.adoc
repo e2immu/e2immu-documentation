@@ -4,13 +4,14 @@
 [#inaccessible-immutable-content]
 === Inaccessible immutable content
 
-From the point of view of the definition of level 2 immutability, fields are either already level 2 immutable, or they are mutable (modifiable) and the rules of level 2 immutability have to ensure that no modifications can take place.
+From the point of view of the definition of level 2 immutability, fields are either already level 2 immutable, or they are modifiable and the rules of level 2 immutability have to ensure that no modifications can take place.
 
-Inside the combined object graphs of the fields of a level 2 immutable type, we can make another distinction: between those types whose content is accessible, and those whose content is 'invisible' because they are only represented by a (typically very) shallow interface which is level 2 immutable.
+Inside the combined object graphs of the fields of a level 2 immutable type, we can make another distinction: between those objects whose content is accessible, and those whose content is 'invisible' because they are only represented by a (typically very) shallow interface which is level 2 immutable.
 In the case of unbound parameter types, as specified in <<generics>>, we chose to represent them in the type by `java.lang.Object`, or an empty interface, which is very shallow indeed.
 
 Let's go back to the simplest definition of a `Pair`,
 
+.Example {counter:example}, `Pair` revisited, again
 [source,java]
 ----
 @E2Container
@@ -25,11 +26,12 @@ public class Pair<K, V> {
 }
 ----
 
-Think of `K` and `V` as empty interfaces, which hide away almost all data held by any concrete instance.
+Think of `K` and `V` as empty interfaces, which hide almost all data held by their concrete instances.
 (The reason for the _almost_ is the presence, for every object, of an implementation of `toString` and `equals`, however little informative they may be.)
 
 On the opposite end of the spectrum we find:
 
+.Example {counter:example}, a type with fully accessible data
 [source,java]
 ----
 @E2Container
@@ -40,9 +42,9 @@ In `Coordinate`, all the data is readily accessible, and, because of the finalit
 
 In this continuum between accessible and inaccessible, it seems impossible to draw a line, and, luckily, our definitions do not require us to do so.
 The reason we bring up this point is to highlight the distinction between level 2 immutability and deep immutability:
-Outside the level 2 immutable type, the inaccessible immutable content need not be inaccessible, nor immutable, at all!
+Outside the level 2 immutable type, the inaccessible immutable content it holds need not be inaccessible, nor immutable, at all!
 
-.Outside of _Pair_, there are no restrictions on immutability
+.Example {counter:example}, usage of `Pair`, outside its definition
 [source,java]
 ----
 Pair<StringBuilder, Integer> twoBuilders = new Pair<>(new StringBuilder("x"), 1);
@@ -58,7 +60,7 @@ We will, however, need to deal with what can be seen as the first level of modif
 
 Let's go back to `NonEmptyImmutableList`, first defined in <<abstract-methods>>:
 
-.Revisiting _NonEmptyImmutableList_
+.Example {counter:example}, revisiting `NonEmptyImmutableList`
 [source,java]
 ----
 @E2Container
@@ -72,6 +74,7 @@ interface NonEmptyImmutableList<T> extends HasSize {
     void visit(Consumer<T> consumer); // @IgnoreModifications
 
     @Constant
+    @NotModified
     @Override
     default boolean isEmpty() {
         return false;
@@ -81,14 +84,14 @@ interface NonEmptyImmutableList<T> extends HasSize {
 
 We start the discussion with the following level 2 immutable implementation of this interface:
 
-.Level 2 immutable implementation of _NonEmptyImmutableList_
+.Example {counter:example}, level 2 immutable implementation of `NonEmptyImmutableList`
 [source,java]
 ----
 @E2Container
 class ImmutableOne<T> implements NonEmptyImmutableList<T> {
     private final T t;
 
-    public ImmutableOne(@Dependent1 T t) {
+    public ImmutableOne(@Dependent1 T t) { // <1>
         this.t = t;
     }
 
@@ -109,34 +112,36 @@ class ImmutableOne<T> implements NonEmptyImmutableList<T> {
 }
 ----
 
+<1> Annotation will be explained shortly.
+
 We need the `visit` method (1) to be non-modifying, and (2) not to modify its parameter `consumer`.
-However, following the normal definitions of modification, it follows that:
+However, following the normal definitions of modification, the following two statements hold:
 
 1. Because `accept` is {modified}, we should mark the parameter `consumer` as {modified}.
 2. Because `t`, the parameter of `accept`, is {modified}, we should mark `visit` as {modified}.
 
 The result of the first statement would violate the `@Container` property on `ImmutableOne`, and we'd be very reluctant to do that:
 according to the intuitive definition in <<containers>>, `ImmutableOne` is a type that holds data, but does not change it.
-This statement still holds in the presence of a `visit` method, which is nothing but a way of exposing the object similar to `first`.
+This statement still holds in the presence of a `visit` method, which is nothing but a way of exposing the object in a way similar to the method `first`.
 The second one would make `visit` modifying, which again goes against our intuition: looping over elements is, in itself, not modifying.
 
-Luckily, there are a number of observations that come to the rescue.
+Luckily, there are two observations that come to the rescue.
 
-First, we believe it is correct to assume that concrete implementation of `Consumer` can be semantically unrelated to `ImmutableOne`.
+First, we believe it is correct to assume that concrete implementations of `Consumer` can be semantically unrelated to `ImmutableOne`.
 As a consequence, we could say that the only modifications that concern us in this `visit` method are the modifications to `accept` 's parameter `t`.
-Other modifications, for example those to the fields of the type in which the implementation is present, may seem to be outside our scope.
-However, if we replace `Consumer` with `Set` and `accept` with `add`, we encounter a modification that we do not really want to ignore, in an otherwise equal setting.
+Other modifications, for example those to the fields of the type in which the implementation is present, may be considered to be outside our scope.
+However, if we replace `Consumer` with `Set` and `accept` with `add`, we encounter a modification that we really do not want to ignore, in an otherwise equal setting.
 Therefore, it does not look like we can reason away potential modifications by `accept`.
 We will have to revert to a contracted {ignoreModifications} annotation on the parameter `consumer`, if we want to avoid `ImmutableOne` losing the `@Container` property.
 
 The second modification, however, is one we will ignore in the `ImmutableOne` type, and _defer_ or _propagate_ to the place where a concrete implementation of the consumer is presented.
 We can ignore it here, because `t` is of level 2 immutable type; what happens to its content happens outside the zone of control of `ImmutableOne`.
-The fact that immutable content is passed on as an argument to a method of `consumer` will be reflected by a {dependent1} annotation.
+The fact that _immutable content_ (properly defined shortly) is passed on as an argument to a method of `consumer` will be reflected by a {dependent1} annotation.
 It will take care of the propagation of modifications from the concrete implementation into the immutable content.
 
 This results in the following annotations for `visit` in `ImmutableOne`:
 
-.The _visit_ method in _ImmutableOne_, fully annotated
+.Example {counter:example}, the `visit` method in `ImmutableOne`, fully annotated
 [source,java]
 ----
 @NotModified
@@ -151,7 +156,7 @@ Therefore, we make this annotation implicit in exactly this context.
 
 Looking at the more general case of a `forEach` implementation iterating over a list or array, we therefore end up with:
 
-.Generic _forEach_ implementation
+.Example {counter:example}, a generic `forEach` implementation
 [source,java]
 ----
 @NotModified
@@ -162,13 +167,14 @@ public void forEach(@Dependent1 Consumer<T> consumer) {
 
 Modifications to the parameter, made by the concrete implementation, are propagated into the immutable content of `list`, as described in the next section.
 The {dependent1} annotation appears because immutable content in `list` is exposed to the `consumer` parameter.
-This annotation does not appear for the modifiable content of the level 2 immutable type (earlier also referred to as the _support data_).
+This annotation does not appear for the modifiable content of the level 2 immutable type.
 Parameters of modifiable type are already shielded from external modification by the {independent} annotation, which is "trivial" for level 2 immutable types.
 
 === Modifiable vs immutable content
 
 In the following example, a field of level 2 immutable type holds explicitly mutable data:
 
+.Example {counter:example}, a field of more complex type
 [source,java]
 ----
 @E2Container
@@ -205,6 +211,7 @@ class EncapsulatedImmutableArrayOfHasSize implements NonEmptyImmutableList<HasSi
     }
 }
 ----
+
 <1> See further, in <<immutable-content-linking>>: the immutable content of this type links to the `generator` parameter.
 
 The object graph of the field `one` consists of a level 2 immutable type (`ImmutableOne`), which in turn holds an array of level 2 immutable type objects (`HasSize`).
@@ -212,7 +219,7 @@ The object graph of the field `one` consists of a level 2 immutable type (`Immut
 As an aside, we note that arrays are essentially level 1 immutable constructs: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
 Indeed, consider the following semi-realistic implementation:
 
-.An array is a level 1 immutable container
+.Example {counter:example}, an array is a level 1 immutable container
 [source,java]
 ----
 @E1Container
@@ -263,15 +270,12 @@ Returning the to initial topic, we see that the array is not transparent (see <<
 its values are set in the constructor, and read in almost all methods.
 The array clearly is modifiable, and its content is clearly level 2 immutable.
 
-It is clear that the array belongs to the support data or modifiable data, whilst the content of the array is part of the immutable content of the type `EncapsulatedImmutableArrayOfHasSize`.
-
-We state that the `one` object, which holds the array, belongs to the support data.
+It is clear that the array belongs to the modifiable data, whilst the content of the array is part of the immutable content of the type `EncapsulatedImmutableArrayOfHasSize`.
 In general,
 
 ****
 The *immutable content* of a level 1 immutable type are those parts of the object graphs of the fields that are level 2 immutable, and do not contain accessible, modifiable sub-fields.
 The rest of the content is called the *modifiable content* of the level 1 immutable type.
-In the case of a level 2 immutable type, we have occasionally called the modifiable content *support data*.
 ****
 
 Why do we say level 1 immutable here?
@@ -293,13 +297,13 @@ A type is _constant_ when the following both hold:
 The basis for the recursion are the primitives and `java.lang.String`, holding literal constant values.
 ****
 
-Apart from mentioning it occasionally, we do not want to spend too much time on deeply immutable constructs.
+While we have mentioned them occasionally, we do not want to spend much time on deeply immutable constructs.
 
 === Propagating modifications
 
 Let us apply the `visit` method of `NonEmptyImmutableList` to `StringBuilder`:
 
-.Propagating the modification of _visit_
+.Example {counter:example}, propagating the modification of `visit`
 [source,java]
 ----
 static void print(@NotModified NonEmptyImmutableList<StringBuilder> list) {
@@ -310,6 +314,7 @@ static void addNewLine(@Modified NonEmptyImmutableList<StringBuilder> list) {
     one.visit(sb -> sb.append("\n")); // <2>
 }
 ----
+
 <1> Non-modifying method implies no modification on the immutable content of `list`.
 <2> Parameter-modifying lambda propagates a modification to `list` 's immutable content.
 
@@ -317,6 +322,7 @@ It is item 2, `addNewLine`, that is of importance here.
 Thanks to the {dependent1} annotation, we know of a modification to `list`, even if `list` is of level 2 immutable type!
 It may help to see the for-loop written out, if we temporarily assume that we have added an implementation of `Iterable` to `NonEmptyImmutableList`, functionally identical to `visit`:
 
+.Example {counter:example}, alternative implementation of `addNewLine`
 [source,java]
 ----
 static void addNewLine(@Modified NonEmptyImmutableList<StringBuilder> list) {
@@ -331,6 +337,7 @@ Without this propagation, we would not be able to implement the definition of mo
 
 Moving from `NonEmptyImmutableList` to `NonEmptyList`, defined <<NonEmptyList, here>>, which has a modifying method, allows us to contrast two different modifications:
 
+.Example {counter:example}, contrasting the modification on the parameter `sb` to that on `list`
 [source,java]
 ----
 static void addNewLine(@Modified NonEmptyList<StringBuilder> list) {
@@ -341,13 +348,14 @@ static void replace(@Modified NonEmptyList<StringBuilder> list) {
     list.setFirst(new StringBuilder("?")); // <2>
 }
 ----
+
 <1> Modification to the immutable content of `list`
 <2> Modification to the modifiable content of `list`
 
 Without storing additional information (e.g., using an as yet undefined annotation like `@Modified1` on `list` in `addNewLine`), however, we cannot make the distinction between a modification to the string builders inside `list`, or a modification to `list` itself.
 In other words, applying the two methods further on, we cannot
 
-.Using print and addNewLine
+.Example {counter:example}, using `print` and `addNewLine`
 [source,java]
 ----
 static String useAddNewLine(@NotModified StringBuilder input) { // <1>
@@ -364,6 +372,7 @@ static String useReplace(@NotModified StringBuilder input) {
     return list.getFirst().toString();
 }
 ----
+
 <1> Should be {modified}, however, in the 3rd statement we cannot know that the modification is to `input` rather than to `list`
 <2> This action discards `input` from `list` without modifying it.
 
@@ -374,7 +383,7 @@ We do not plan to keep track of the distinction between modification of immutabl
 
 Finally, we mention again the modification to a field from a concrete lambda:
 
-.Modification of a field outside the scope
+..Example {counter:example}, modification of a field outside the scope
 [source,java]
 ----
 List<String> strings = ...
@@ -390,7 +399,7 @@ void addToStrings(@NotModified NonEmptyList<StringBuilder> list) {
 Going back to `ImmutableOne`, we see that the constructor links the parameter `t` to the instance's field by means of assignment.
 Let us call this binding of parameters of immutable content to the field _content linking_, and mark it using {dependent1}, _content dependence_:
 
-.Constructor of _ImmutableOne_
+.Example {counter:example}, constructor of `ImmutableOne`
 [source,java]
 ----
 private final T t;
@@ -402,7 +411,7 @@ public ImmutableOne(@Dependent1 T t) {
 
 Returning a part of the immutable content of the type, or exposing it as argument, both warrants a {dependent1} annotation:
 
-.More methods of _ImmutableOne_
+.Example {counter:example}, more methods of `ImmutableOne`
 [source,java]
 ----
 @Override @Dependent1
@@ -420,7 +429,7 @@ Observe that content dependence implies 'normal' independence, as described in <
 
 Another place where the immutable content linking can be seen, is the _for-each_ statement:
 
-.For-each loop and immutable content linking
+.Example {counter:example}, for-each loop and immutable content linking
 [source,java]
 ----
 ImmutableList<StringBuilder> list = ...;
@@ -432,10 +441,11 @@ for(StringBuilder sb: list) {
 
 Because the `Collection` API contain an `add` method annotated as:
 
+.Example {counter:example}, `add` in `Collection` annotated
 [source,java]
 ----
 @Modified
-boolean add(@NotNull @Dependent1 E e) { return true; }
+boolean add(@NotNull @Dependent1 E e);
 ----
 
 indicating that after calling `add`, the argument will become part of the immutable content of the collection, we conclude that the local loop variable `sb` gets content linked to the `builders` list.
@@ -444,7 +454,7 @@ Similarly, this loop variable contains immutable content from the `list` object.
 We reuse the annotation {dependent1} to indicate that the immutable content of two objects are linked.
 Let us look at a possible implementation of `Collection.addAll`:
 
-.addAll
+.Example {counter:example}, a possible implementation of `addAll` in `Collection`
 [source,java]
 ----
 @Modified
@@ -464,7 +474,7 @@ We're now properly armed to see how a for-each loop can be implemented using an 
 
 Let us start with the simplest definition of an iterator, without `remove` method:
 
-.Iterator, without remove
+.Example {counter:example}, the `Iterator` type, without `remove` method
 [source,java]
 ----
 @E1Container
@@ -485,7 +495,7 @@ Following the discussion in the previous section, `next` is {dependent1}, becaus
 
 The interface `Iterable` is a supplier of iterators:
 
-.Iterable
+.Example {counter:example}, the `Iterable` type
 [source,java]
 ----
 @E2Container
@@ -500,15 +510,9 @@ First, creating an iterator should never be a modifying operation on a type.
 Typically, as we explore in the next section, it implies creating a sub-type, static or not, of the type implementing `Iterable`.
 Secondly, the iterator itself is independent of the fields of the implementing type, but has the ability to return its immutable content.
 
-The loop, on a variable `list` of type implementing `Iterable<T>`,
+The loop, on a variable `list` of type implementing `Iterable<T>`, is expressed as `for(T t: list) { ... }`, and can be interpreted as
 
-[source,java]
-----
-for(T t: list) { ... }
-----
-
-can be interpreted as
-
+.Example {counter:example}, implementation of for-each using an `Iterator`
 [source,java]
 ----
 Iterator<T> it = list.iterator();
@@ -520,10 +524,12 @@ while(it.hasNext()) {
 
 The iterator `it` content-links to `list`; via the `next` method, it content-links the immutable content of the `list` to `t`.
 
+[#independent-type]
 === Independence of types
 
 A concrete implementation of an iterator is often a nested type, static or not (inner class), of the iterable type:
 
+.Example {counter:example}, implementation of an `Iterator`
 [source,java]
 ----
 @E2Container
@@ -580,7 +586,7 @@ We propose to add a definition for the independence of a type, very similar to t
 
 The static variant of `IteratorImpl` makes rules 1 and 2 more obvious:
 
-.Static iterator implementation
+.Example {counter:example}, implementation of an `Iterator` as a static nested type
 [source,java]
 ----
 @E2Container

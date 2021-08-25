@@ -54,6 +54,7 @@ public class CyclicReferences {
     }
 }
 ----
+
 <1> `useC2` does not directly modify `i`, but `incrementAndGetWithI` does so indirectly.
 
 This observation forces us to tighten the definition of a non-modifying method: on top of the definition given above, we have to ensure that none of the modifying methods called on a parameter which is {modified}, call one of 'our' modifying methods.
@@ -85,7 +86,7 @@ We discern a number of special cases:
 . When `v` is of {e2immutable} type, there cannot be any linking; `v` does not link to `a` nor `b`.
 . If `b` is of {e2immutable} type, `v` cannot link to `b`.
 . When `method` has the annotation {independent}, `v` cannot link to `a`.
-. If `a` is of {independent} type (which includes all {e2immutable} types), all its methods are independent; therefore, `v` cannot link to `a`.
+. If `a` is of {independent} type (as defined in <<independent-type>>, it includes all {e2immutable} types), all its methods are independent; therefore, `v` cannot link to `a`.
 
 Recall that primitives, `java.lang.Object`, `java.lang.String`, and unbound parameter types, are {e2immutable}.
 
@@ -108,7 +109,8 @@ For example,
 Rule 4: in an array access `v = a[index]`, `v` links to `a`.
 ****
 
-Note: links between `b`, `c`, and `d` are possible, but are covered by the {modified} annotation:
+Note: in a method call `v=a.method(b, c, d)`, links between `b`, `c`, and `d` are possible.
+They are covered by the {modified} annotation:
 when a parameter is {nm}, no modifications at all are possible, not even indirectly.
 
 === Locally implemented abstract methods
@@ -137,13 +139,14 @@ The Java language offers syntactic sugar for functional programming, but the typ
 We will not make any distinction between a functional interface and an abstract type.
 If one were forced to make one, the _intention to hold data_ would be the dividing line between a functional interface, which conveys no such intention, and an abstract type, which does.
 
-In this section we want to discuss a limited application of functional interfaces: that where the SAMs have a local implementation.
-The general case, where objects of abstract types come in via a parameter, will be taken up in <<immutable-content>>.
+In this section we want to discuss a limited application of functional interfaces: the one where the SAMs have a local implementation.
+The general case, where objects of abstract types come in via a parameter, will be addressed in <<immutable-content>>.
 Consider the following example:
 
-.Concrete implementation of suppliers
+.Example {counter:example}, concrete implementation of suppliers
 [source,java]
 ----
+@E1Container
 class ApplyLocalFunctions {
 
     @Container
@@ -156,10 +159,10 @@ class ApplyLocalFunctions {
         }
     }
 
-    @Modified
+    @Modified // <1>
     private final Counter myCounter = new Counter();
 
-    @Modified
+    @Modified // <2>
     private final Supplier<Integer> getAndIncrement = myCounter::increment;
 
     @Modified
@@ -181,6 +184,8 @@ class ApplyLocalFunctions {
     }
 }
 ----
+<1> Modified in `getAndIncrement` and `explicitGetAndIncrement`
+<2> Modified because its modifying method (`get`) is called in `myIncrementer`
 
 The fields `getAndIncrement` and `explicitGetAndIncrement` hold instances of anonymous _inner classes_ of `ApplyLocalFunctions`: these inner classes hold data, they have access to the `myCounter` field.
 Their concrete implementations of `get` each modify `myCounter`.
@@ -189,9 +194,9 @@ in `myIncrementer`, a modifying method is applied to `getAndIncrement`, and in `
 
 Given that `ApplyLocalFunctions` is clearly {e1container}, and the inner classes hold no other data, the inner classes are {e1container} as well.
 
-Now, if we move away from suppliers, but use consumers, we obtain:
+Now, if we move away from suppliers, but use consumers, we can discuss:
 
-.Concrete implementation of consumers
+.Example {counter:example}, concrete implementation of consumers
 [source,java]
 ----
 class ApplyLocalFunctions2 {
@@ -247,10 +252,11 @@ class ApplyLocalFunctions2 {
         apply(printer); // should be fine
         apply(explicitPrinter);
         apply(incrementer); // should cause an ERROR <6>
-        apply(explicitIncrementer); // should case an ERROR
+        apply(explicitIncrementer); // should cause an ERROR
     }
 }
 ----
+
 <1> The anonymous type is static, has no fields, so is at least {e2immutable}.
 It is not a container.
 This is clearly visible in the explicit variant...

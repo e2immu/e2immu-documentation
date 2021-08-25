@@ -149,13 +149,13 @@ class SetOnce<T> {
     @Mark("t")
     public void set(T t) {
         if(t == null) throw new NullPointerException();
-        if(this.t != null) throw new UnsupportedOperationException("Already set");
+        if(this.t != null) throw new IllegalStateException("Already set");
         this.t = t;
     }
 
     @Only(after="t")
     public void get() {
-        if(this.t == null) throw new UnsupportedOperationException("Not yet set");
+        if(this.t == null) throw new IllegalStateException("Not yet set");
         return this.t;
     }
 }
