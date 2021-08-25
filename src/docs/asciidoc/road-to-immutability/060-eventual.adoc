@@ -1,19 +1,13 @@
 [#eventual-immutability]
 == Eventual immutability
 
-There are many constraints on real-world use cases where immutability is not immediate.
-The type then follows a life cycle described as create, use, drop.
-
-Challenges:
-
-* external frameworks insist on a way of working perpendicular to that of your project
-* some graph-like data structures simply cannot be made immutable using conventional tools
-* once you go eventually immutable, how is the propagation organized?
-
-When possible, use a builder.
+In this section we explore types which follow a two-phase life cycle: the start off as mutable, then somehow become immutable.
 
 === Builders
 
+We start with the well-established _builder_ paradigm.
+
+.Example {counter:example}, static nested builder type
 [source,java]
 ----
 @E2Container
@@ -30,26 +24,32 @@ class Point {
 @E2Container
 class Polygon {
 
+    @E2Container
     public final List<Point> points;
 
     private Polygon(List<Point> points) { // <1>
         this.points = points;
     }
 
-    @Container(builds=Polygon.class)
+    @E1Container(builds=Polygon.class)
     static class Builder {
-        private List<Point> points = new ArrayList<>();
 
+        @Modified
+        private final List<Point> points = new ArrayList<>();
+
+        @Modified
         public void addPoint(Point point) {
             points.add(point);
         }
 
+        @NotModified
         public Polygon build() {
             return new Polygon(List.copyOf(points));
         }
     }
 }
 ----
+
 <1> The private constructor combined with the construction of an immutable copy in the `build` method guarantees level 2 immutability.
 
 If your code can live with two different types (`Polygon.Builder`, `Polygon`) to represent polygons in their different stages (mutable, immutable), the builder paradigm is great.
@@ -60,6 +60,7 @@ The <<support-firstthen>> type can also assist in this situation: it holds an in
 Once it is in the final state, it cannot change anymore.
 It is _eventually immutable_:
 
+.Example {counter:example}, use of `FirstThen` to make a type eventually immutable
 [source,java]
 ----
 class PolygonManager {
@@ -87,7 +88,7 @@ class PolygonManager {
 
 We propose a system of eventual immutability based on a single transition of state inside an object.
 
-.First example of frozen class
+.Example {counter:example}, state change in a boolean field
 [source,java]
 ----
 @E2Container(after="frozen")
@@ -123,13 +124,14 @@ class SimpleImmutableSet1<T> {
     }
 }
 ----
+
 <1> These methods can be called any time.
 
 The analyser has no problem detecting the presence of preconditions, and observing that one method changes its own precondition.
 The rules, however, are sufficiently general to support arbitrary preconditions, as shown in the following variant.
 This example does not require an additional field, but relies on the empty/not-empty state change:
 
-.Second example of frozen class
+.Example {counter:example}, state change going from empty to non-empty
 [source,java]
 ----
 @E2Container(after="set")
@@ -175,10 +177,11 @@ In case there are multiple fields involved, their names are represented in a com
 The {mark} and {only} annotations can also be assigned to parameters, in the event that marked methods are called on a parameter of eventually immutable type.
 Consider the following utility method for <<support-eventuallyfinal>>, frequently used in the analyser:
 
-.Code fragment from EventuallyFinalExtension
+.Example {counter:example}, utility method for `EventuallyFinal`
 [source,java]
 ----
-public static <T> void setFinalAllowEquals(@Mark("isFinal") EventuallyFinal<T> eventuallyFinal, T t) {
+public static <T> void setFinalAllowEquals(
+        @Mark("isFinal") EventuallyFinal<T> eventuallyFinal, T t) {
     if (eventuallyFinal.isVariable() || !Objects.equals(eventuallyFinal.get(), t)) {
         eventuallyFinal.setFinal(t);
     }
@@ -202,6 +205,7 @@ A method can return an eventually immutable object, guaranteed to be in its init
 This can be annotated with {beforeMark}.
 Employing `SimpleImmutableSet1` from the example above,
 
+.Example {counter:example}, `@BeforeMark` annotation
 [source,java]
 ----
 @BeforeMark
@@ -248,7 +252,7 @@ This concept is, in many cases, compatible with the idea of eventual immutabilit
 It is therefore not difficult to imagine, and implement in the analyser, a _before_ state (initialization still ongoing) and an _after_ state (initialization done) associated with the particular framework.
 The example below shows how this could be done for the `Verticle` interface of the https://vertx.io[vertx.io framework^].
 
-.Excerpts and annotations of Verticle.java and AbstractVerticle.java
+.Example {counter:example}, excerpts and annotations of `Verticle.java` and `AbstractVerticle.java`
 [source]
 ----
 @E1Container(after = "init")
@@ -288,6 +292,6 @@ public abstract class AbstractVerticle implements Verticle {
 }
 ----
 
-Currently, early 2021, contracted eventual immutability has not been implemented yet in the analyser.
+Currently, mid 2021, contracted eventual immutability has not been implemented yet in the analyser.
 
 // ensure a newline at the end

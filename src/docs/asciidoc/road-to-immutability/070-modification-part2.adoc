@@ -10,7 +10,7 @@ We need to study the situation of seemingly non-modifying methods with modifying
 Up to now, a method is only modifying when it assigns to a field, calls a modifying method on one of the fields, or directly calls a modifying method on `this`.
 However, there could be indirect modifications, as in:
 
-.Indirect modifications
+.Example {counter:example}, indirect modifications
 [source,java]
 ----
 @E2Container
@@ -60,8 +60,8 @@ This observation forces us to tighten the definition of a non-modifying method: 
 These rules are mostly, but not easily, enforceable when all code is visible.
 
 An additional interface can help to remove the circular dependency between the types.
-This has the advantage of simplicity, both for the programmer and the analyser, which at this point doesn't handle circular dependencies too well.
-It imposes more annotation work on the programmer, however, because the interface's methods need contracting.
+This has the advantage of simplicity, both for the programmer and the analyser, which at this point doesn't handle circular dependencies very well.
+It imposes more annotation work on the programmer, however, because the interface's methods need contracts.
 
 [#linking-formally]
 === Linking, formally
