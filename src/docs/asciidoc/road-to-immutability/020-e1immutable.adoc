@@ -6,12 +6,12 @@ Let us start with a definition:
 *Definition*: We say a field is *effectively final* when it either has the modifier `final`, or it is not assigned to in methods that can be transitively called from non-private (non-constructor) methods.
 ****
 
-The code analyser annotates with {final} in the latter case; there is no point in cluttering with an annotation when the modifier is already there.
+The analyser annotates with {final} in the latter case; there is no point in cluttering with an annotation when the modifier is already there.
 It annotates fields that are not effectively final with {variable}.
 
 This definition allows effectively final fields to be assigned in methods accessible only from the constructor:
 
-.Example 1, effectively final, but not with the `final` modifier
+.Example {counter:example}, effectively final, but not with the `final` modifier
 [source,java]
 ----
 class EffectivelyFinal1 {
@@ -36,7 +36,7 @@ class EffectivelyFinal1 {
 
 Obviously, if the same method is also accessible after construction, the field becomes variable:
 
-.Example 2, the method setting the field is accessible after construction
+.Example {counter:example}, the method setting the field is accessible after construction
 [source,java]
 ----
 class EffectivelyFinal2 {
@@ -62,12 +62,12 @@ class EffectivelyFinal2 {
 ----
 
 Note that it is perfectly possible to rewrite the first example in such a way that the `final` modifier can be used.
-From the point of view of the code analyser, this does not matter.
+From the point of view of the analyser, this does not matter.
 The wider definition will allow for more situations to be recognized for what they really are.
 
 When an object consists solely of primitives, or deeply immutable objects such as `java.lang.String`, having all fields effectively final is sufficient to generate an object that is again deeply immutable.
 
-.Example 3, an object consisting of primitives and a string.
+.Example {counter:example}, an object consisting of primitives and a string.[[deeply-immutable1]]
 [source,java]
 ----
 class DeeplyImmutable1 {
@@ -83,7 +83,7 @@ class DeeplyImmutable1 {
 }
 ----
 
-.Example 4, another way of being effectively final
+.Example {counter:example}, another way of being effectively final
 [source,java]
 ----
 class DeeplyImmutable2 {
@@ -117,7 +117,7 @@ class DeeplyImmutable2 {
 Examples 3 and 4 are functionally equivalent: there is no way of changing the values of the fields once they have been set.
 In the real world there may be a reason why someone requires the getters.
 Or, you may be given code as in Example 2, but you are not allowed to change it.
-Whatever the reason, the code analyser should recognize effective finality.
+Whatever the reason, the analyser should recognize effective finality.
 
 Note that we will not make a distinction between any of the different non-private access modes in Java.
 Only the private modifier gives sufficient guarantees that no reassignment to the fields is possible.
@@ -129,17 +129,17 @@ We use this as the basis for the first level of immutability:
 *Definition*: We call a type *effectively level 1 immutable* when all its fields are effectively final.
 ****
 
-The code analyser annotates level 1 immutable types with {e1immutable}.
+The analyser annotates level 1 immutable types with {e1immutable}.
 Types that are not {e1immutable} because they have at least one {variable} field, are annotated either {mutableModifiesArguments} or {container}, depending on properties of the methods' parameters to be explained later.
 
 Note that as of more recent versions of Java, the `record` type enforces explicitly final fields, along with additional support for equality and visibility.
-Any `record` will at least be {e1immutable}.
+Any `record` will be at least {e1immutable}.
 
-As above with effective finality, the term _effective_ is present to make a distinction between formal immutability, and immutability that the code analyser computes.
+As above with effective finality, the term _effective_ is present to make a distinction between formal immutability, and immutability that the analyser computes.
 It will also serve to distinguish from _eventual_ immutability, where (in this case) the finality will be achieved only after the code reaches a certain state.
 More on this later, but here is a first example of an eventually level 1 immutable type:
 
-.Simplified version of `SetOnce`
+.Example {counter:example}, simplified version of `SetOnce`
 [source,java]
 ----
 @E1Immutable(after="t")
@@ -167,7 +167,7 @@ We have just observed that if one restricts to primitives and types like `java.l
 It is not feasible, and we do not wish to, work only with deeply immutable objects.
 Moreover, it is easy to see that level 1 immutability is not enough to guarantee what we intuitively may think immutability stands for:
 
-.Example 5, level 1 immutability does not guarantee intuitive immutability
+.Example {counter:example}, level 1 immutability does not guarantee intuitive immutability
 [source,java]
 ----
 @E1Immutable

@@ -612,3 +612,11 @@ public class ImmutableArray<T> implements Iterable<T> {
 ----
 
 The rules enforce that the data received from, or owned by, the enclosing type, remains properly shielded.
+
+=== Immutable content and eventual immutability
+
+How does the whole story of eventual level 1 or level 2 immutability mix with immutable content?
+At some point, once a necessary precondition has been met, the immutable content will be well-defined, and modifying methods become unavailable.
+Before that, fields that will eventually contain the immutable content may still be `null`, or may be re-assigned.
+This should not have any effect, however, on the computation of immutable content linking, {dependent1} annotations, and the propagation of modifications, since the actual types do not change.
+The two concepts are sufficiently perpendicular to each other, and can easily co-exist.

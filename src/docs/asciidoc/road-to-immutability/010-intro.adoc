@@ -31,11 +31,11 @@ We believe that code complexity can be greatly reduced when the software enginee
 The {e2immu} project consists of a set of definitions, a static code analyser to compute and enforce rules and definitions, and IDE support to visualize the results without cluttering.
 Using {e2immu} in your project will help to maintain higher coding standards, the ultimate beneficiary being code that will survive longer.
 
-A _lack of references_ in this version of the work is explained by the fact that this is my first foray into the world of static code analysers, and theory of software engineering and programming languages.
+A _lack of references to academic literature_ in this version of the document is explained by the fact that this is my first foray into the world of static code analysers, and theory of software engineering and programming languages.
 Academically coming from the theory of machine learning, I spent a decade and a half writing software and managing teams of software engineers.
 This work builds on that practical experience alone.
 I did not consult or research the literature, and I realise I may be duplicating quite a lot here.
-I only, explicitly, want to mention JetBrain's brilliant https://www.jetbrains.com/idea/[IntelliJ IDEA^], which acts as my gold standard.
+I only want to mention JetBrain's brilliant https://www.jetbrains.com/idea/[IntelliJ IDEA^], which acts as my gold standard.
 
 [#assumptions]
 == Assumptions
@@ -76,6 +76,6 @@ Making the method `final`, or the type `final`, merely _prohibits_ overriding, w
 
 The final situation where explicit annotations in the code are important, is for the development of the analyser.
 We add them to the code as a means of verification: the analyser will check if it generates the same annotation at that location.
-A number of annotations serve no other purpose than debugging: `@Linked`, `@Independent`, `@Constant`, ...
+Some annotations, like `@Linked` and `@Constant`, serve no other purpose than debugging.
 
 // ensure a newline at the end

@@ -4,7 +4,7 @@
 Let us now elaborate on how we will compute modifications, in a path towards level 2 immutability.
 Consider the following example:
 
-.Example 6, field linked to constructor parameter
+.Example {counter:example}, a field assigned to a constructor parameter
 [source,java]
 ----
 class LinkExample1<X> {
@@ -27,7 +27,7 @@ However, linking can become more complicated.
 
 The {e2immu} analyser will add modification annotations to `LinkExample1` as follows:
 
-.Example 7, field linked to constructor parameter, with annotations
+.Example {counter:example}, a field linked to a constructor parameter, with annotations
 [source,java]
 ----
 class LinkExample1<X> {
@@ -52,7 +52,7 @@ Because of the latter, `LinkExample1` cannot be marked {container}.
 Linking looks at the underlying object, and not at the variable.
 Consider the following alternative `add` method:
 
-.Example 8, alternative add method
+.Example {counter:example}, alternative `add` method for `LinkExample1`
 [source,java]
 ----
 @Modified
@@ -66,13 +66,14 @@ public void add(X x) {
 Nothing has changed, obviously.
 Finally, as an example of how linking can become more complicated than following assignments, consider a typical _view_ on a collection:
 
-.Example 9, linking using a method call
+.Example {counter:example}, linking using a method call
 [source,java]
 ----
 List<X> list = createSomeLargeList();
 List<X> sub = list.subList(1, 5);
-sub.set(0, x); // will modify sub, and list!
+sub.set(0, x); // <1>
 ----
+<1> The modifying method call `set` will modify `sub`, and `list` as well!
 
 On the other side of the spectrum, linking does not work on objects that cannot be modified, like primitives or deeply immutable objects such as the primitives, or `java.lang.String`.
 
@@ -96,7 +97,7 @@ The independence (or dependence) is marked with {independent} (or {dependent}) o
 
 It follows immediately that:
 
-* empty constructors of top-level types and static sub-types (but not necessarily inner classes, sub-types that are not static) are always independent;
+* empty constructors of top-level types and static nested types (but not necessarily inner classes, nested types that are not static) are always independent;
 * non-modifying methods that return primitives or deeply immutable objects are independent, since no assignments to fields take place, and the returned objects cannot be modified.
 
 Examples follow soon, once immutability has been defined in more detail.

@@ -18,20 +18,23 @@ The code analyser will annotate a type that is both level 1 immutable, and a con
 This occurs frequently enough to justify a separate annotation.
 The simple but useful utility type `Pair` trivially satisfies both requirements:
 
-.A pair of objects
+.Example {counter:example}, a `Pair` of objects
 [source,java]
 ----
 @E1Container
 public class Pair<K,V> {
     public final K k;
     public final V v;
+
     public Pair(K k, V v) {
         this.k = k;
         this.v = v;
     }
+
     public K getK() {
         return k;
     }
+
     public V getV() {
         return v;
     }
@@ -41,15 +44,17 @@ public class Pair<K,V> {
 While it is clearly level 1 immutable, it will remain to be seen if it satisfies all criteria for intuitive immutability.
 However, it is easily recognized as a container: a type you use and trust to hold objects.
 
-Containers occur frequently as static sub-types to build immutable objects.
+Containers occur frequently as static nested types to build immutable objects.
 Examples of these will follow later, after the definition of level 2 immutability.
 
 Let us conclude this section with an example consisting of three types: the first a class computed to be a container, the second a container according to the contract, and the third a class which cannot be a container:
 
+.Example {counter:example}, two containers and a type that is not a container
 [source,java]
 ----
 @Container
 class ErrorMessage {
+    @Variable
     private String message;
 
     public ErrorMessage(String message) {
@@ -69,7 +74,7 @@ class ErrorMessage {
 
 @Container
 interface ErrorRegistry {
-    @NotModified
+    // @NotModified implicitly
     List<ErrorMessage> getErrors();
 
     @Modified
@@ -91,6 +96,7 @@ class BinaryExpression extends Expression {
     }
 }
 ----
+
 <1> Implementations of `ErrorRegistry` will not be allowed to use the `setMessage` setter in `addError`.
 <2> Here a modifying method call takes place.
 
