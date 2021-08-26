@@ -1,4 +1,3 @@
-
 [#preconditions-and-instance-state]
 == Preconditions and instance state
 
@@ -9,7 +8,7 @@ We have implemented a system where the value of a variable can be augmented with
 In the case of Java collections and `StringBuilder`, size-based instance state is low-hanging fruit.
 Let's start with an example:
 
-.Creating an empty list
+.Example {counter:example}, creating an empty list
 [source,java]
 ----
 List<String> list = new ArrayList<>();
@@ -21,7 +20,7 @@ if (list.size() > 0) { // WARNING: evaluates to constant
 When creating a new `ArrayList` using the empty constructor, we can store in the variable's value that its size is 0.
 First, let us look at the annotations for the `size` method:
 
-.Annotations of List.size
+.Example {counter:example}, annotations of `List.size`
 [source,java]
 ----
 void size$Aspect$Size() {}
@@ -36,7 +35,7 @@ The second adds an invariant (an assertion that is always true) in relation to t
 
 Looking at the annotations for the empty constructor,
 
-.Annotations of empty ArrayList constructor
+.Example {counter:example}, annotations of empty `ArrayList` constructor
 [source,java]
 ----
 boolean ArrayList$Modification$Size(int post) { return post == 0; }
@@ -46,7 +45,7 @@ public ArrayList$() { }
 we see another companion method, that expresses the effect of the construction in terms of the `Size` aspect.
 (The dollar sign at the end of the constructor is an artifact of the annotated API system; please refer to the {e2immu} manual.) Internally, we represent the value of `list` after the assignment as
 
-.Internal representation of an empty list
+.Example {counter:example}, internal representation of an empty list
 [source,java]
 ----
 new ArrayList<>()/*0==this.size()*/
@@ -58,7 +57,7 @@ This then gets added to the evaluation state, which allows the analyser to concl
 This approach is sufficiently strong to catch a number of common problems when working with collections.
 After adding one element to the empty list, as in:
 
-.Adding an element to an empty list
+.Example {counter:example}, adding an element to an empty list
 [source,java]
 ----
 List<String> list = new ArrayList<>();
@@ -67,7 +66,7 @@ list.add("a");
 
 the value of `list` becomes
 
-.Internal representation after adding an element
+.Example {counter:example}, internal representation after adding an element
 [source,java]
 ----
 instance type ArrayList<String>/*this.contains("a")&&1==this.size()*/
@@ -75,7 +74,7 @@ instance type ArrayList<String>/*this.contains("a")&&1==this.size()*/
 
 The boolean expression in the comments is added to the evaluation state, so that expressions such as `list.isEmpty()`, defined as:
 
-.List.isEmpty and its companion method
+.Example {counter:example}, `List.isEmpty` and its companion method
 [source,java]
 ----
 boolean isEmpty$Value$Size(int i, boolean retVal) { return i == 0; }

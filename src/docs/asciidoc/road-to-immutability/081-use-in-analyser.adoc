@@ -13,7 +13,7 @@ Whilst during inspection information is writable, after inspection this informat
 We use the builder pattern for `TypeInspection`, using `TypeInspectionImpl.Builder` first and `TypeInspectionImpl` later.
 The inspection information is stored using `SetOnce`:
 
-.Parts of TypeInfo
+.Example {counter:example}, explaining `org.e2immu.analyser.model.TypeInfo`
 [source,java]
 ----
 public class TypeInfo {
@@ -28,7 +28,7 @@ Results are temporarily stored in `TypeAnalysisImpl.Builder`, then copied into t
 Both classes implement the `TypeAnalysis` interface to shield off the build phase.
 Once the immutable type is ready, it is stored in `TypeInfo`:
 
-.Parts of TypeInfo, v2
+.Example {counter:example}, explaining `org.e2immu.analyser.model.TypeInfo`
 [source,java]
 ----
 @E2Container(after="typeAnalysis,typeInspection")

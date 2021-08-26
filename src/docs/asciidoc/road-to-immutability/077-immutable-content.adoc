@@ -284,20 +284,33 @@ They will often not be level 2 immutable, yet they have a `forEach` or `visit` i
 It is the modifiable content which is insufficiently shielded, or which is actively modified, that prevents a level 1 immutable type from becoming level 2 immutable.
 The immutable content cannot be the differentiator between level 1 and level 2 immutable.
 
-=== Constant content
+=== Deeply immutable types
 
-We briefly note that the point of propagating modifications on the immutable content, the topic of this chapter, is not relevant when this immutable content is deeply immutable.
-It is even more irrelevant when the content is _constant_:
+We briefly note that the point of propagating modifications to the immutable content, the topic of this chapter, is not relevant when this immutable content is _deeply immutable_.
+We have used the latter concept a few times already; now is a good time to define it formally.
+
+A first, necessary restriction for a type to be deeply immutable is that it cannot be extended, i.e., it should be marked as `final`.
+This prevents the creation of sub-types which hold data that is inaccessible to the formal parent type, yet potentially modifiable when exposed in a concrete situation, exactly as we are discussing in this chapter.
+Note that the Java types that have literals associated with them, the primitives and `java.lang.String`, cannot be extended.
+They will form the basis of a recursive definition.
+Also note that by definition, a Java 16 `record` type cannot be extended.
+
+The rest of the restrictions follow the rules of level 2 immutability in a remarkably similar way.
+Loosely speaking, we still allow for modifiable content, as long as it is properly shielded and not modified, but we require the immutable content to be deeply immutable.
+More formally,
 
 ****
-A type is _constant_ when the following both hold:
+A type is _deeply immutable_ when the following restrictions hold at the same time:
 
-. the type cannot be extended (it is explicitly marked `final`), and
-. recursively defined, its fields are effectively final and hold constant values, and its methods return constant values.
-The basis for the recursion are the primitives and `java.lang.String`, holding literal constant values.
+. the type cannot be extended (it is explicitly marked `final`)
+. its fields are effectively final ({final})
+. its fields are not modified ({nm})
+. its fields are either private, or of deeply immutable type
+. its non-private methods and constructors do not expose the non-deeply immutable content of the fields
 ****
 
-While we have mentioned them occasionally, we do not want to spend much time on deeply immutable constructs.
+It is straightforward to see that deeply immutable types are also level 2 immutable.
+We will not spend more time on deeply immutable constructs, hence not elaborate on the details of rule 5.
 
 === Propagating modifications
 
@@ -318,7 +331,7 @@ static void addNewLine(@Modified NonEmptyImmutableList<StringBuilder> list) {
 <1> Non-modifying method implies no modification on the immutable content of `list`.
 <2> Parameter-modifying lambda propagates a modification to `list` 's immutable content.
 
-It is item 2, `addNewLine`, that is of importance here.
+It is the second method, `addNewLine`, that is of importance here.
 Thanks to the {dependent1} annotation, we know of a modification to `list`, even if `list` is of level 2 immutable type!
 It may help to see the for-loop written out, if we temporarily assume that we have added an implementation of `Iterable` to `NonEmptyImmutableList`, functionally identical to `visit`:
 
@@ -333,7 +346,7 @@ static void addNewLine(@Modified NonEmptyImmutableList<StringBuilder> list) {
 ----
 
 We really need the link between `sb` and `list` for the modification on `sb` to propagate to `list`.
-Without this propagation, we would not be able to implement the definition of modification of parameters, as stipulated in <<modification>>, in this relatively straightforward, and probably frequently occurring situation.
+Without this propagation, we would not be able to implement the full definition of modification of parameters, as stipulated in <<modification>>, in this relatively straightforward, and probably frequently occurring situation.
 
 Moving from `NonEmptyImmutableList` to `NonEmptyList`, defined <<NonEmptyList, here>>, which has a modifying method, allows us to contrast two different modifications:
 
@@ -383,7 +396,7 @@ We do not plan to keep track of the distinction between modification of immutabl
 
 Finally, we mention again the modification to a field from a concrete lambda:
 
-..Example {counter:example}, modification of a field outside the scope
+.Example {counter:example}, modification of a field outside the scope
 [source,java]
 ----
 List<String> strings = ...
@@ -414,7 +427,8 @@ Returning a part of the immutable content of the type, or exposing it as argumen
 .Example {counter:example}, more methods of `ImmutableOne`
 [source,java]
 ----
-@Override @Dependent1
+@Dependent1
+@Override
 public T first() {
     return t;
 }
@@ -468,7 +482,7 @@ boolean addAll(@NotNull1 @Dependent1 Collection<? extends E> collection) {
 The call to `add` content links `e` to `this`.
 Because `e` is also content linked to `c`, the parameter `collection` holds immutable content linked to the immutable content of the instance.
 
-We're now properly armed to see how a for-each loop can be implemented using an iterator whose immutable content links to that of a level 1 immutable container.
+We are now properly armed to see how a for-each loop can be implemented using an iterator whose immutable content links to that of a level 1 immutable container.
 
 === Iterator, Iterable, loops
 
@@ -508,7 +522,7 @@ interface Iterable<T> {
 
 First, creating an iterator should never be a modifying operation on a type.
 Typically, as we explore in the next section, it implies creating a sub-type, static or not, of the type implementing `Iterable`.
-Secondly, the iterator itself is independent of the fields of the implementing type, but has the ability to return its immutable content.
+Second, the iterator itself is independent of the fields of the implementing type, but has the ability to return its immutable content.
 
 The loop, on a variable `list` of type implementing `Iterable<T>`, is expressed as `for(T t: list) { ... }`, and can be interpreted as
 
@@ -596,7 +610,9 @@ public class ImmutableArray<T> implements Iterable<T> {
     @Container
     @Independent
     static class IteratorImpl implements Iterator<T> {
+        @Modified
         private int i;
+
         private final T[] elements;
 
         private IteratorImpl(T[] elements) {
@@ -610,6 +626,7 @@ public class ImmutableArray<T> implements Iterable<T> {
 
         @Override
         @NotNull
+        @Modified
         public T next() {
             return elements[i++];
         }

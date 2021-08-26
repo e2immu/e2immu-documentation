@@ -11,7 +11,7 @@ We discuss a selection of the building blocks here.
 
 Simpler than `FlipSwitch` is not possible for an eventually immutable type: it consists solely of a single boolean, which is at the same time the data and the guard:
 
-.Code fragment: most of FlipSwitch
+.Example {counter:example}, most of `org.e2immu.support.FlipSwitch`
 [source,java]
 ----
 @E2Container(after = "t")
@@ -22,29 +22,30 @@ public class FlipSwitch {
 
     private boolean set$Precondition() { return !t; } // <1>
     @Mark("t")
+    @Modified
     public void set() {
         if (t) throw new IllegalStateException("Already set");
         t = true;
     }
 
-    @NotModified
     @TestMark("t")
+    @NotModified
     public boolean isSet() {
         return t;
     }
 
     private boolean copy$Precondition() { return !t; } // <1>
-    @Mark("t") // but conditionally
+    @Mark("t") // <2>
+    @Modified
     public void copy(FlipSwitch other) {
         if (other.isSet()) set();
     }
 }
 ----
+
 <1> This companion method is present in the code to validate the computation of the precondition.
 See <<preconditions-and-instance-state>> for more details.
-
-Note that methods which only conditionally change the immutability status of a type, such as `copy`, also get a {mark} annotation.
-The analyser is not omniscient, and plays safe.
+<2> The {mark} is present, even if it is executed conditionally.
 
 The obvious use case for this helper class is to indicate whether a certain job has been done, or not.
 
@@ -53,7 +54,7 @@ The obvious use case for this helper class is to indicate whether a certain job 
 
 One step up from `FlipSwitch` is `SetOnce`: a place-holder for one object which can be filled exactly once:
 
-.Code fragment: parts of SetOnce
+.Example {counter:example}, parts of `org.e2immu.support.SetOnce`
 [source,java]
 ----
 @E2Container(after = "t")
@@ -63,6 +64,7 @@ public class SetOnce<T> {
     private volatile T t;
 
     @Mark("t")
+    @Modified
     public void set(@NotNull T t) {
         if (t == null) throw new NullPointerException("Null not allowed");
         if (this.t != null) {
@@ -81,16 +83,16 @@ public class SetOnce<T> {
         return t;
     }
 
-    @NotModified
     @TestMark("t")
+    @NotModified
     public boolean isSet() {
         return t != null;
     }
 
     @NotModified
-    public T getOrElse(T alternative) {
+    public T getOrDefault(T defaultValue) {
         if (isSet()) return get();
-        return alternative;
+        return defaultValue;
     }
 }
 ----
@@ -105,7 +107,7 @@ Slightly more flexible than `SetOnce` is `EventuallyFinal`: the type allows you 
 method, until you write using `setFinal`.
 Then, the state changes and the type becomes level 2 immutable:
 
-.Code fragment: EventuallyFinal
+.Example {counter:example}, `org.e2immu.support.EventuallyFinal`
 [source,java]
 ----
 @E2Container(after = "isFinal")
@@ -144,7 +146,7 @@ public class EventuallyFinal<T> {
 }
 ----
 
-Here's also an example of a negated {testMark} annotation: `isVariable` return the negation of the normal `iFinal` mark test.
+Note the occurrence of a negated {testMark} annotation: `isVariable` returns the negation of the normal `iFinal` mark test.
 
 [#support-freezable]
 === Freezable
@@ -152,7 +154,7 @@ Here's also an example of a negated {testMark} annotation: `isVariable` return t
 The previous support class, `EventuallyFinal`, forms the template for a more general approach to eventual immutability:
 allow free modifications, until the type is _frozen_ and no modifications can be allowed anymore.
 
-.Code fragment: Freezable
+.Example {counter:example}, `org.e2immu.support.Freezable`
 [source,java]
 ----
 @E2Container(after = "frozen")
@@ -183,6 +185,7 @@ public abstract class Freezable {
     }
 }
 ----
+
 <1> This companion method is present in the code to validate the computation of the precondition.
 See <<preconditions-and-instance-state>> for more details.
 
@@ -192,9 +195,9 @@ derived classes can only go _down_ the immutability scale, not up!
 [#support-setoncemap]
 === SetOnceMap
 
-We'll show one example that depends on `Freezable`: a freezable map where no objects can be overwritten:
+We discuss one example that makes use of (derives from) `Freezable`: a freezable map where no objects can be overwritten:
 
-.Code fragment: part of SetOnceMap
+.Example {counter:example}, part of `org.e2immu.support.SetOnceMap`
 [source,java]
 ----
 @E2Container(after = "frozen")
@@ -228,7 +231,8 @@ public class SetOnceMap<K, V> extends Freezable {
     ...
 }
 ----
-<1> The analyser will warn a potential null pointer exception here, not (yet) making the connection between
+
+<1> The analyser will warn for a potential null pointer exception here, not (yet) making the connection between
 `isSet` and `containsKey`.
 This connection can be implemented using the techniques described in <<preconditions-and-instance-state>>.
 
@@ -238,15 +242,16 @@ The code analyser makes frequent use of this type, often with an additional guar
 === Lazy
 
 `Lazy` implements a lazily-initialized immutable field, of unbound generic type `T`.
-Properly implemented, it is an eventually level 2 immutable type.
+Properly implemented, it is an eventually level 2 immutable type:
 
-.Code fragment: Lazy
+.Example {counter:example}, `org.e2immu.support.Lazy`
 [source,java]
 ----
 @E2Container(after = "t")
 public class Lazy<T> {
 
-    @NotNull1 @Dependent1
+    @Dependent1
+    @NotNull1
     private final Supplier<T> supplier;
 
     @Final(after = "t")
@@ -270,25 +275,22 @@ public class Lazy<T> {
     }
 }
 ----
+
 <1> The annotation has travelled from the field to the parameter; so the parameter has {dependent1}.
 <2> The {mark} annotation is conditional; the transition is triggered by nullity of `t`
 <3> Here `t` content links to `supplier`, as explained in <<immutable-content-linking>>, which causes the field `supplier` to be marked {dependent1}.
 The statement also causes the {nn1} annotation, as defined in <<nullable-section>>.
 
 After calling the marker method `get()`, `t` cannot be assigned anymore, and it becomes {final}.
-Because it is of an unbound generic type, it is {nm}, as is the field `supplier`.
-Level 2 immutability rules 2 and 3 do not apply for either fields.
 
 [#support-firstthen]
 === FirstThen
 
+A variant on `SetOnce` is `FirstThen`, an eventually level 2 immutable container which starts off with one value, and transitions to another:
+
+.Example {counter:example}, `org.e2immu.support.FirstThen`
 [source,java]
 ----
-package org.e2immu.analyser.util;
-
-import org.e2immu.annotation.*;
-import java.util.Objects;
-
 @E2Container(after = "mark")
 public class FirstThen<S, T> {
     private volatile S first;
@@ -298,11 +300,13 @@ public class FirstThen<S, T> {
         this.first = Objects.requireNonNull(first);
     }
 
+    @TestMark(value = "first", before = true)
     @NotModified
     public boolean isFirst() {
         return first != null;
     }
-
+    
+    @TestMark(value = "first")
     @NotModified
     public boolean isSet() {
         return first == null;
@@ -312,24 +316,28 @@ public class FirstThen<S, T> {
     public void set(@NotNull T then) {
         Objects.requireNonNull(then);
         synchronized (this) {
-            if (first == null) throw new UnsupportedOperationException("Already set");
+            if (first == null) throw new IllegalStateException("Already set");
             this.then = then;
             first = null;
         }
     }
 
-    @NotNull @NotModified @Only(before = "mark")
+    @Only(before = "mark")
+    @NotModified 
+    @NotNull 
     public S getFirst() {
         if (first == null)
-            throw new UnsupportedOperationException("Then has been set"); // <1>
+            throw new IllegalStateException("Then has been set"); // <1>
         S s = first;
         if (s == null) throw new NullPointerException();
         return s;
     }
 
-    @NotNull @NotModified @Only(after = "mark")
+    @Only(after = "mark")
+    @NotModified 
+    @NotNull 
     public T get() {
-        if (first != null) throw new UnsupportedOperationException("Not yet set"); // <2>
+        if (first != null) throw new IllegalStateException("Not yet set"); // <2>
         T t = then;
         if (t == null) throw new NullPointerException();
         return t;
@@ -350,6 +358,7 @@ public class FirstThen<S, T> {
     }
 }
 ----
+
 <1> This is a bit convoluted.
 The precondition is on the field `first`, and the current implementation of the precondition analyser requires an explicit check on the field.
 Because this field is not final, we cannot assume that it is still null after the initial check; therefore, we assign it to a local variable, and do another null check to guarantee that the result that we return is `@NotNull`.

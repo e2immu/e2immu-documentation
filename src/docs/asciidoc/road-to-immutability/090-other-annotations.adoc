@@ -31,6 +31,7 @@ This concept is useful when working with collections.
 
 Consider the following {nn} variants on the `List` API:
 
+.Example {counter:example}, {nn} annotations on `Collection`
 [source,java]
 ----
 boolean add(@NotNull E e);
@@ -48,6 +49,7 @@ You are free to annotate differently!
 Higher orders are possible as well.
 A second level would be useful when working with entry sets:
 
+.Example {counter:example}, {nn} annotations on `Map`
 [source,java]
 ----
 V put(@NotNull K key, @NotNull V value);
@@ -65,11 +67,15 @@ The analyser marks methods which returns their first parameter with `@Identity`,
 The former are convenient to introduce preconditions, the latter occur frequently when chaining methods in builders.
 Here is an integrated example:
 
+.Example {counter:example}, methods marked {identity} and {fluent}
 [source,java]
 ----
-@Container(builds=Set.class)
+@E1Container(builds=List.class)
 class Builder {
-    @NotNull @NotModified @Identity
+
+    @NotNull
+    @NotModified
+    @Identity
     private static <T> T requireNonNull(@NotNull T t) {
         if(t == null) throw new UnsupportedOperationException();
         return t;
@@ -125,9 +131,11 @@ The following need to be true at all times when using types with finalizer metho
 
 Interestingly, these restrictions are such that they help you control the life-cycle of objects with a {finalizer}, by not letting them out of sight.
 
+Note that the {finalizer} annotation is always contracted; it cannot be computed.
+
 Let us start from the following example, using <<support-eventuallyfinal>>:
 
-.Example of a type with a finalizer method
+.Example {counter:example}, a type with a {finalizer} method
 [source,java]
 ----
 class ExampleWithFinalizer {
@@ -146,7 +154,7 @@ class ExampleWithFinalizer {
         return this;
     }
 
-    @Finalizer(contract = true)
+    @Finalizer
     @BeforeMark
     public EventuallyFinal<String> getData() {
         return data;
@@ -156,6 +164,7 @@ class ExampleWithFinalizer {
 
 Using {fluent} methods to go from construction to finalizer is definitely allowed according to the rules:
 
+.Example {counter:example}, calling the finalizer method
 [source,java]
 ----
 @E2Container
@@ -171,6 +180,7 @@ Passing on these objects as arguments is permitted, but the recipient should not
 Actually, given our strong preference for containers, the recipient should not even modify the object!
 Consider:
 
+.Example {counter:example}, illegal call
 [source,java]
 ----
 @E2Container
@@ -189,6 +199,7 @@ private static void doSthElse(@NotModified ExampleWithFinalizer ex) {
     ex.doSomething(); // <2>
 }
 ----
+
 <1> here we pass on the object
 <2> forbidden to call the finalizer; other methods allowed.
 
@@ -202,7 +213,7 @@ They allow us to introduce the concepts of _processors_ and _finishers_ for even
 
 The purpose of a _processor_ is to receive an object in the {beforeMark} state, hold it, use a lot of temporary data in the meantime, and then release it again, modified but still in the {beforeMark} state.
 
-.Conceptual example of processor
+.Example {counter:example}, conceptual example of a processor
 [source,java]
 ----
 class Processor {
@@ -220,7 +231,7 @@ class Processor {
         count++;
     }
 
-    @Finalizer(contract = true)
+    @Finalizer
     @BeforeMark // <4>
     public EventuallyFinal<String> done(String last) {
         eventuallyFinal.setVariable(last + "; tried " + count);
@@ -228,6 +239,7 @@ class Processor {
     }
 }
 ----
+
 <1> symbolises the temporary data to be destroyed after processing
 <2> the field is private, not passed on, no {mark} method is called on it, and it is exposed only in a {finalizer}
 <3> symbolises the modifications that act as processing
@@ -237,7 +249,7 @@ The purpose of a _finisher_ is to receive an object in the {beforeMark} state, a
 In the meantime, it gets modified (finished), while there is other temporary data around.
 Once the final state is reached, the analyser guarantees that the temporary data is destroyed by severely limiting the scope of the finisher object.
 
-.Conceptual example of finisher
+.Example {counter:example}, conceptual example of finisher
 [source,java]
 ----
 class Finisher {
@@ -256,7 +268,7 @@ class Finisher {
         count++;
     }
 
-    @Finalizer(contract = true)
+    @Finalizer
     @E2Container // <4>
     public EventuallyFinal<String> done(String last) {
         eventuallyFinal.setFinal(last + "; tried " + count);
@@ -264,6 +276,7 @@ class Finisher {
     }
 }
 ----
+
 <1> symbolises the temporary data to be destroyed.
 <2> only possible because the transition occurs in a {finalizer} method
 <3> symbolises the modifications that act as finishing
@@ -290,6 +303,7 @@ These definitions imply
 In Java, many classes cannot easily be extended.
 Implementations of extensions typically use a utility class with the convention that the first parameter of the static method is the object of the extended method call:
 
+.Example {counter:example}, an extension class
 [source,java]
 ----
 @ExtensionClass(of=String[].class)
@@ -333,7 +347,7 @@ the creation of an instance in a single static field with a static constructor, 
 
 An example of the first strategy is:
 
-.First mechanism recognized to enforce a singleton
+.Example {counter:example}, first mechanism recognized to enforce a singleton
 [source,java]
 ----
 @Singleton
@@ -355,7 +369,7 @@ public class SingletonExample {
 
 An example of the second strategy is:
 
-.Second mechanism recognized to enforce a singleton
+.Example {counter:example}, second mechanism recognized to enforce a singleton
 [source,java]
 ----
 @Singleton
