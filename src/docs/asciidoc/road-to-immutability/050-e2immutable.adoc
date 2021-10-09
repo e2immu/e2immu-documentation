@@ -36,6 +36,7 @@ public class Pair<K,V> {
 ----
 
 Note that since `K` and `V` are unbound generic types, it is not even possible to modify their content from inside `Pair`, since there are no modifying methods one can call on unbound types.
+The types `K` and `V` are hidden in `Pair`; it does not have any accessible content.
 
 How does it fit the intuitive rule for immutability?
 The type `Pair` holds two objects.
@@ -128,23 +129,25 @@ Together with the first rule, and building on level 1 immutability, we define:
 
 *Rule 1*: All fields are {nm}.
 
-*Rule 2*: All fields are either private, or of level 2 immutable type.
+*Rule 2*: All fields are either private, or of level 2 immutable type themselves.
 
-*Rule 3*: All constructors and non-private methods are independent of the modifiable fields.
+*Rule 3*: No parameters of non-private methods or non-private constructors, no return values of non-private methods, are dependent on (the accessible part of) the fields.
 ****
 
-Rule 2 is there to ensure that the modifiable fields of the object cannot be modified by means of access to the non-private fields.
-Rule 3 ensures that the modifiable fields of the object cannot be modified externally by obtaining references to the fields via a parameter or return value.
+Rule 2 is there to ensure that the modifiable fields of the object cannot be modified externally by means of direct field access to the non-private fields.
+Rule 3 ensures that the modifiable fields of the object cannot be modified externally by obtaining or sharing references to the fields via a parameter or return value.
 
 Note that:
 
 * We state that all primitive types are level 2 immutable, as is `java.lang.Object`.
 Whilst this is fairly obvious in the case of primitives, level 2 immutability for `Object` requires us to either ignore the methods related to synchronization, or to assume that its implementation (for it is not an abstract type) has no fields.
 * A consequence of rule 1 is that all methods in a level 2 immutable type must be {nm}.
-* A field whose type is an unbound type parameter, is of level 2 immutable type, as this type parameter could be substituted by `java.lang.Object`, which we have just declared to be level 2 immutable.
+* A field whose type is an unbound type parameter, can locally be considered to be of level 2 immutable type, and therefore need not be private.
+This is because the type parameter could be substituted by `java.lang.Object`, which we have just declared to be level 2 immutable.
 More details can be found in the section on <<generics>>.
-* Constructor parameters of unbound type parameter, or method return types of unbound type parameter do not have to follow rule 3 (or equivalently, they are always independent, in the same way that level 2 immutable types are): inside the class, there is no way of modifying them.
-This will be expanded on in <<immutable-content>>.
+* Constructor parameters whose formal type is an unbound type parameter, are of hidden type inside the type of the constructor.
+As a consequence, rule 3 does not apply to them.
+This will be expanded on in <<hidden-content>>.
 * The section on <<inheritance>> will show how the immutability property relates to implementing interfaces, and sub-classing.
 This is important because the definition is recursive, with `java.lang.Object` the level 2 immutable base of the recursion.
 All other types must extend from it.
@@ -514,7 +517,7 @@ Overriding the method, the contract can change from {modified} to {nm}, but not 
 While it is possible to compute the immutability and container status of interface types, using the rules presented above, it often makes more practical sense to use the annotations as contracts: they may save a lot of annotation work on the abstract methods in the interface.
 We repeat that no implementation of a level 2 immutable interface is guaranteed to be level 2 immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.
 
-We continue this section with some examples which will form the backbone of the examples in <<immutable-content>>.
+We continue this section with some examples which will form the backbone of the examples in <<hidden-content>>.
 
 If semantically used correctly, types implementing the `HasSize` interface expose a single numeric aspect of their content:
 
@@ -561,7 +564,7 @@ interface NonEmptyImmutableList<T> extends HasSize {
 <1> Whilst formally, `T` will always be {independent} (because it represents the level 2 immutable type `java.lang.Object`), contracting the {independent} annotation here will force all concrete implementations to have an independent `first` method.
 If the concrete replacement for `T` is modifiable, the independence rule must be satisfied.
 <2> The parameter `consumer` would normally be {modified}, which would break the {container} property that we wish for `NonEmptyImmutableList`.
-However, as detailed and explained in <<immutable-content>>, the abstract types in `java.util.function` receive an implicit {ignoreModifications} annotation.
+However, as detailed and explained in <<hidden-content>>, the abstract types in `java.util.function` receive an implicit {ignoreModifications} annotation.
 <3> Computed, because it is not an abstract method.
 
 The `Consumer` interface is defined and annotated as:

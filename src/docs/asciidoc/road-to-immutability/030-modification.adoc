@@ -125,7 +125,7 @@ No code statically visible to implementations of `Collection` can make modificat
 * `Consumer` because it is a functional interface (an interface with a single abstract method) in `java.util.function`; they are {ignoreModifications} by convention.
 
 In order to keep the narrative going, we defer a discussion of modification in the context of parameters of abstract types to the sections
-<<abstract-methods>> and <<immutable-content>>.
+<<abstract-methods>> and <<hidden-content>>.
 Here, we continue with the first use case of modification: containers.
 
 // ensure a newline at the end

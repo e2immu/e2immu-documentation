@@ -1,4 +1,4 @@
-[#immutable-content]
+[#hidden-content]
 == Immutable content
 
 [#inaccessible-immutable-content]

@@ -140,7 +140,7 @@ We will not make any distinction between a functional interface and an abstract 
 If one were forced to make one, the _intention to hold data_ would be the dividing line between a functional interface, which conveys no such intention, and an abstract type, which does.
 
 In this section we want to discuss a limited application of functional interfaces: the one where the SAMs have a local implementation.
-The general case, where objects of abstract types come in via a parameter, will be addressed in <<immutable-content>>.
+The general case, where objects of abstract types come in via a parameter, will be addressed in <<hidden-content>>.
 Consider the following example:
 
 .Example {counter:example}, concrete implementation of suppliers

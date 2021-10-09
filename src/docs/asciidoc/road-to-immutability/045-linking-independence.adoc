@@ -1,5 +1,5 @@
 [#linking-and-independence]
-== Linking, independence, content
+== Linking, independence
 
 Let us now elaborate on how we will compute modifications, in a path towards level 2 immutability.
 Consider the following example:
@@ -104,6 +104,9 @@ The independence is marked with {independent} on the method for the return value
 When a constructor parameter is not independent, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor's type.
 But do all these modifications matter to the type?
 
+[#accessible-hidden-content]
+== Accessible and hidden content
+
 We will try to make our case using two examples.
 First, consider `Counter` and `Counters`:
 
@@ -201,3 +204,58 @@ class Levels {
 
 As a consequence of the absence of `increment()` in `Level`, we had to remove `increment()` and `incrementAll()` from `Levels` as well.
 In fact, whether the `Level` instances are modifiable or not, does not seem to matter anymore to `Levels`.
+
+We propose to split the object graph of a field into two parts: its accessible part, and its hidden part.
+
+****
+*Definition:* A type `A`, part of the object graph of the fields of type `T`, is *accessible* inside the type `T` when any of its methods or fields is accessed.
+The methods of `java.lang.Object` are excluded from this definition.
+
+A type that is part of the object graph of the fields, but is not accessible, is *hidden* (when it is an unbound type parameter) or *transparent* (when it is not).
+****
+
+A type which is transparent can be replaced by an unbound type parameter, which is why we will use the term _hidden_ from now on.
+
+When a type `C` extends from a parent type `P`, we see an instance of `C` as being composed of two parts: the methods and fields of `P`, augmented by the methods and fields of `C`.
+Whilst the part of the parent, `P`, can be accessible, the part of the child `C` may remain hidden.
+Similarly, when `T` implements the interface `I`, but the interface is used as the formal type, then the methods and fields of `I` are accessible, but the ones augmented by the implementation `T` remain hidden.
+In the example of `Level`, implementation or extensions may be modifiable (such as `Counter`), but when presented with `Level` only, there are no modifications to be made.
+Inside `Levels`, no such extensions are accessible.
+
+Note that we must make this distinction, because every interface is meant to be implemented, and every (non-`final`) type can be extended in Java.
+These extensions could be completely outside the control of the current implementation (even though we can use the analyser to constrain them).
+
+Armed with this definition, we split the combined object graph of the fields of a type into the accessible content, and the hidden content:
+
+****
+*Definition:* The *accessible content* of a type are those objects of the object graph of the fields that are of accessible type.
+
+The *hidden content* of a type are those objects of the object graph of the fields that are of hidden or transparent type.
+****
+
+In the first example of this section, `LinkExample1`, objects of the type `X` form the hidden content of `LinkExample1`, while the `Set` instance is the accessible content.
+In `Counters`, `Map`, `String` and `Counter` are accessible, but whatever augments to `Counter` by implementing it remains hidden.
+Exactly the same applies to `Levels`: `Map`, `String` and `Level` are accessible, but whatever augments `Level` by implementing it remains hidden.
+
+One of the central tenets of immutability will be that
+
+****
+A type is not responsible for modifications to its hidden content.
+****
+
+We end this section by defining what independence means with respect to the accessible and hidden content of the fields.
+The definition of independence given in the previous section is absolute, in the sense that it covers the whole object graphs of the objects being linked, or not.
+
+When a parameter is linked to a field, we could try to find out if the modifications affect the accessible content, given that we state that modifications to the hidden content are outside the scope of the type anyway.
+In other words, we could distinguish between different forms of non-independence, or, in better English, dependence.
+
+****
+*Definition:* a parameter or method return value is *dependent* on the fields if and only if it is linked to the accessible content of the type.
+****
+
+In other words, a parameter or method return value is dependent when a modification on the argument or returned value has the possibility to cause a modification in the accessible part of the fields.
+
+Linking between parameters or return value and fields which does not involve the accessible part of the fields, will be not be called dependence, but a lighter form of independence.
+We will elaborate more in <<hidden-content>>.
+
+Now, all pieces of the puzzle are available to introduce immutability of types.
