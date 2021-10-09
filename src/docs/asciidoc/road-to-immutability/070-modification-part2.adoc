@@ -64,8 +64,8 @@ An additional interface can help to remove the circular dependency between the t
 This has the advantage of simplicity, both for the programmer and the analyser, which at this point doesn't handle circular dependencies very well.
 It imposes more annotation work on the programmer, however, because the interface's methods need contracts.
 
-[#linking-formally]
-=== Linking, formally
+[#computing-dependence]
+=== How to compute linking
 
 To compute linking, the analyser tries to track actual objects, with the aim of knowing if a field links to another field or a parameter.
 It computes a dependency graph of variables depending on other variables, with the following four basic rules:

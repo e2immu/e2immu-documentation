@@ -439,7 +439,7 @@ public void visit(@Dependent1 Consumer<T> consumer) {
 }
 ----
 
-Observe that content dependence implies 'normal' independence, as described in <<linking-and-independence>> and <<linking-formally>>, exactly because we are dealing with parameters of level 2 immutable type.
+Observe that content dependence implies 'normal' independence, as described in <<linking-and-independence>> and <<computing-dependence>>, exactly because we are dealing with parameters of level 2 immutable type.
 
 Another place where the immutable content linking can be seen, is the _for-each_ statement:
 

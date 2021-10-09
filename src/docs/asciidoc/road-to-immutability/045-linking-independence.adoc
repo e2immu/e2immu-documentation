@@ -1,5 +1,5 @@
 [#linking-and-independence]
-== Linking and independence
+== Linking, independence, content
 
 Let us now elaborate on how we will compute modifications, in a path towards level 2 immutability.
 Consider the following example:
@@ -73,6 +73,7 @@ List<X> list = createSomeLargeList();
 List<X> sub = list.subList(1, 5);
 sub.set(0, x); // <1>
 ----
+
 <1> The modifying method call `set` will modify `sub`, and `list` as well!
 
 On the other side of the spectrum, linking does not work on objects that cannot be modified, like primitives or deeply immutable objects such as the primitives, or `java.lang.String`.
@@ -80,25 +81,123 @@ On the other side of the spectrum, linking does not work on objects that cannot 
 Let us summarize by:
 
 ****
-Intuitively, linking two variables means that modifying the content of one variable implies that the content of the linked variable may be modified too.
+*Definition*: Two objects are independent of each other when no modification to the first can imply a modification to the second.
+
+Conversely, two objects are linked when a modification to the first may imply a modification to the second.
 ****
 
-We will discuss linking formally in <<linking-formally>>.
+Linked objects typically share a common sub-object: the object returned by `subList`, for example, is "backed" by the original list, in other words, it maintains a reference to the original list.
+
+We will discuss linking in more detail in <<computing-dependence>>.
 For now, assume that a field links to another field, or to a parameter, if there is a possibility that both variables represent (part of) the same object (their object graphs overlap).
 
-The opposite of linking is independence.
-While the code analyser will not express all the linking that goes on, it will annotate (in)dependence on the entry and exit points of the type: a method's return value and parameters, and a constructor's parameters.
+Linking and independence is important when it occurs from fields to parameters and return values of methods:
 
 ****
 *Definition*:
-A method or constructor is *independent* when neither the parameters, nor the returned value (in case there is one, not `void`, not `this`) link to any of the fields of the type.
-The independence (or dependence) is marked with {independent} (or {dependent}) on the method for the return value, and on the relevant parameters otherwise.
+A method or constructor parameter is *independent* when it is independent of the fields of the type.
+A method is *independent* when its return value is independent of the fields of the type.
+
+The independence is marked with {independent} on the method for the return value, and on the relevant parameters otherwise.
 ****
 
-It follows immediately that:
+When a constructor parameter is not independent, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor's type.
+But do all these modifications matter to the type?
 
-* empty constructors of top-level types and static nested types (but not necessarily inner classes, nested types that are not static) are always independent;
-* non-modifying methods that return primitives or deeply immutable objects are independent, since no assignments to fields take place, and the returned objects cannot be modified.
+We will try to make our case using two examples.
+First, consider `Counter` and `Counters`:
 
-Examples follow soon, once immutability has been defined in more detail.
-Note that we will mark a constructor as {independent} when all its parameters are {independent}, and {dependent} when at least one parameter is {dependent}.
+.Example {counter:example}, Counter, Counters
+[source,java]
+----
+interface Counter {
+  void increment();
+  int getValue();
+  String getName();
+}
+
+class Counters {
+  private final Map<String, Counter> counters;
+
+  public Counters(Collection<Counter> counterCollection) {
+    this.counters = counterCollection.stream().collect
+      (Collectors.toUnmodifiableMap(Counter::getName, c -> c));
+  }
+
+  public Counter getCounter(String name) {
+    return counters.get(name);
+  }
+
+  public int getValue(String name) {
+    return getCounter(name).getValue();
+  }
+
+  public void increment(String name) {
+    getCounter(name).increment();
+  }
+
+  public void incrementAll() {
+    counters.values().forEach(Counter::increment);
+  }
+}
+----
+
+The constructor `Counters` copies every counter in the `counterCollection` into a new, unmodifiable map.
+Clearly, external modifications to the collection itself (i.e., adding, removing a new `Counter` element) made after creation of the `Counters` object, will have no effect on the object graph of the field `counters`:
+
+[source,java]
+----
+List<Counter> list = new ArrayList<>();
+Collections.addAll(list, new CounterImpl("sunny days"), new CounterImpl("rainy days"));
+Counters counters = new Counters(list);
+Counter sunnyDays = list.remove(0);
+assert "sunny days".equals(sunnyDays.getName());
+assert sunnyDays == counters.getCounter("sunny days");
+----
+
+However, consider the following statements executed after creating a `Counters` object:
+
+.Example {counter:example}, after creating a Counters object
+[source,java]
+----
+int rainyDays = counters.getValue("rainy days");
+Counter c = counters.get("rainy days");
+c.increment();
+assert c.getValue() == rainyDays + 1;
+assert counters.getValue("rainy days") == rainyDays + 1;
+----
+
+An external modification (`c.increment()`) to an object presented to the constructor as part of the collection has an effect on the object graph of the fields, to the extent that an identical, non-modifying method call returns a different value!
+
+We must conclude that the parameter of the constructor `counterCollection` is linked to the field `counters`, even if modifications at the collection level have no effect.
+
+Now we put the `Counters` example in contrast with the `Levels` example, where the modifying method `increment()` has been removed from `Counter` to obtain `Level`:
+
+.Example {counter:example}, Level, Levels
+[source,java]
+----
+interface Level {
+  int getValue();
+  String getName();
+}
+
+class Levels {
+  private final Map<String, Level> levels;
+
+  public Levels(Collection<Level> levelCollection) {
+    this.levels = levelCollection.stream().collect
+      (Collectors.toUnmodifiableMap(Level::getName, c -> c));
+  }
+
+  public Level getLevel(String name) {
+    return levels.get(name);
+  }
+
+  public int getValue(String name) {
+    return getLevel(name).getValue();
+  }
+}
+----
+
+As a consequence of the absence of `increment()` in `Level`, we had to remove `increment()` and `incrementAll()` from `Levels` as well.
+In fact, whether the `Level` instances are modifiable or not, does not seem to matter anymore to `Levels`.
