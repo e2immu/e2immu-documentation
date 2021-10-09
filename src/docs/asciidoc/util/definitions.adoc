@@ -11,8 +11,6 @@
 
 :beforeMark: pass:normal[ `@BeforeMark` ]
 :container:  pass:normal[ `@Container` ]
-:dependent:  pass:normal[ `@Dependent` ]
-:dependent1:  pass:normal[ `@Dependent1` ]
 :e1container: pass:normal[ `@E1Container` ]
 :e1immutable: pass:normal[ `@E1Immutable` ]
 :e1immutable: pass:normal[ `@E1Immutable` ]
@@ -24,6 +22,7 @@
 :fluent: pass:normal[ `@Fluent` ]
 :identity:  pass:normal[ `@Identity` ]
 :independent:  pass:normal[ `@Independent` ]
+:independent1:  pass:normal[ `@Independent1` ]
 :ignoreModifications:  pass:normal[ `@IgnoreModifications` ]
 :only:  pass:normal[ `@Only` ]
 :mark: pass:normal[ `@Mark` ]

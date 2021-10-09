@@ -257,5 +257,12 @@ In other words, a parameter or method return value is dependent when a modificat
 
 Linking between parameters or return value and fields which does not involve the accessible part of the fields, will be not be called dependence, but a lighter form of independence.
 We will elaborate more in <<hidden-content>>.
+In the following sections, we will often use the term 'independent' when we mean 'not-dependent', i.e., when we only require one of the lighter forms of independence.
+
+In terms of annotations, dependence will be the default state for objects of types where dependence is possible.
+We will not annotate it.
+Instead, {independent} on parameters and methods will be used for absolute independence.
+When a type is deeply immutable, {independent} is the default state, and therefore it will be omitted.
+We use {independent1} for the lighter forms of independence.
 
 Now, all pieces of the puzzle are available to introduce immutability of types.
