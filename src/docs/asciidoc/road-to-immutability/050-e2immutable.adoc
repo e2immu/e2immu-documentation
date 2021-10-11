@@ -571,10 +571,9 @@ interface NonEmptyImmutableList<T> extends HasSize {
     T first();
 
     // implicitly present: @NotModified
-    void visit(Consumer<T> consumer); // <2>
+    void visit(@Independent1 Consumer<T> consumer); // <2> <3>
 
-    @Constant // <3>
-    @NotModified // <3>
+    @NotModified // <4>
     @Override
     default boolean isEmpty() {
         return false;
@@ -586,7 +585,8 @@ interface NonEmptyImmutableList<T> extends HasSize {
 If the concrete choice for `T` is modifiable, the independence rule must be satisfied.
 <2> The parameter `consumer` would normally be {modified}, which would break the {container} property that we wish for `NonEmptyImmutableList`.
 However, as detailed and explained in <<hidden-content>>, the abstract types in `java.util.function` receive an implicit {ignoreModifications} annotation.
-<3> Computed, because it is not an abstract method.
+<3> The hidden content of the type is exposed to the outside world via the `accept` method in the consumer, similarly to being exposed via the return value of the `first` method.
+<4> Computed, because it is not an abstract method.
 
 The `Consumer` interface is defined and annotated as:
 
@@ -613,11 +613,12 @@ Let's downgrade from {e2container} to {e1container} by adding a modifying method
 interface NonEmptyList<T> extends NonEmptyImmutableList<T> {
 
     @Modified
-    void setFirst(@NotModified T t);
+    void setFirst(@NotModified @Independent1 T t);
 }
 ----
 
 The method `setFirst` goes against the default annotations twice: because it is modifying, and because it promises to keep its parameter unmodified.
+The {independent1} annotation states that arguments to `setFirst` will end up in the hidden content of the `NonEmptyList`.
 Implementations can even lose level 1 immutability:
 
 .Example {counter:example}, mutable implementation of `NonEmptyList`
@@ -641,7 +642,6 @@ static class One<T> implements NonEmptyList<T> {
         this.t = t;
     }
 
-    @Constant
     @NotModified
     @Override
     public int size() {
@@ -677,7 +677,6 @@ static class OneWithOne<T> implements NonEmptyList<T> {
         one.setFirst(t);
     }
 
-    @Constant
     @NotModified
     @Override
     public int size() {

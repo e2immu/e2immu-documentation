@@ -1,0 +1,293 @@
+== Higher-order immutability
+
+=== Definition
+
+Without much ado, we extend the definition of immutability, by adding a single rule:
+
+****
+*Definition: level n immutability, n > 2*:
+
+(*Rule 0*: The type is level 1 immutable: all fields are effectively final)
+
+*Rule 1*: All fields are {nm}.
+
+*Rule 2*: All fields are either private, or of level 2 immutable type.
+
+*Rule 3*: No parameters of non-private methods or non-private constructors, no return values of non-private methods, are dependent on (the accessible part of) the fields.
+
+*Rule 4*: The hidden content of the type is at least level n-1 immutable.
+****
+
+In a level 2 immutable type, the hidden content can be mutable or level 1 immutable.
+In a level 3 immutable type, the hidden content has to be level 2 immutable.
+Annotation-wise, we use  `@E2Container(level = 4), {ercontainer} in combination with the {container}
+property, and `@E2Immutable(level = 3)`, `@E2Immutable(recursive = true)` in its absence.
+
+Why this definition?
+Firstly, it is consistent with what we would think of as recursively or deeply immutable types:
+their hidden content is either absent or recursively immutable itself; think n equals infinity.
+In reality, of course, types are build from the "ground up" starting from recursively immutable types and the array construct.
+Observe that a level 2 immutable type whose hidden content consists of recursively immutable types only, becomes recursively immutable itself.
+
+Secondly, it allows us to quantify the level of independence as well.
+
+[#independent-type]
+=== Independence of types
+
+A concrete implementation of an iterator is often a nested type, static or not (inner class), of the iterable type:
+
+.Example {counter:example}, implementation of an `Iterator`
+[source,java]
+----
+@E2Container
+public class ImmutableArray<T> implements Iterable<T> {
+
+    @NotNull1
+    private final T[] elements;
+
+    @SuppressWarnings("unchecked")
+    public ImmutableArray(List<T> input) {
+        this.elements = (T[]) input.toArray();
+    }
+
+    @Override
+    @Independent
+    public Iterator<T> iterator() {
+        return new IteratorImpl();
+    }
+
+    @Container
+    @Independent1
+    class IteratorImpl implements Iterator<T> {
+        private int i;
+
+        @Override
+        public boolean hasNext() {
+            return i < elements.length;
+        }
+
+        @Override
+        @NotNull
+        public T next() {
+            return elements[i++];
+        }
+    }
+}
+----
+
+For `ImmutableArray` to be level 2 immutable, the `iterator()` method must be independent of the field `elements`, in other words, the `IteratorImpl` object must not expose the `ImmutableArray` 's fields to the outside world.
+It cannot be level 2 immutable, because it needs to hold the state of the iterator.
+However, it should protect the fields owned by its enclosing type, up to the same standard as required for level 2 immutability.
+
+We propose to add a definition for the independence of a type, similar to the "shielding off" part of the definition of level 2 immutability:
+
+****
+*Definition*: A type is *level 1 independent*, annotated {independent1}, when
+
+Rule 1: fields linked to the parameters of non-private constructors or non-private methods, must be {nm}.
+
+Rule 2: fields linked to the parameters of non-private constructors or non-private method, are either private, or of level 2 immutable type.
+
+Rule 3: none of the parameters of its non-private constructors, none of the parameters of its non-private methods, and no return value of a non-private method is dependent on the fields.
+****
+
+Rule 1 is equivalent to stating tha all parameters of constructors and methods linking to any of the fields must be {nm}.
+A type which is not {independent1} is termed _dependent_.
+
+The static variant of `IteratorImpl` makes it more obvious that `IteratorImpl` satisfies rules 2 and 3:
+
+.Example {counter:example}, implementation of an `Iterator` as a static nested type
+[source,java]
+----
+@E2Container
+public class ImmutableArray<T> implements Iterable<T> {
+    ...
+
+    @Container
+    @Independent1
+    static class IteratorImpl implements Iterator<T> {
+        @Modified
+        private int i;
+
+        private final T[] elements;
+
+        private IteratorImpl(T[] elements) {
+            this.elements = elements;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return i < elements.length;
+        }
+
+        @Override
+        @NotNull
+        @Modified
+        public T next() {
+            return elements[i++];
+        }
+    }
+}
+----
+
+The rules enforce that the data received from, or owned by, the enclosing type, remains properly shielded.
+
+Similar to level n immutability, we can define level n independence, by adding a fourth rule:
+
+****
+Definition: a type is *level n independent, n>2*, when
+
+Rule 4: the hidden content of the type is level n immutable
+****
+
+A type is fully independent when its hidden content is either absent, or recursively immutable.
+
+Recursively immutable types are fully independent as a type, but a type does not even have to be level 1 immutable to be fully independent.
+In fact, any type communicating via recursively immutable types to the outside world is independent:
+
+.Example {counter:example}, simple getter and setter, independent
+[source,java]
+----
+@Independent
+@Container
+class GetterSetter {
+    private int i;
+
+    public int getI() {
+        return i;
+    }
+
+    public void setI(int i) {
+        this.i = i;
+    }
+}
+----
+
+The following table summarizes the relationship between immutability and independence:
+
+|===
+| |Mutable, Level 1 imm (modifiable) |Level 2 immutable |Level 3 immutable |Level n immutable |Recursively immutable
+
+|Dependent
+|{y} `Set`
+|{n}
+|{n}
+|{n}
+|{n}
+
+|Independent1
+|{y} `Iterator<T>`
+|{y} `Optional<T>`, `Set.of(T)`
+|{n}
+|{n}
+|{n}
+
+|Independent2
+|{y} `Iterator<Optional<T>>`
+|{n}
+|{y} `Set.of(Optional<T>)`
+|{n}
+|{n}
+
+|Independent n-1
+|{y}
+|{n}
+|{n}
+|{y}
+|{n}
+
+|Independent
+|{y} `Writer`, `Iterator<String>`
+|{n}
+|{n}
+|{n}
+|{y} `int`, `String`, `Class`
+|===
+
+There is no need to define different levels of hidden content linking of parameters and fields, beyond "independent or not".
+The important aspect there is whether linking to the hidden content is possible or not.
+Either it is not, or it is structurally impossible.
+The latter is only possible when the type is recursively immutable, which corresponds to the type being independent.
+
+=== Field access restrictions
+
+Let us end this section with a note on the _non-private_ requirement for field and method access.
+The definitions of immutability and independence insist on the properties holding for all non-private fields, methods and constructors.
+
+First, consider nested types.
+Any nested type (a class defined either statically or nested inside another class, an interface defined inside another type) has access to the private methods of the primary type and other nested types inside the primary type.
+We first need to investigate whether this additional access plays havoc with the immutability and independence rules.
+
+Because all nested types of a primary type are fully known at analysis time, as they must reside in the same `.java` file, it is possible to ensure that a field, accessible beyond its own class even though it is private to the nested type, remains {nm}.
+Consider:
+
+.Example {counter:example}, immutability of a nested type
+[source,java]
+----
+public class NestedTypeExample {
+
+    @E1Container // <1>
+    static class HoldsStringBuilder {
+
+        @Modified // <2>
+        private final StringBuilder sb = new StringBuilder();
+
+        public HoldsStringBuilder(String s) {
+            add(s).add(s);
+        }
+
+        private HoldsStringBuilder add(String s) { // <3>
+            sb.append(s);
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return sb.toString();
+        }
+    }
+
+    public static String break1(String s) {
+        HoldsStringBuilder hsb = new HoldsStringBuilder(s);
+        hsb.add("modify!");
+        return hsb.toString();
+    }
+
+    public static String break2(String s) {
+        HoldsStringBuilder hsb = new HoldsStringBuilder(s);
+        hsb.sb.append("modify field");
+        return hsb.toString();
+    }
+
+    public static StringBuilder break3(String s) { // <4>
+        HoldsStringBuilder hsb = new HoldsStringBuilder(s);
+        hsb.sb.append("modify field");
+        return hsb.sb;
+    }
+}
+----
+
+<1> Would have been {e2container}, were it not for the `break` methods
+<2> Because of `break2`
+<3> Not only part of construction, because of `break1`
+<4> Introduces a dependence of `sb` on a method return value
+
+The solution here, clearly, is to extend the rules to all non-private methods and constructors of the primary type and all its nested types.
+
+The second question to answer is whether we can or should relax the requirement of private access, e.g., for a restriction of 'private and same package', or even 'non-public'.
+Remember that the `protected` access modifier allows access to classes that inherit from the type, _and_ to members of the same package.
+
+First, consider allowing 'package-private'.
+If we were to assume that all types in the same package are fully visible to the analyser at the time of analysis, we could consider extending the rules to analyse all types in the package at the same time, as we did for nested types inside a primary type.
+However, firstly, it is perfectly possible, even if it is bad practice, to spread a package over multiple jars.
+This denies the analyser complete visibility over the types in a package.
+Secondly, the complications that arise computationally are too much for efficient analysis.
+
+So there's no point in considering `protected` access.
+Even if inheritance where the only criterion used to define this access level, we would not allow it, because the child class can be invisible to the analyser at the time of analysis of the parent.
+
+When annotating APIs (see {e2immu} manual), we do use the public vs non-public criterion instead of the non-private vs private one, mostly as a matter of convenience.
+We assume (hope?) that library designers and implementers shield off internal types sufficiently, and rely on the project implementer to stick to their package prefix.
+
+
+// end of file

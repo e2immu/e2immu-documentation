@@ -47,7 +47,7 @@ However, it is easily recognized as a container: a type you use and trust to hol
 Containers occur frequently as static nested types to build immutable objects.
 Examples of these will follow later, after the definition of level 2 immutability.
 
-Let us conclude this section with an example consisting of three types: the first a class computed to be a container, the second a container according to the contract, and the third a class which cannot be a container:
+In the following example, the first class is computed to be a container, the second is a container according to the contract, and the third is a class which cannot be a container:
 
 .Example {counter:example}, two containers and a type that is not a container
 [source,java]
@@ -101,5 +101,56 @@ class BinaryExpression extends Expression {
 <2> Here a modifying method call takes place.
 
 The `BinaryExpression` class is not a container, because it uses one of the parameters of a public method, `errorRegistry` of `evaluate`, as a writable container.
+
+We conclude this section by noting that arrays are essentially level 1 immutable containers: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
+Indeed, consider the following semi-realistic implementation of an `Integer` array based on a `ByteBuffer`:
+
+.Example {counter:example}, an array is a level 1 immutable container
+[source,java]
+----
+@E1Container
+interface Array<T> {
+    int length();
+
+    T get(int index);
+
+    @Modified
+    void set(int index, T t);
+}
+
+@E1Container
+static class IntArray implements Array<Integer> {
+    private final ByteBuffer byteBuffer;
+    private final int size;
+
+    public IntArray(int size) {
+        this.size = size;
+        byteBuffer = ByteBuffer.wrap(new byte[size * Integer.BYTES]);
+    }
+
+    @Override
+    public int length() {
+        return size;
+    }
+
+    @Override
+    public Integer get(int index) {
+        return byteBuffer.getInt(index * Integer.BYTES);
+    }
+
+    @Override
+    @Modified
+    public void set(int index, Integer i) {
+        byteBuffer.putInt(index * Integer.BYTES, i);
+    }
+}
+
+@Test
+public void test() {
+    IntArray ia = new IntArray(5);
+    for (int i = 0; i < 5; i++) ia.set(i, i + 1);
+    assertEquals(3, ia.get(2));
+}
+----
 
 // ensure a newline at the end

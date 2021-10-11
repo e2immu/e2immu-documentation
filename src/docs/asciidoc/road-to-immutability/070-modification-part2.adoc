@@ -85,8 +85,7 @@ We discern a number of special cases:
 
 . When `v` is of {e2immutable} type, there cannot be any linking; `v` does not link to `a` nor `b`.
 . If `b` is of {e2immutable} type, `v` cannot link to `b`.
-. When `method` has the annotation {independent}, `v` cannot link to `a`.
-. If `a` is of {independent} type (as defined in <<independent-type>>, it includes all {e2immutable} types), all its methods are independent; therefore, `v` cannot link to `a`.
+. When `method` has the annotation {independent} (or the lighter version, {independent1}), `v` cannot link to `a`.
 
 Recall that primitives, `java.lang.Object`, `java.lang.String`, and unbound parameter types, are {e2immutable}.
 
@@ -94,24 +93,29 @@ Recall that primitives, `java.lang.Object`, `java.lang.String`, and unbound para
 Rule 3: in an assignment `v = new A(b)`, `v` potentially links to `b`.
 ****
 
-. When the constructor `A` is independent, `v` cannot link to `b`.
 . When `b` is of {e2immutable} type, `v` cannot link to `b`.
-. If `A` is {e2immutable}, then `v` cannot link to `b` nor `c`, because all constructors are independent.
+. If `A` is {e2immutable}, then `v` cannot link to `b`, because all its constructor parameters are independent.
+. When `b` has been marked {independent} or {independent1}, `v` cannot link to `b`.
+
+****
+Rule 4: in a modifying method call `a.method(b)`, `a` potentially links to `b`
+****
+
+This situation is similar to that of the constructor (rule 3), with `a` taking the role of `v`.
 
 Most of the other linking computations are consequences of the basic rules above.
 For example,
 
 . in an assignment `v = condition ? a : b`, `v` links to both `a` and `b`.
 . type casting does not prevent linking: in `v = (Type)w`, `v` links to `w`
+. a pattern variable `p` in an instance-of statement `a instanceof P p` links to `a`
 . Binary operators return primitives or `java.lang.String`, which prevents linking: in `v = a + b`, `v` does not link to `a` nor `b`.
 
-****
-Rule 4: in an array access `v = a[index]`, `v` links to `a`.
-****
 
-Note: in a method call `v=a.method(b, c, d)`, links between `b`, `c`, and `d` are possible.
+Note: in a method call `v = a.method(b, c, d)`, links between `b`, `c`, and `d` are possible.
 They are covered by the {modified} annotation:
 when a parameter is {nm}, no modifications at all are possible, not even indirectly.
+We do not compute individual linking, because we advocate the use of containers: all parameters should be {nm}.
 
 === Locally implemented abstract methods
 
@@ -184,6 +188,7 @@ class ApplyLocalFunctions {
     }
 }
 ----
+
 <1> Modified in `getAndIncrement` and `explicitGetAndIncrement`
 <2> Modified because its modifying method (`get`) is called in `myIncrementer`
 

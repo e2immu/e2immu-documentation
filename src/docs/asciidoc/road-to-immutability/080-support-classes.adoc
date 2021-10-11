@@ -14,7 +14,7 @@ Simpler than `FlipSwitch` is not possible for an eventually immutable type: it c
 .Example {counter:example}, most of `org.e2immu.support.FlipSwitch`
 [source,java]
 ----
-@E2Container(after = "t")
+@ERContainer(after = "t")
 public class FlipSwitch {
 
     @Final(after = "t")
@@ -65,7 +65,7 @@ public class SetOnce<T> {
 
     @Mark("t")
     @Modified
-    public void set(@NotNull T t) {
+    public void set(@NotNull @Independent1 T t) {
         if (t == null) throw new NullPointerException("Null not allowed");
         if (this.t != null) {
             throw new IllegalStateException("Already set: have " + this.t + ", try to set " + t);
@@ -75,6 +75,7 @@ public class SetOnce<T> {
 
     @Only(after = "t")
     @NotNull
+    @Independent1
     @NotModified
     public T get() {
         if (t == null) {
@@ -89,6 +90,7 @@ public class SetOnce<T> {
         return t != null;
     }
 
+    @Independent1 // <1>
     @NotModified
     public T getOrDefault(T defaultValue) {
         if (isSet()) return get();
@@ -96,6 +98,7 @@ public class SetOnce<T> {
     }
 }
 ----
+<1> Even if it is only linked to the hidden content conditionally.
 
 The analyser relies heavily on this type, with additional support to allow setting multiple times, with exactly the same value.
 This can be ascertained with a helper method, which, as noted in the previous section, also gets the {mark} annotation.
@@ -115,12 +118,13 @@ public class EventuallyFinal<T> {
     private T value;
     private boolean isFinal;
 
+    @Independent1
     public T get() {
         return value;
     }
 
     @Mark("isFinal")
-    public void setFinal(T value) {
+    public void setFinal(@Independent1 T value) {
         if (this.isFinal) {
             throw new IllegalStateException("Trying to overwrite a final value");
         }
@@ -129,7 +133,7 @@ public class EventuallyFinal<T> {
     }
 
     @Only(before = "isFinal")
-    public void setVariable(T value) {
+    public void setVariable(@Independent1 T value) {
         if (this.isFinal) throw new IllegalStateException("Value is already final");
         this.value = value;
     }
@@ -157,7 +161,7 @@ allow free modifications, until the type is _frozen_ and no modifications can be
 .Example {counter:example}, `org.e2immu.support.Freezable`
 [source,java]
 ----
-@E2Container(after = "frozen")
+@ERContainer(after = "frozen")
 public abstract class Freezable {
 
     @Final(after = "frozen")
@@ -189,7 +193,7 @@ public abstract class Freezable {
 <1> This companion method is present in the code to validate the computation of the precondition.
 See <<preconditions-and-instance-state>> for more details.
 
-Note that as discussed in <<inheritance>>, it is important for `Freezable`, as an abstract class, to be level 2 immutable:
+Note that as discussed in <<inheritance>>, it is important for `Freezable`, as an abstract class, to be recursively immutable:
 derived classes can only go _down_ the immutability scale, not up!
 
 [#support-setoncemap]
@@ -206,7 +210,7 @@ public class SetOnceMap<K, V> extends Freezable {
     private final Map<K, V> map = new HashMap<>();
 
     @Only(before = "frozen")
-    public void put(@NotNull K k, @NotNull V v) {
+    public void put(@Independent1 @NotNull K k, @Independent1 @NotNull V v) {
         Objects.requireNonNull(k);
         Objects.requireNonNull(v);
         ensureNotFrozen();
@@ -217,6 +221,7 @@ public class SetOnceMap<K, V> extends Freezable {
         map.put(k, v);
     }
 
+    @Independent1
     @NotNull
     @NotModified
     public V get(K k) {
@@ -224,7 +229,7 @@ public class SetOnceMap<K, V> extends Freezable {
         return Objects.requireNonNull(map.get(k)); // <1>
     }
 
-    public boolean isSet(K k) {
+    public boolean isSet(K k) { // <2>
         return map.containsKey(k);
     }
 
@@ -235,6 +240,7 @@ public class SetOnceMap<K, V> extends Freezable {
 <1> The analyser will warn for a potential null pointer exception here, not (yet) making the connection between
 `isSet` and `containsKey`.
 This connection can be implemented using the techniques described in <<preconditions-and-instance-state>>.
+<2> Implicitly, the parameter `K k` is {independent}, because the method is {nm}, and it is not of abstract type.
 
 The code analyser makes frequent use of this type, often with an additional guard that allows repeatedly putting the same value to a key.
 
@@ -250,17 +256,17 @@ Properly implemented, it is an eventually level 2 immutable type:
 @E2Container(after = "t")
 public class Lazy<T> {
 
-    @Dependent1
     @NotNull1
     private final Supplier<T> supplier;
 
     @Final(after = "t")
     private volatile T t;
 
-    public Lazy(@NotNull1 @Dependent1 Supplier<T> supplier) { // <1>
+    public Lazy(@NotNull1 @Independent1 Supplier<T> supplier) { // <1>
         this.supplier = supplier;
     }
 
+    @Independent1
     @NotNull
     @Mark("t") // <2>
     public T get() {
@@ -276,9 +282,9 @@ public class Lazy<T> {
 }
 ----
 
-<1> The annotation has travelled from the field to the parameter; so the parameter has {dependent1}.
+<1> The annotation has travelled from the field to the parameter; therefore the parameter has {independent1}. #TODO#
 <2> The {mark} annotation is conditional; the transition is triggered by nullity of `t`
-<3> Here `t` content links to `supplier`, as explained in <<immutable-content-linking>>, which causes the field `supplier` to be marked {dependent1}.
+<3> Here `t`, part of the hidden content, links to `supplier`, as explained in <<hidden-content-linking>>, which causes the field `supplier` to be marked {independent1}.
 The statement also causes the {nn1} annotation, as defined in <<nullable-section>>.
 
 After calling the marker method `get()`, `t` cannot be assigned anymore, and it becomes {final}.
@@ -296,7 +302,7 @@ public class FirstThen<S, T> {
     private volatile S first;
     private volatile T then;
 
-    public FirstThen(@NotNull S first) {
+    public FirstThen(@NotNull @Independent1 S first) {
         this.first = Objects.requireNonNull(first);
     }
 
@@ -313,7 +319,7 @@ public class FirstThen<S, T> {
     }
 
     @Mark("mark")
-    public void set(@NotNull T then) {
+    public void set(@Independent1 @NotNull T then) {
         Objects.requireNonNull(then);
         synchronized (this) {
             if (first == null) throw new IllegalStateException("Already set");
@@ -323,6 +329,7 @@ public class FirstThen<S, T> {
     }
 
     @Only(before = "mark")
+    @Independent1
     @NotModified 
     @NotNull 
     public S getFirst() {
@@ -334,6 +341,7 @@ public class FirstThen<S, T> {
     }
 
     @Only(after = "mark")
+    @Independent1
     @NotModified 
     @NotNull 
     public T get() {

@@ -28,6 +28,7 @@ include::{includedir}/road-to-immutability/060-eventual.adoc[]
 
 include::{includedir}/road-to-immutability/070-modification-part2.adoc[]
 include::{includedir}/road-to-immutability/077-hidden-content.adoc[]
+include::{includedir}/road-to-immutability/078-recursively-immutable.adoc[]
 
 include::{includedir}/road-to-immutability/080-support-classes.adoc[]
 include::{includedir}/road-to-immutability/081-use-in-analyser.adoc[]
