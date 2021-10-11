@@ -98,6 +98,7 @@ public class SetOnce<T> {
     }
 }
 ----
+
 <1> Even if it is only linked to the hidden content conditionally.
 
 The analyser relies heavily on this type, with additional support to allow setting multiple times, with exactly the same value.
@@ -257,7 +258,8 @@ Properly implemented, it is an eventually level 2 immutable type:
 public class Lazy<T> {
 
     @NotNull1
-    private final Supplier<T> supplier;
+    @Independent1(after = "t")
+    private Supplier<T> supplier;
 
     @Final(after = "t")
     private volatile T t;
@@ -272,6 +274,7 @@ public class Lazy<T> {
     public T get() {
         if (t != null) return t;
         t = Objects.requireNonNull(supplier.get()); // <3>
+        supplier = null; // <4>
         return t;
     }
 
@@ -282,12 +285,32 @@ public class Lazy<T> {
 }
 ----
 
-<1> The annotation has travelled from the field to the parameter; therefore the parameter has {independent1}. #TODO#
+<1> The annotation has travelled from the field to the parameter; therefore the parameter has {independent1}.
 <2> The {mark} annotation is conditional; the transition is triggered by nullity of `t`
-<3> Here `t`, part of the hidden content, links to `supplier`, as explained in <<hidden-content-linking>>, which causes the field `supplier` to be marked {independent1}.
-The statement also causes the {nn1} annotation, as defined in <<nullable-section>>.
+<3> Here `t`, part of the hidden content, links to `supplier`, as explained in <<hidden-content-linking>>.
+The statement also causes the {nn1} annotation, as defined in <<nullable-section>> and <<identity-and-fluent>>.
+<4> After the transition from mutable to effectively immutable, the field `supplier` moves out of the picture.
 
 After calling the marker method `get()`, `t` cannot be assigned anymore, and it becomes {final}.
+The constructor parameter `supplier` is {independent1}, as its hidden content (the result of `get()`) links to that of `Lazy`, namely the field `t`.
+
+But why is `supplier` as a field not linked to the constructor parameter?
+Clearly, `supplier` is part of the accessible content of `Lazy`, as its `get()` method gets called.
+The criterion is: a modification on one may cause a modification on the other.
+Modifications can only be made by calling the `get()` method, as there are no other methods, and no fields.
+Consequently, the constructor should link to the field, and `supplier` cannot be {independent1}.
+
+The answer lies in the eventual nature of `Lazy`: _before_ the first call to `get`, the `supplier` field is of relevance to the type, and `t` is not.
+_After_ the call to `get()`, the converse is true, because `supplier` has been emptied.
+We should extend rule 2 of effective immutability by slightly augmenting rule 2:
+
+****
+*Rule 2*: All fields are either private, level 2 immutable type, or equal to null.
+****
+
+A null field cannot be modified, and cannot be but {independent}, so no changes are necessary to rules 1 and 3.
+One can argue that they do not belong to the accessible content, nor to the hidden content, since they cannot be accessed, and are content-less: rule 4 should not be affected.
+In combination with effective finality, this allows the eventually "blanking out" of modifiable fields in immutable types.
 
 [#support-firstthen]
 === FirstThen

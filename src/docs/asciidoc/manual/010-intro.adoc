@@ -1,7 +1,7 @@
-
 Main website: https://www.e2immu.org.
 
 == Introduction
 
 WARNING: This document is work in progress.
 In some places, it is nothing but a skeleton.
+As of October 2021, it is two versions behind the _Road to immutability_.

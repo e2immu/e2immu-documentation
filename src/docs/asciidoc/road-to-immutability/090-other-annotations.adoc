@@ -83,19 +83,22 @@ class Builder {
 
     private final List<String> list = new ArrayList<>();
 
+    @Modified
     @Fluent
     public Builder add(@NotNull String s) {
         list.add(requireNonNull(s));
         return this;
     }
 
+    @Modified
     @Fluent
     public Builder add(int i) {
         list.add(Integer.toString(i));
         return this;
     }
 
-    @E2Container
+    @NotModified
+    @ERContainer
     public List<String> build() {
         return List.copyOf(list);
     }
@@ -167,7 +170,7 @@ Using {fluent} methods to go from construction to finalizer is definitely allowe
 .Example {counter:example}, calling the finalizer method
 [source,java]
 ----
-@E2Container
+@ERContainer
 public static EventuallyFinal<String> fluent() {
     EventuallyFinal<String> d = new ExampleWithFinalizer()
         .set("a").doSomething().set("b").doSomething().getData();
@@ -183,7 +186,7 @@ Consider:
 .Example {counter:example}, illegal call
 [source,java]
 ----
-@E2Container
+@ERContainer
 public static EventuallyFinal<String> stepWise() {
     ExampleWithFinalizer ex = new ExampleWithFinalizer();
     ex.set("a");
@@ -269,7 +272,7 @@ class Finisher {
     }
 
     @Finalizer
-    @E2Container // <4>
+    @ERContainer // <4>
     public EventuallyFinal<String> done(String last) {
         eventuallyFinal.setFinal(last + "; tried " + count);
         return eventuallyFinal;
