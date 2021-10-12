@@ -82,19 +82,32 @@ However, it should protect the fields owned by its enclosing type, up to the sam
 We propose to add a definition for the independence of a type, similar to the "shielding off" part of the definition of level 2 immutability:
 
 ****
-*Definition*: A type is *level 1 independent*, annotated {independent1}, when
+*Definition*: an *external modification* is a modification, carried out outside the type,
 
-Rule 1: fields linked to the parameters of non-private constructors or non-private methods, must be {nm}.
-
-Rule 2: fields linked to the parameters of non-private constructors or non-private method, are either private, or of level 2 immutable type.
-
-Rule 3: none of the parameters of its non-private constructors, none of the parameters of its non-private methods, and no return value of a non-private method is dependent on the fields.
+. on a field, directly accessed from the object, or
+. on an argument or return value, executed after the constructor or method call on the object.
 ****
 
-Rule 1 is equivalent to stating tha all parameters of constructors and methods linking to any of the fields must be {nm}.
-A type which is not {independent1} is termed _dependent_.
+Clearly, such external modifications are not possible when the type of the argument, return value, or field is level 2 immutable.
+External modifications are only possible when the constructor, method or field is non-private.
 
-The static variant of `IteratorImpl` makes it more obvious that `IteratorImpl` satisfies rules 2 and 3:
+Armed with this definition, we can define the independence of types:
+
+****
+*Definitions*:
+
+A type is *dependent* when external modifications impact the accessible content of the type.
+
+A type is *level 1 independent*, annotated {independent1}, when external modifications cannot impact the accessible content of the type.
+The hidden content of the type is mutable or modifiable.
+
+A type is *level n independent, n>1*, annotated `@Independent1(level = n)`, when external modifications cannot impact the accessible content of the type.
+The hidden content of the type is level n immutable.
+
+A type is *independent*, annotated {independent}, when external modifications cannot impact the content of the type.
+****
+
+Consider the static variant of `IteratorImpl`, which makes it more obvious that `IteratorImpl` maintains a reference to the element array of its enclosing type:
 
 .Example {counter:example}, implementation of an `Iterator` as a static nested type
 [source,java]
@@ -130,19 +143,12 @@ public class ImmutableArray<T> implements Iterable<T> {
 }
 ----
 
-The rules enforce that the data received from, or owned by, the enclosing type, remains properly shielded.
+The type `T` is part of the hidden content, the `T[]` and the counter `i` are part of the accessible content.
+No external modification can impact the array or the counter; indeed, only `T` and a `boolean` are exposed.
+The latter is recursively immutable, so does not allow modifications.
+The former allows modifications on the hidden content, whence the {independent1} annotation for `IteratorImpl`.
 
-Similar to level n immutability, we can define level n independence, by adding a fourth rule:
-
-****
-Definition: a type is *level n independent, n>2*, when
-
-Rule 4: the hidden content of the type is level n immutable
-****
-
-A type is fully independent when its hidden content is either absent, or recursively immutable.
-
-Recursively immutable types are fully independent as a type, but a type does not even have to be level 1 immutable to be fully independent.
+Recursively immutable types are independent as a type, but a type does not even have to be level 1 immutable to be independent.
 In fact, any type communicating via recursively immutable types to the outside world is independent:
 
 .Example {counter:example}, simple getter and setter, independent
