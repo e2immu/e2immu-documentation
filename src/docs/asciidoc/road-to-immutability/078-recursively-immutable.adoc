@@ -79,7 +79,8 @@ For `ImmutableArray` to be level 2 immutable, the `iterator()` method must be in
 It cannot be level 2 immutable, because it needs to hold the state of the iterator.
 However, it should protect the fields owned by its enclosing type, up to the same standard as required for level 2 immutability.
 
-We propose to add a definition for the independence of a type, similar to the "shielding off" part of the definition of level 2 immutability:
+We propose to add a definition for the independence of a type, identical to the "shielding off" part of the definition of level 2 immutability.
+Let's first go there in a roundabout way:
 
 ****
 *Definition*: an *external modification* is a modification, carried out outside the type,
@@ -88,8 +89,7 @@ We propose to add a definition for the independence of a type, similar to the "s
 . on an argument or return value, executed after the constructor or method call on the object.
 ****
 
-Clearly, such external modifications are not possible when the type of the argument, return value, or field is level 2 immutable.
-External modifications are only possible when the constructor, method or field is non-private.
+Clearly, such external modifications are only possible when the constructor, method or field is non-private.
 
 Armed with this definition, we can define the independence of types:
 
@@ -106,6 +106,9 @@ The hidden content of the type is level n immutable.
 
 A type is *independent*, annotated {independent}, when external modifications cannot impact the content of the type.
 ****
+
+This definition is entirely equivalent to the definition of immutability without rules 0 and 1, and rules 2 and 3 restricted to those fields that are 'exposed' to the outside world via linking or hidden content linking.
+We hope that the rephrasing helps the understanding.
 
 Consider the static variant of `IteratorImpl`, which makes it more obvious that `IteratorImpl` maintains a reference to the element array of its enclosing type:
 
