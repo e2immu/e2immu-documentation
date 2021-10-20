@@ -19,7 +19,11 @@ Without much ado, we extend the definition of immutability, by adding a single r
 ****
 
 In a level 2 immutable type, the hidden content can be mutable or level 1 immutable.
+This means that it is of the form of an unbound type parameter.
+
 In a level 3 immutable type, the hidden content has to be level 2 immutable.
+This means that every type that is part of the hidden content, must be at least level 2 immutable.
+
 Annotation-wise, we use  `@E2Container(level = 4), {ercontainer} in combination with the {container}
 property, and `@E2Immutable(level = 3)`, `@E2Immutable(recursive = true)` in its absence.
 
@@ -108,7 +112,18 @@ A type is *independent*, annotated {independent}, when external modifications ca
 ****
 
 This definition is entirely equivalent to the definition of immutability without rules 0 and 1, and rules 2 and 3 restricted to those fields that are 'exposed' to the outside world via linking or hidden content linking.
-We hope that the rephrasing helps the understanding.
+
+A third way of rephrasing the definition would be the following.
+It requires three prior steps:
+
+. Introduce a public getter for every non-private field
+. Define level n independence of a parameter or method return value exactly as level 1 independence for that parameter or method, but then with the parameter type or method return type content linking to that part of the type's hidden content which is level n immutable.
+. Observe that if a type `T` is part of the hidden content of type `C`, then there must be at least one parameter or method return value, of type `P`, which has `T` as part of its content (hidden in `P`, when `T` is hidden rather than transparent in `C`, or either accessible or hidden in `P`, when `T` is transparent).
+
+Then, the independence of a type is the minimum of the independence levels of the parameters and methods of the type.
+
+We hope that rephrasing helps clarify the definition.
+The third way is computationally the most interesting one.
 
 Consider the static variant of `IteratorImpl`, which makes it more obvious that `IteratorImpl` maintains a reference to the element array of its enclosing type:
 

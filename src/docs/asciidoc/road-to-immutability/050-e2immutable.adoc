@@ -606,7 +606,8 @@ They are also allowed to modify their parameter, as we will demonstrate shortly.
 
 Let's downgrade from {e2container} to {e1container} by adding a modifying method:
 
-.Example {counter:example}, not level 2 immutable anymore: `NonEmptyList` [[NonEmptyList]]
+.Example {counter:example}, not level 2 immutable anymore: `NonEmptyList`
+[[NonEmptyList]]
 [source,java]
 ----
 @E1Container

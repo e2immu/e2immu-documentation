@@ -3,11 +3,98 @@
 [#concept-modified]
 === Modification
 
+Modification of parameters is seen as any modification to the entire object graph of the parameter.
+
+Modification of a field is seen as a modification to the accessible content of the field, i.e., as a modification which happens explicitly inside the type of the field.
+
+A method is modifying when it makes a modification to any of the fields of the type of the method.
+Modifications to a field of a different type within the same primary type #TODO#.
+
+A modification to a (necessarily non-private) foreign static field is called a _static side effect_.
+Type which has methods which make static side effects, is marked with {sse}.
+Static side effect marking can be disabled by annotating a static, non-private field with {ignoreModifications}.
+
+[#concept-hidden-content]
+=== Hidden content
+
+We divide the object graph of the fields into an _accessible_ part, and a _hidden part_.
+The _depth_ of the object graph plays the primary role in separating both parts: most implementations do not access _all_ types that are theoretically reachable from the fields.
+Secondly, we note that every class `C` that can be sub-classed, i.e., which has not been marked `final`, and every interface `I`, can have a subclass or implementation `S` which has fields that are outside its reach.
+So when faced with the formal type `C` or `I`, a concrete object of type `S` may be present.
+This object carries a part hidden to the methods and field accessors of `C` or `I`.
+
+We speak of the _hidden content_ of the types when we refer to the hidden part of its fields' object graph.
+Hidden contents are omni-present in Java.
+
+****
+The core concept of practical immutability is that modifications to the hidden content of a type are irrelevant to that type.
+****
+
+In {e2immu}, the hidden content of primary type `T` is computed on a type-by-type basis: it consists of a set of parameterized types `H1`, ..., `Hn`.
+A type `H` belongs to the hidden content of `T` when it is part of the object graph of the fields, and it is not _explicit_ in `T`.
+All types enclosed in the primary type `T` have the same hidden content.
+
+****
+The underlying concept of being explicit is that the type cannot be replaced by an unbound type parameter, or `java.lang.Object` (JLO), to achieve identical semantics inside `T`.
+****
+
+Formally, a type `E` is explicit in `T` when either
+
+. it is instantiated, e.g., `... = new E(...)` occurs in one of the statements of `T`; the exception to the rule is JLO;
+. a method is called on it, e.g., when `e` is of type `E`, then `e.someMethod(...)` occurs in the statements of `T`; the exceptions to the rule are JLO's methods;
+. one of its fields is accessed, e.g., when `e` is of type `E`, then `e.someField` occurs in the statements of `T`;
+. one of its extended types is explicit in `T`; this rule does not apply to JLO itself;
+. the type occurs as the type of an object forced to comply with some type restriction:
+
+.. as an argument in a method or constructor call, unless the formal parameter of that method or constructor is JLO, or is an unbound type parameter;
+.. as the formal expression type `E` of a `return` statement in a method `m` of `T` returning a type different from JLO and an unbound type parameter;
+.. as the iterable's formal return type `E` in a `for(X x: e)` construct;
+.. as the selector's formal type in a `switch(e)` statement;
+.. as the formal expression type `E` of a cast argument `x = (X)e`
+.. as the formal expression type `E` of an `e instanceof X` or `e instanceof X x` expression
+
+. it occurs as an explicit type in a statement of `T`:
+
+.. as the exception type in a `catch(E e)` clause;
+.. as the type of a cast, e.g., `x = (E)e`;
+.. as the type of an `instanceof` expression, with or without pattern, as in `x instanceof E e`.
+
 [#concept-containers]
 === Containers
 
+A type is a container when only private methods or private constructors modify their parameters.
+To the outside world, all parameters must be {nm}.
+
+When a modifying method is called on a parameter, but this modification is semantically deemed to be irrelevant, then {ignoreModifications} can be added to the parameter.
+This is implicitly the case when the parameter is of one of the abstract types in `java.util.function`, such as `Function`, `Consumer`, etc.
+The modifications caused by their concrete implementations are typically outside the scope of the type.
+The typical example of this situation is the `forEach` method of the `java.util.Collection` classes: iterating over the collection should be non-modifying, and modifications to the hidden content are semantically irrelevant to the collection.
+
 [#concept-linking]
 === Linking and independence
+
+Two variables are linked when a modification in one may imply a modification in the other.
+We differentiate between modifications to the accessible content (normal _linking_), and modifications to the hidden content (_hidden content linking_).
+
+Linking typically occurs when the object graphs of the variables (partially) overlaps.
+
+A method is _dependent_ when one of the fields of the type links to the return value of the method.
+A constructor or method parameter is _dependent_ when it links to one of the fields of the type.
+
+A method or parameter is independent when it is not dependent.
+However, given the possibility of hidden content linking, we differentiate between different _levels_ of independence.
+When the hidden content of the field being linked to the return value or parameter is mutable or level 1 immutable, we speak of level 1 independence, and mark with {independent1}.
+When the hidden content is level 2 immutable, we speak of level 2 independence, and write `@Independent1(level=2)`.
+When no modifications are possible at all, the hidden content must be recursively immutable, and we speak of independence, marked as {independent}.
+
+The computation of linking follows the rules:
+
+. after an assignment `a = b`, the variable `a` is linked to the variable `b`
+
+
+The computation of hidden content linking is similar but not quite identical:
+
+. after an assignment `a = b`, the variable `a` is hidden content linked to the variable `b`
 
 === Immutability
 
@@ -46,14 +133,21 @@ A type is level 2 immutable when
 A type is <<concept-eventual,eventually>> level 2 immutable when after executing a marked method, the fields become effectively final and or not modified.
 This transition is best understood as the removal of a number of methods, marked either {mark} or {only} with parameter `before`, which make the field variable or modify the fields.
 
+[#concept-recursively-immutable]
+==== Recursive immutability
+
+Example types:
+
+* `java.lang.Object`
+* `java.lang.Integer`, `java.lang.Long`, ... the boxed versions of the primitives `int`, `long` ...
+* `java.lang.String`
+* `java.lang.Class`, whose object graph covers a large amount of other types such as
+
 [#technical-dynamic-type-annotations]
 ==== Dynamic type annotations
 
 [#concept-eventual]
 === Eventual immutability
-
-[#concept-higher-order-modification]
-=== Higher-order modifications
 
 === Miscellaneous
 

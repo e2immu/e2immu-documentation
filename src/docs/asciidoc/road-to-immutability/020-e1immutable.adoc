@@ -67,7 +67,8 @@ The wider definition will allow for more situations to be recognized for what th
 
 When an object consists solely of primitives, or deeply immutable objects such as `java.lang.String`, having all fields effectively final is sufficient to generate an object that is again deeply immutable.
 
-.Example {counter:example}, an object consisting of primitives and a string.[[deeply-immutable1]]
+.Example {counter:example}, an object consisting of primitives and a string.
+[[deeply-immutable1]]
 [source,java]
 ----
 class DeeplyImmutable1 {

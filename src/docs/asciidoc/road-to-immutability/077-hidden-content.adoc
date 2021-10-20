@@ -138,7 +138,7 @@ static void addNewLine(@Modified NonEmptyImmutableList<StringBuilder> list) {
 <2> Parameter-modifying lambda propagates a modification to `list` 's hidden content.
 
 It is the second method, `addNewLine`, that is of importance here.
-Thanks to the {dependent1} annotation, we know of a modification to `list`, even if `list` is of level 2 immutable type!
+Thanks to the {independent1} annotation, we know of a modification to `list`, even if `list` is of level 2 immutable type!
 It may help to see the for-loop written out, if we temporarily assume that we have added an implementation of `Iterable` to `NonEmptyImmutableList`, functionally identical to `visit`:
 
 .Example {counter:example}, alternative implementation of `addNewLine`
@@ -196,7 +196,7 @@ static String useReplace(@NotModified StringBuilder input) {
 <2> This action discards `input` from `list` without modifying it.
 
 ****
-The example shows that the introduction of {dependent1} only gets us so far: from the concrete, modifying implementation, to the parameter (or field).
+The example shows that the introduction of {independent1} only gets us so far: from the concrete, modifying implementation, to the parameter (or field).
 We do not plan to keep track of the distinction between modification of hidden content vs modification of modifiable content to a further extent.
 ****
 
@@ -216,7 +216,7 @@ void addToStrings(@NotModified NonEmptyList<StringBuilder> list) {
 === Hidden content linking
 
 Going back to `ImmutableOne`, we see that the constructor links the parameter `t` to the instance's field by means of assignment.
-Let us call this binding of parameters of hidden content to the field _content linking_, and mark it using {dependent1}, _content dependence_:
+Let us call this binding of parameters of hidden content to the field _content linking_, and mark it using {independent1}, _content dependence_:
 
 .Example {counter:example}, constructor of `ImmutableOne`
 [source,java]
@@ -228,7 +228,7 @@ public ImmutableOne(@Independent1 T t) {
 }
 ----
 
-Returning a part of the hidden content of the type, or exposing it as argument, both warrants a {dependent1} annotation:
+Returning a part of the hidden content of the type, or exposing it as argument, both warrants a {independent1} annotation:
 
 .Example {counter:example}, more methods of `ImmutableOne`
 [source,java]
@@ -245,7 +245,7 @@ public void visit(@Independent1 Consumer<T> consumer) {
 }
 ----
 
-Observe that content dependence implies 'normal' independence, as described in <<linking-and-independence>> and <<computing-dependence>>, exactly because we are dealing with parameters of level 2 immutable type.
+Observe that content dependence implies absence of dependence, as described in <<linking-and-independence>> and <<computing-dependence>>, exactly because we are dealing with parameters of level 2 immutable type.
 
 Another place where the hidden content linking can be seen, is the _for-each_ statement:
 
@@ -259,7 +259,7 @@ for(StringBuilder sb: list) {
 }
 ----
 
-Because the `Collection` API contain an `add` method annotated as:
+Because the `Collection` API contains an `add` method annotated as:
 
 .Example {counter:example}, `add` in `Collection` annotated
 [source,java]
@@ -271,7 +271,7 @@ boolean add(@NotNull @Independent1 E e);
 indicating that after calling `add`, the argument will become part of the hidden content of the collection, we conclude that the local loop variable `sb` gets content linked to the `builders` list.
 Similarly, this loop variable contains hidden content from the `list` object.
 
-We reuse the annotation {dependent1} to indicate that the hidden content of two objects are linked.
+We reuse the annotation {independent1} to indicate that the hidden content of two objects are linked.
 Let us look at a possible implementation of `Collection.addAll`:
 
 .Example {counter:example}, a possible implementation of `addAll` in `Collection`
@@ -311,7 +311,7 @@ interface Iterator<T> {
 
 Either the `next` method, or the `hasNext` method, must make a change to the iterator, because it has to keep track of the next element.
 As such, we make both {modified}.
-Following the discussion in the previous section, `next` is {dependent1}, because it returns part of the hidden content held by the iterator.
+Following the discussion in the previous section, `next` is {independent1}, because it returns part of the hidden content held by the iterator.
 
 The interface `Iterable` is a supplier of iterators:
 
