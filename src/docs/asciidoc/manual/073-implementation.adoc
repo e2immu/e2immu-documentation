@@ -1,0 +1,216 @@
+// replaces 070, 071, 072; new text starting from 20211115
+
+== Implementation
+
+The principles of {e2immu} guide the implementation of the analyser:
+
+. Try to use containers exclusively, in other words: never modify your parameters.
+. Use as many immutable objects as possible; either directly, via builders, or via eventually final constructs.
+
+The container requirement has been broken in exactly one situation: that of the `ExpressionContext`.
+Because we intend to use the implementation as one of the more serious test cases of {e2immu}, one such situation is acceptable.
+It nicely contrasts with `EvaluationContext`, which does follow the rules, and which relies on an `EvaluationResult` to be applied.
+
+=== Analysers
+
+In the static analyser, a number of different analyser components cooperate to determine the semantic properties of the code:
+
+- the _type analyser_, instantiated once for each (nested) type;
+- the _method analyser_, instantiated for each method or constructor, even some hidden ones;
+- the _parameter analyser_, instantiated for each parameter of each method and constructor;
+- the _field analyser_, instantiated for each field;
+- the _statement analyser_, instantiated for each statement of each method and constructor.
+
+There are obvious and strong dependencies between these components, e.g., the modification aspect of a field depends on determining whether there are statements that modify it.
+At the same time, there are dependencies between different aspects of the code, e.g., between methods calling other methods, methods initialising fields, etc.
+There is no easy way to determine an exact execution order for this multitude of analyser component instances.
+
+To this end, the analyser implements an iterative approach, that gives each analyser component one opportunity per iteration to determine its values and properties based on previously established facts.
+
+When a value or property cannot yet be determined, typically because a dependency has not yet been met, this value or property is *delayed*.
+The delay system keeps track of the causes of the delay, to allow for detecting circular dependencies.
+The latter can then be broken, to allow the iterative system to continue.
+As soon as a value has been determined, it is written out for others to refer to, and cannot be changed anymore.
+
+The analyser components themselves consist of a number of sub-components, which are executed as part of the iteration.
+This execution takes place in a fixed order; it starts at the first, not-yet-executed (in the first iteration) or non-delayed (in the subsequent ones) sub-component, and visits all others in the chain.
+The main loop stops iterating when all components have been resolved (are in the _done_ state, rather than the _delayed_ state).
+
+The order of the main components is
+
+. methods.
+For each method, the analyser processes the
+.. parameters;
+.. statements, from first to last, recursively descending as explained later;
+.. method itself;
+. fields;
+. types.
+
+Inside the primary type (the .java file) the methods are processed alphabetically, as are the fields and nested types.
+
+=== Statements and expressions
+
+Due to the hierarchical nature of statements, statement analysers and statement analysis objects are also structured hierarchically.
+The statements of a method are internally numbered from 0 onward.
+Because of the hierarchical nature, a dotted system is used: each sub-block introduces a dot, a sub-block number, and a dot again.
+So `0.1.2` indicates the 3rd statement in the 2nd block of the first statement of the method.
+The second block can be a "catch"-block, or the "else" block in an "if-else" statement.
+
+The general `Statement` interface has an implementation per type of statement specific to the Java language.
+Many of them contain expressions, represented by the `Expression` interface.
+Again, the typical range of expression implementations exist, mostly corresponding to expressions existing in the language.
+Specific to this implementation are `DelayedExpression`, `DelayedVariableExpression`, and `PropertyWrapper`.
+
+Expressions can be evaluated in the context in which they appear, the `EvaluationContext`.
+The result of this evaluation is an `EvaluationResult` object, which is subsequently processed by the statement analyser.
+When dependencies inside the expression have not been resolved yet (e.g., the return value of a method is still unknown, or a variable doesn't have a value yet), the end result is an expression which contains delayed components.
+Each expression answers the `isDelayed` method, and can return a `CausesOfDelay` object to identify exactly what the reasons for the delay are.
+
+Some evaluation leads to simplification of the expression, which is sometimes a reason to emit a warning to the developer.
+When a complex expression evaluates to a constant, for example, it is likely that they should know about this.
+
+=== Analysis objects
+
+Each analyser has a corresponding analysis object, which contains the results of the analysis.
+After analysis, the analyser is dropped, the analysis object remains.
+Each analysis component consists of two implementations: the builder, which holds the values while the analyser is alive, and the effectively immutable implementation which survives the analyser.
+There is currently one exception: the `StatementAnalyser` only has a `StatementAnalysis` data companion, which holds eventually immutable objects.
+The `MethodAnalysis` interface has a `MethodAnalysisImpl` immutable implementation, and a `MethodAnalysisImpl.Builder` mutable builder.
+
+An important aspect of the builders is that writing information is constrained: while causes of delay can be overwritten in each iteration, once a value has been determined for a property or some piece of information the analyser has to store, it cannot be changed anymore.
+To this end, we employ a variation of eventually final helper classes, such as `EventuallyFinal` and `VariableFirstThen`, with `setVariable` and `setFinal` write methods.
+
+The `StatementAnalysis` data object holds a number of sub-objects, where data is stored per topic:
+
+- `NavigationData` holds the data structure that points to the next statement, and the first statements of sub-blocks.
+This data structure can be modified by statement replacements.
+- `FlowData` holds the conditions under which this statement will be executed, and what the effect is on the flow of execution.
+E.g., a `throws` statement will cause either a guaranteed, or a conditional escape from the execution flow.
+- `StateData` holds state of the variables.
+After a conditional escape, for example, the state will be the negation of the condition that caused the escape.
+- `MethodLevelData` holds the data necessary for the method analyser; typically, only the method level data of the last statement of the method will be inspected.
+- `ConditionManager` is a support object that holds condition, state, and precondition in one object.
+
+=== Properties
+
+The analysers compute semantic information, some of which can be expressed as numeric values for properties, many of which apply to most of the analysers.
+These properties can then be visualised, either by coloring, highlighting in an IDE, or by adding annotations.
+
+A property has a numeric value when it is not delayed.
+Otherwise, it takes a `CausesOfDelay` value, which enumerates the reasons why no value was computed for this property.
+
+There are four types of properties:
+
+- value properties
+- context properties
+- external properties
+- internal marker properties
+
+Value properties are associated with a expression which has been evaluated to a non-delayed result.
+When a variable takes a value, the variable's value properties are computed directly from the value.
+There are five value properties:
+
+- `NOT_NULL_EXPRESSION`: the not-null aspect of an evaluated expression, seen outside its context.
+Its associated annotations are {nullable}, {nn}, and {nn1}.
+- `IMMUTABLE`: the immutability aspect of an evaluated expression, tied to the dynamic type, seen outside its context.
+Associated annotations are {mutableModifiesArguments}, {e1immutable}, {e2container}, ...
+- `INDEPENDENT`: the "independent" aspect of the evaluated expression, tied to the dynamic type.
+Annotations are {dependent}, {independent1}, {independent}.
+- `CONTAINER`: the "container" aspect, by default tied to the dynamic type, but potentially modified (from false to true) by a contract.
+The annotation needed to contract an abstract parameter to be of container type is {container}.
+- `IDENTITY`: the fact that the evaluated expression is exactly the value of the first parameter of the method.
+Corresponds to {identity} on the method.
+
+In contrast, context properties are unique to a variable, and are held independently of the value that the variable takes.
+Context properties accumulate information about the variable from one statement to the next.
+There are three context properties:
+
+- `CONTEXT_NOT_NULL`: the not-null aspect of the variable in the given context.
+E.g., when the variable appeared in the scope of a method, it must be not-null.
+When the variable appeared as the argument of an `addAll` method, it must be content-not-null.
+CNN takes the Condition Manager into account: in the context of `if(x != null)`, the statement `x.method()` does not force the CNN of `x` to the not null value.
+- `CONTEXT_IMMUTABLE`: can be higher than the formal immutability value
+- `CONTEXT_MODIFIED`, independent of value, value delays; however, values *change* depending on modification due to companions!
+As soon as a variable representing a field, or `this`, has this property set to true, the method in which this occurs is marked modifying, which is visualised by the {modified} property.
+
+When a field is assigned to a parameter in a constructor, the value of the field and that of the parameter are bound to each other.
+To break a very predictable circular dependency, parameters receive a value right from the first iteration.
+Because value properties are bound to this value, their eventual values may differ from the ones necessarily chosen in the very first iteration.
+The external properties receive the final values of the value properties for parameters, and for all other values for which a circular dependency had to be broken.
+A second example is the `this` variable, which can only get the correct immutability value once the type analyser has established it, but modification computation cannot continue until `this` has a value, and the type analyser needs the modification computations.
+There are two external properties:
+
+- `EXTERNAL_NOT_NULL`: of relevance when CNN demands a high value, but the field cannot allow for one.
+So ENN < CNN, and this will result in a potential null-pointer warning
+- `EXTERNAL_IMMUTABLE`: of relevance when CIMM demands a higher value than the formal type's value, but the dynamic value cannot go as high.
+Results in a modification warning.
+
+=== Variables
+
+A statement analyser, and associated statement analysis builder object, is present for each statement.
+The builder holds information about the state of all the variables known to the statement.
+
+Parameters are known from the first statement onwards; fields are only introduced in the statement that refers to them.
+All subsequent statements will also know the statement.
+
+Each variable in the statement analyser has values for three "levels"
+
+- the _initial_ value, or value of the previous statement (I)
+- the _evaluated_ value (E)
+- the _merged_ value (M), as the summary of all nested statements
+
+Obviously, not all statements allow for nested statements; they will not have an M level.
+Information about a variable is stored in a `VariableInfoContainer`, which holds `VariableInfo` instances for each of the three levels.
+A `VariableInfo` object holds:
+
+- the variable and its name
+- a value
+- linked variables
+- at which statement times it was read
+- by which statements it was written
+- by which statement it was last read.
+- a property-value map.
+
+When a field is detected during the evaluation phase, it cannot yet have a value at the initial level.
+A delayed value expression is returned for this field.
+In the next iteration, the field analyser may provide an initial value for the field.
+
+Variable fields and loop variables have "local copies" which exist starting from the 2nd iteration.
+
+A variable which points to a generic value (of type `Instance`) is evaluated to a `VariableExpression`, rather than the value itself.
+When variable `b` is assigned to variable `a`, `a` can have this `VariableExpression` as a value.
+No further redirections are possible.
+
+Variables are identified by their fully qualified name.
+Local copies can be identified by the `$` sign and the suffix, either specifying the latest assignment and read statement ids, or the statement time.
+
+=== Clustering
+
+Variables link to other variables at different levels:
+
+- static assignments (`a = b`)
+- dynamic assignments, e.g., `a = Objects.requireNonNull(b)`, which become assignments after evaluation
+- linking at the object level (dependent objects), `s = t.subList(0, 3)`
+- linking at the hidden content level, `a.add(b)`
+
+Modifications are computed at the 3 upper levels; all other context properties are computed at the static assignment level.
+
+=== Typical execution order
+
+Parameters start with values, nullable, mutable in case of self-references; then they rely on ENN, ExtImm.
+
+`this` also starts with a value, relies on ENN, ExtImm
+
+statical assignment linking → CNN, CIMM - delays only on dependent methods
+
+CondMgr works on delayed values, to assist in correct CNN values
+
+field value ← last statement + initialiser values + CNN, CIMM
+
+in statements, delayed variable value is replaced by field value + IMM + NNE
+
+Rest of linking follows as soon as there are values → CM → type immutable
+
+Breaking a circular computation CNN → field → ENN → NNP → CNN deactivates this local CNN.
+
+ENN, ExtImm can always augment on fields when value was chosen after breaking circular computation

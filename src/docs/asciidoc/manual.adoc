@@ -45,7 +45,7 @@ include::{includedir}/manual/065-errors.adoc[]
 == _Technical_
 :sectnums:
 
-//include::{includedir}/manual/070-technical.adoc[]
+include::{includedir}/manual/073-implementation.adoc[]
 //include::{includedir}/manual/071-variables.adoc[]
 
 == Supporting tools

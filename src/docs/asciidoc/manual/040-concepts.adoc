@@ -30,9 +30,8 @@ Hidden contents are omni-present in Java.
 The core concept of practical immutability is that modifications to the hidden content of a type are irrelevant to that type.
 ****
 
-In {e2immu}, the hidden content of primary type `T` is computed on a type-by-type basis: it consists of a set of parameterized types `H1`, ..., `Hn`.
+In {e2immu}, the hidden content of a type `T` is computed on a type-by-type basis: it consists of a set of parameterized types `H1`, ..., `Hn`.
 A type `H` belongs to the hidden content of `T` when it is part of the object graph of the fields, and it is not _explicit_ in `T`.
-All types enclosed in the primary type `T` have the same hidden content.
 
 ****
 The underlying concept of being explicit is that the type cannot be replaced by an unbound type parameter, or `java.lang.Object` (JLO), to achieve identical semantics inside `T`.
@@ -40,7 +39,7 @@ The underlying concept of being explicit is that the type cannot be replaced by 
 
 Formally, a type `E` is explicit in `T` when either
 
-. it is instantiated, e.g., `... = new E(...)` occurs in one of the statements of `T`; the exception to the rule is JLO;
+. it is instantiated, e.g., `... = new E(...)` occurs in one of the statements of `T`; the exception to the rule is JLO; note that the presence of a lambda implies the creation of in instance of the functional interface type;
 . a method is called on it, e.g., when `e` is of type `E`, then `e.someMethod(...)` occurs in the statements of `T`; the exceptions to the rule are JLO's methods;
 . one of its fields is accessed, e.g., when `e` is of type `E`, then `e.someField` occurs in the statements of `T`;
 . one of its extended types is explicit in `T`; this rule does not apply to JLO itself;
@@ -58,6 +57,17 @@ Formally, a type `E` is explicit in `T` when either
 .. as the exception type in a `catch(E e)` clause;
 .. as the type of a cast, e.g., `x = (E)e`;
 .. as the type of an `instanceof` expression, with or without pattern, as in `x instanceof E e`.
+
+
+
+If the type `S` extends the type `C`, then types which are transparent in `C` may not be transparent in `S` anymore.
+The type `S` can also introduce new transparent types.
+However, a type cannot be transparent in `S` and explicit in `C`: all explicit types of `C` are also explicit in `S`.
+
+If a type `N` is a nested class of an enclosing type `E`, then all explicit types of `N` are also explicit in `E`.
+A type `E` and its inner class `I` (nested, not static) share the same set of transparent and explicit types.
+
+For practical reasons, `java.lang.Object`, `java.lang.String` and `java.lang.Class` are always explicit.
 
 [#concept-containers]
 === Containers
@@ -96,52 +106,72 @@ The computation of hidden content linking is similar but not quite identical:
 
 . after an assignment `a = b`, the variable `a` is hidden content linked to the variable `b`
 
+
+==== Factory methods
+
+A _factory method_ is a static method in type `T` returning a (newly created) element of this type.
+In factory methods, we compute linking and content linking between the parameters and the return value, ignoring the fields.
+
 === Immutability
 
 [#concept-e1immutable]
 ==== Level 1 immutable
 
-Terminology used:
+A field is called _effectively final_ when it receives a value during the construction phase of the object.
+There are two situations: either it is decorated with the modifier `final`, or it is set in a constructor, or a method only (indirectly) accessible from the constructors.
+We mark effectively final fields with {final}; fields without this property are called _variable_ and marked {variable}.
 
-Variable field:: marked {variable}
+A type is _level 1 immutable_ when all its fields are effectively final.
+No distinction is made between static and instance fields.
 
-Effectively final field:: marked {e1immutable} or {e1container}.
-
-Eventually final field:: marked {e1immutable} or {e1container}, with `after=xxx` parameter
-
-A type is level 1 immutable when all its fields are effectively final.
 A type is <<concept-eventual,eventually>> level 1 immutable when after executing a marked method, the fields become effectively final.
 This transition is best understood as the removal of a number of methods, marked either {mark} or {only} with parameter `before`, which make the field variable.
-
-[#concept-implicitly-immutable]
-==== Implicitly immutable types
-
-Terminology:
-
-Implicitly immutable content:: all the fields of a type which are of implicitly immutable type.
+The mark is annotated in the {final} annotation, as `@Final(after="mark")`.
 
 [#concept-e2immutable]
-==== Level 2 immutable
+==== Level n immutable
 
-A type is level 2 immutable when
+A type is level _n_, _n>1_, immutable when
 
 . it is level 1 immutable, i.e., all its fields are effectively final
 . all fields are not modified
-. if a field is not of implicitly immutable type, it must be either private, or level 2 immutable
-. all constructors and non-private methods are independent of the fields
+. all fields are either private, or at least of level 2 immutable type
+. no parameters of non-private constructors and non-private methods are dependent of the fields, and no return values of non-private methods are dependent on the fields.
+. the hidden content of the type is mutable or level 1 immutable, when _n=2_, and level _n-1_ immutable otherwise.
 
-A type is <<concept-eventual,eventually>> level 2 immutable when after executing a marked method, the fields become effectively final and or not modified.
-This transition is best understood as the removal of a number of methods, marked either {mark} or {only} with parameter `before`, which make the field variable or modify the fields.
+No distinction is made between static and instance fields.
+
+A type is <<concept-eventual,eventually>> level _n_ immutable when after executing a marked method, the fields become effectively final and or not modified.
 
 [#concept-recursively-immutable]
 ==== Recursive immutability
 
-Example types:
+A type is _recursively immutable_ when it is level 2 immutable, with rule 5 modified to state that its hidden content is also recursively immutable.
+
+A recursively immutable type is _deeply_ immutable, i.e., no part of its fields' object graph can be modified.
+
+A direct consequence of the definition is that any level 2 immutable type which holds recursively immutable fields only, is again recursively immutable.
+The following types are recursively immutable, and form the basis of the recursion which allows you to compose more of them:
 
 * `java.lang.Object`
+* the primitive types, such as `int`, `long`, ...
 * `java.lang.Integer`, `java.lang.Long`, ... the boxed versions of the primitives `int`, `long` ...
 * `java.lang.String`
 * `java.lang.Class`, whose object graph covers a large amount of other types such as
+
+==== Independence of a type
+
+A recursively immutable type is fully independent, at all times.
+As such, it is never explicitly marked {independent}.
+
+A level 2 immutable type allows for level 1 independence; a level _n_ immutable type allows for level _n-1_ independence.
+Again, no explicit annotation is necessary.
+Obviously, a parameter or return value need not be linked to the fields, so it can be {independent}.
+
+Dependence is only possible when the type is at most level 1 immutable; i.e., its accessible content is assignable or at least modifiable.
+But dependence is not a necessity.
+
+We define the independence of a type as the minimum of the independence values of its return values and parameters.
 
 [#technical-dynamic-type-annotations]
 ==== Dynamic type annotations
