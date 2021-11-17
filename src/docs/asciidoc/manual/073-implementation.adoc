@@ -6,14 +6,68 @@ The principles of {e2immu} guide the implementation of the analyser:
 
 . Try to use containers exclusively, in other words: never modify your parameters.
 . Use as many immutable objects as possible; either directly, via builders, or via eventually final constructs.
+. Never backtrack on decisions: delay making a decision as long as you cannot be sure, but once a decision is made, it is rock-solid.
 
 The container requirement has been broken in exactly one situation: that of the `ExpressionContext`.
 Because we intend to use the implementation as one of the more serious test cases of {e2immu}, one such situation is acceptable.
 It nicely contrasts with `EvaluationContext`, which does follow the rules, and which relies on an `EvaluationResult` to be applied.
 
+=== Main flow
+
+The main orchestrating class of {e2immu} is the `Parser` class, which initiates the different phases of {e2immu}:
+
+. configuration and input preparation;
+. inspection, transforming source code into objects at the type, method and field level;
+. resolution, tying these objects together, while at the same time parsing statements and expressions;
+. analysis, providing semantic information;
+. output, showing and storing the results of the analysis.
+
+The key classes for configuration and input preparation are, easily enough, `Configuration`, `Input`, `Resources`, `ClassPath`.
+
+=== Inspection
+
+The {e2immu} project currently depends on two libraries to help transform the Java source code and byte code into objects: JavaParser for the source, and ASM for the byte code.
+Currently, the byte code inspector does not inspect statements.
+
+Byte code inspection is done on-demand, because the system libraries provided with the Java Runtime are too extensive to convert _a priori_.
+The main class responsible is the `ByteCodeInspector`.
+
+Inspection using JavaParser is primarily carried out by the `TypeInspector` and the `MethodInspector`.
+
+Both inspection types fill up a `TypeMap` (which exists as a builder and a final, immutable implemention constructed after the resolution phase), which keeps track of all types known to {e2immu}.
+A `TypeContext` object provides support for translating locally known simple type names to fully qualified ones.
+
+The end result of inspection are the types
+
+. `TypeInfo`, with inspection details in `TypeInspection`;
+. `MethodInfo`, with inspection details in `MethodInspection`;
+. `FieldInfo`, with inspection details in `FieldInspection`;
+. `ParameterInfo`, with inspection details in `ParameterInspection`.
+
+=== Resolution
+
+The resolution phase has two primary goals.
+Firstly, it parses method bodies into statements (implementations of the interface `Statement`), starting with `Block`, and expressions (implementations of `Expression`).
+Central to the inspection of expressions is the `ExpressionContext`.
+Secondly, the resolution phase resolves all remaining type and method determination issues:
+
+- which method call is meant in the face of overrides and overloads;
+- it keeps track of the place of a type in the hierarchy, available for reference to the analyser;
+- it determines the types of objects created with the diamond operator `<>`, of lambda's without explicit parameter types.
+
+Even though JavaParser has its own symbol-solving module, {e2immu} uses its own implementation.
+The most complicated of the resolution classes is `ParseMethodCallExpr`, which determines the exact method call.
+A lot of logic dealing with the type hierarchy is in `ParameterizedType`, the class responsible for representing types decorated with concrete values for type parameters.
+
+The `Resolver` is the main class here, it adds `TypeResolution` to `TypeInfo`, and `MethodResolution` to `MethodInfo`.
+
+The output of the resolution phase is a list of types, sorted in order of dependency.
+This sorting step is necessary for analysis, to the extent that circular dependencies between types make analysis a lot harder.
+The class `SortedType` transfers information from the `Resolver` into the `PrimaryTypeAnalyser`.
+
 === Analysers
 
-In the static analyser, a number of different analyser components cooperate to determine the semantic properties of the code:
+In {e2immu}, a number of different analysers cooperate to determine the semantic properties of the code:
 
 - the _type analyser_, instantiated once for each (nested) type;
 - the _method analyser_, instantiated for each method or constructor, even some hidden ones;
@@ -21,22 +75,22 @@ In the static analyser, a number of different analyser components cooperate to d
 - the _field analyser_, instantiated for each field;
 - the _statement analyser_, instantiated for each statement of each method and constructor.
 
-There are obvious and strong dependencies between these components, e.g., the modification aspect of a field depends on determining whether there are statements that modify it.
+There are obvious and strong dependencies between these analysers, e.g., the modification aspect of a field depends on determining whether there are statements that modify it.
 At the same time, there are dependencies between different aspects of the code, e.g., between methods calling other methods, methods initialising fields, etc.
-There is no easy way to determine an exact execution order for this multitude of analyser component instances.
+There is no easy way to determine an exact execution order for this multitude of analyser instances.
 
-To this end, the analyser implements an iterative approach, that gives each analyser component one opportunity per iteration to determine its values and properties based on previously established facts.
+To this end, the analyser implements an iterative approach, that gives each analyser one opportunity per iteration to determine its values and properties based on previously established facts.
 
 When a value or property cannot yet be determined, typically because a dependency has not yet been met, this value or property is *delayed*.
 The delay system keeps track of the causes of the delay, to allow for detecting circular dependencies.
 The latter can then be broken, to allow the iterative system to continue.
 As soon as a value has been determined, it is written out for others to refer to, and cannot be changed anymore.
 
-The analyser components themselves consist of a number of sub-components, which are executed as part of the iteration.
-This execution takes place in a fixed order; it starts at the first, not-yet-executed (in the first iteration) or non-delayed (in the subsequent ones) sub-component, and visits all others in the chain.
+The analysers themselves consist of a number of components (or tasks), which are executed as part of the iteration.
+This execution takes place in a fixed order; it starts at the first, not-yet-executed (in the first iteration) or non-delayed (in the subsequent ones) component, and visits all others in the chain.
 The main loop stops iterating when all components have been resolved (are in the _done_ state, rather than the _delayed_ state).
 
-The order of the main components is
+The order of the main analyser groups is
 
 . methods.
 For each method, the analyser processes the
@@ -47,6 +101,14 @@ For each method, the analyser processes the
 . types.
 
 Inside the primary type (the .java file) the methods are processed alphabetically, as are the fields and nested types.
+This orchestration is the responsibility of the `PrimaryTypeAnalyser`, which is also used, recursively, to analyse types defined inside statements.
+It employs the `AnalyserComponents` class to execute the components.
+
+Annotated API files (or classes) are analysed by the `AnnotatedAPIAnalyser`, which is a shallow version of the primary type analyser, the type analyser (`ComputingTypeAnalyser`) and the field analyser (`FieldAnalyser`).
+Methods without code are analysed by the `ShallowMethodAnalyser`, rather than the `ComputingMethodAnalyser` and `ComputingParameterAnalyser`.
+
+In the special situation of _sealed_ classes, we need a variant on the shallow analysers which aggregate data from the computed analysers in the child types.
+These are the `AggregatingTypeAnalyser`, `AggregatingMethodAnalyser`, and `AggregatingParameterAnalyser`.
 
 === Statements and expressions
 
@@ -214,3 +276,18 @@ Rest of linking follows as soon as there are values → CM → type immutable
 Breaking a circular computation CNN → field → ENN → NNP → CNN deactivates this local CNN.
 
 ENN, ExtImm can always augment on fields when value was chosen after breaking circular computation
+
+=== Output system
+
+The output system of {e2immu} is very lightweight, yet sufficiently flexible to be parameterizable between extremely compact and nicely readable.
+Output elements (implementations of `OutputElement`, such as `Text`, `Symbol`, `Space`, and `Guide`) are collected in an `OutputBuilder`, and finally emitted by the `Formatter` which is parameterized by `FormatterOptions`.
+The `OutputBuilder` implements the `Collector` interface from the JDK streaming package, which allows for simple conversion and collection of lists and streams of statements, expressions, types, etc. into `OutputElement` and then `OutputBuilder` instances.
+
+At the moment the implementation is not tied to the inspection system, so there is no way to link back to line numbers and symbol positions of the original source.
+It is also not possible to maintain the existing formatting.
+
+Errors and warnings are stored in an enumeration called `Message.Label`, and are decorated with a `Location` and some textual information.
+They are collected in a `Messages` object.
+Resource files allow for translation of the messages in other languages.
+
+The `Location` object holds an `Identifier`, which can be of the `PositionalIdentifier` variety that refers to the line number and position in the original source code, provided by the JavaParser.
