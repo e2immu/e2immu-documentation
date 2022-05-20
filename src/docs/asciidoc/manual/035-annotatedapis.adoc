@@ -184,3 +184,164 @@ This type indicates that a value has not been computed, but stipulated by the us
 
 The list of available annotations can be found <<list-of-annotations,here>>.
 In Annotated API files, CONTRACT is the default type, and needs not be specified.
+
+=== The Collections framework
+
+==== Not null
+
+We strongly object to the use of `null` in sets and maps -- note that this can be valid point of view even if one embraces `null` as a valuable concept denoting _absence of a value_.
+It is our opinion that one should not store _absence of a value_ in a set, nor should one use _absence of a value_ as the key in a map.
+The same does not hold for arrays, and should therefore not be so important for lists.
+But then, consistency prevails.
+We are happy with `null` in arrays, but not in standard collections.
+
+Consequently, our `java.util` annotated APIs are littered with {nn} and {nn1} annotations.
+Note that we have not equipped {e2immu} with a {nn} annotation on types.
+When a collection comes in as a parameter, and the collection should be present, {nn} is the obvious choice:
+
+[source,java]
+----
+public int combinedSize(@NotNull Set<T> set) {
+    return someValue + set.size();
+}
+----
+
+There is no immediate meaning for {nn1} in this context: it is reserved for functional interfaces and arrays at the moment.
+
+==== Iterating over maps
+
+Interestingly, `Map.Entry` has a `setValue()` method which allows the developer to change the value of a mapping during iteration.
+As a consequence, we annotate the mutable type as
+
+[source,java]
+----
+@Container
+@Independent1
+interface Entry<K, V> {
+    @NotNull
+    K getKey();
+
+    @NotNull
+    V getValue();
+
+    @Modified
+    V setValue(V v);
+}
+----
+
+The method `Map.entrySet()` returns a set of entries, which is a _view_ on the map, indicating that the set is backed by the map, and changes to the set imply changes to the map.
+We must therefore annotate
+
+[source,java]
+----
+@Container // and implicitly @Dependent
+interface Map$<K, V> {
+   ...
+
+   // implicitly @Dependent
+   @NotNull1
+   Set<Map.Entry<K, V>> entrySet();
+}
+----
+
+To use `entrySet()` in a for-each construct, we must annotate the interface `Iterable`, which is extended by `Collection` and therefore also by `Set`:
+
+[source,java]
+----
+@Container // and implicitly @Dependent
+interface Iterable$<T> {
+    @NotModified
+    void forEach(@NotNull @Independent1 Consumer<? super T> action);
+
+    // implicitly @Dependent, `Iterator` has `remove()`
+    @NotNull
+    Iterator<T> iterator();
+
+    @NotNull
+    @Independent1
+    Spliterator<T> spliterator();
+}
+----
+
+Finally, we note that `Iterator` has a `remove()` operation, which makes every iterator dependent on its iterable source:
+
+[source,java]
+----
+@Container
+@Independent1
+interface Iterator$<T> {
+    @Modified
+    default void forEachRemaining(@NotNull @Independent1 Consumer<? super T> action) {
+    }
+
+    @Modified
+    boolean hasNext();
+
+    @Modified // implicitly @Independent1
+    T next();
+
+    @Modified
+    void remove();
+}
+----
+
+With this background, we can analyse the dependencies between `entry` and `map` in the common construct
+
+[source,java]
+----
+for(Entry<K, V> entry: map.entrySet()) {
+    ...
+}
+----
+
+which is equivalent to the more elaborate construct
+
+[source,java]
+----
+Iterator<Entry<K, V>> iterator = map.entrySet().iterator();
+while(iterator.hasNext()) {
+    Entry<K, V> entry = iterator.next();
+    K key = entry.getKey();
+    ...
+}
+----
+
+Both methods `entrySet()` and `iterator()` are {dependent}, so we start off with local variable `iterator` linked to `map`.
+Modifications to the iterator (e.g., by calling the `remove()` method), will modify the map.
+
+The `entry` is obtained by calling the method `next()` on the iterator, which is marked {independent1}.
+This means that the method result is linked to the hidden content of the iterator, which consists of `Entry` objects.
+These `Entry` objects, however, are not part of the hidden content of `Map`: only objects of types `K` and `V` have that property.
+Because the `Entry` objects have been obtained from `Map` in a {dependent} way, and `Map` is mutable, we equate changes to an `Entry` object to changes to the map.
+
+In a picture, the situation looks like:
+
+image::forEach_asIs.png[title="Current situation, entry to map",id="foreach-asis"]
+
+****
+The links are: {independent1} from `entry` to `iterator`, {dependent} from `iterator` to the entry set, and {dependent} from the entry set to the `map`.
+Because `entry` is hidden in `iterator`, and `iterator` is dependent on map `map`, and `entry` is not of a hidden type in `map`, and it is mutable, we link `entry` to `map` in a {dependent} way.
+****
+
+Suppose we tell the analyser that the user can never use the `setValue` method of `Entry`.
+Then, `Entry` becomes {e2container}.
+Because it is now immutable, `entry` can only be content linked to `map`, i.e., at the {independent1} level.
+This is depicted by:
+
+image::forEach_noSetValue.png[title="No setValue() method, entry to map",id="foreach-nosenvalue"]
+
+Alternatively, we could forbid the modification of entry sets, e.g., by contracting `entrySet()` to return an {e2container} object.
+(Calling a modifying method on such an object will cause {e2immu} to raise an error.) Then, `iterator`, still linked to the entry set, remains linked to the mutable `map`: while the _set_ is immutable, the non-hidden `Entry` objects are not.
+As a consequence, `Entry` objects remain linked to the map, because the previous rule still applies.
+
+image::forEach_immutableSet.png[title="entrySet() immutable, entry to map",id="foreach-entry"]
+
+It would be safer to forbid the use of the `remove()` method in the iterator at the same time.
+However, this does not change the linking situation:
+
+image::forEach_immutableSetAndNoRemove.png[title="entrySet() immutable, and no remove() method, entry to map",id="foreach-entrynoremove"]
+
+Finally, we remark that only changing the `remove()` method does not change the linking situation between `Entry` and `Map`.
+
+image::forEach_noRemove.png[title="No remove() method, entry to map",id="foreach-noremove"]
+

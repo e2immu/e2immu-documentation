@@ -158,8 +158,10 @@ After a conditional escape, for example, the state will be the negation of the c
 The analysers compute semantic information, some of which can be expressed as numeric values for properties, many of which apply to most of the analysers.
 These properties can then be visualised, either by coloring, highlighting in an IDE, or by adding annotations.
 
-A property has a numeric value when it is not delayed.
+A property (implemented by the enumeration `Property`) has a numeric value when it is not delayed.
 Otherwise, it takes a `CausesOfDelay` value, which enumerates the reasons why no value was computed for this property.
+The property-value map `Properties` maps `Property` to `DV`.
+The latter stands for _delayable value_.
 
 There are four types of properties:
 
@@ -167,6 +169,8 @@ There are four types of properties:
 - context properties
 - external properties
 - internal marker properties
+
+==== Value properties
 
 Value properties are associated with a expression which has been evaluated to a non-delayed result.
 When a variable takes a value, the variable's value properties are computed directly from the value.
@@ -183,6 +187,8 @@ The annotation needed to contract an abstract parameter to be of container type 
 - `IDENTITY`: the fact that the evaluated expression is exactly the value of the first parameter of the method.
 Corresponds to {identity} on the method.
 
+==== Context properties
+
 In contrast, context properties are unique to a variable, and are held independently of the value that the variable takes.
 Context properties accumulate information about the variable from one statement to the next.
 There are three context properties:
@@ -195,6 +201,8 @@ CNN takes the Condition Manager into account: in the context of `if(x != null)`,
 - `CONTEXT_MODIFIED`, independent of value, value delays; however, values *change* depending on modification due to companions!
 As soon as a variable representing a field, or `this`, has this property set to true, the method in which this occurs is marked modifying, which is visualised by the {modified} property.
 
+==== External properties
+
 When a field is assigned to a parameter in a constructor, the value of the field and that of the parameter are bound to each other.
 To break a very predictable circular dependency, parameters receive a value right from the first iteration.
 Because value properties are bound to this value, their eventual values may differ from the ones necessarily chosen in the very first iteration.
@@ -206,6 +214,11 @@ There are two external properties:
 So ENN < CNN, and this will result in a potential null-pointer warning
 - `EXTERNAL_IMMUTABLE`: of relevance when CIMM demands a higher value than the formal type's value, but the dynamic value cannot go as high.
 Results in a modification warning.
+
+By convention, external properties on parameters have the value `NOT_INVOLVED` when the parameter is not linked to a field.
+
+The property `MODIFIED_OUTSIDE_METHOD` is similar to an external property.
+It originates in the field analyser. #TODO rename?#
 
 === Variables
 
@@ -252,10 +265,19 @@ Variables link to other variables at different levels:
 
 - static assignments (`a = b`)
 - dynamic assignments, e.g., `a = Objects.requireNonNull(b)`, which become assignments after evaluation
-- linking at the object level (dependent objects), `s = t.subList(0, 3)`
+- linking at the accessible content level (dependent objects), `s = t.subList(0, 3)`
 - linking at the hidden content level, `a.add(b)`
 
-Modifications are computed at the 3 upper levels; all other context properties are computed at the static assignment level.
+The context properties are assigned to clusters of variables: after executing `a=b; b.doSomething()`, for example, we must set the context not null value of `a` to not-null as well.
+
+The static assignment level is different from the three other levels in that it is available from the first iteration onward.
+Local copies of variable fields and variables assigned to in a loop are only introduced in the 2nd iteration; however, they simply expand the cluster and cannot cause different context property values.
+
+The only context property which is computed across the first three levels (i.e., static and dynamic assignment, and linking at the accessible content level) is _context modification_: after executing `s = t.subList(0, 3); s.add(x);` both `s` and `t` are likely to be modified.
+
+
+The result of linking is stored in the `linkedVariables` field of `VariableInfo`; it is of type `LinkedVariables`.
+
 
 === Typical execution order
 

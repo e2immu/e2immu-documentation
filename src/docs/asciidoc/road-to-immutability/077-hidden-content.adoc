@@ -3,7 +3,7 @@
 
 In this section, we consider modifications to the hidden content of a type, and explain when they are of importance.
 We give a formal definition of deeply or recursively immutable types, introduce the annotation {ercontainer}, as well as a sliding scale between level 2 and recursively immutable.
-The annotation {independent1}, which we have touched upon earlier earlier, will be formally introduced.
+The annotation {independent1}, which we have touched upon earlier, will be formally introduced.
 
 === Visitors
 
