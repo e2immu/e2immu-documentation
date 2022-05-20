@@ -206,7 +206,18 @@ public int combinedSize(@NotNull Set<T> set) {
 }
 ----
 
-There is no immediate meaning for {nn1} in this context: it is reserved for functional interfaces and arrays at the moment.
+The implementation of {nn1} is rather patchy at the moment, focusing on arrays, functional interfaces, and iteration over collections, as in:
+
+[source,java]
+----
+public void method(@NotNull1 Set<T> set) {
+    for(T t: set) {
+        if("x".equals(t.toString)) { // forces t to be @NotNull, set to be @NotNull1
+            ...
+        }
+    }
+}
+----
 
 ==== Iterating over maps
 

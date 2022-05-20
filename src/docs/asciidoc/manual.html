@@ -1405,7 +1405,30 @@ But then, consistency prevails.
 We are happy with <code>null</code> in arrays, but not in standard collections.</p>
 </div>
 <div class="paragraph">
-<p>Consequently, our <code>java.util</code> annotated APIs are littered with  <code>@NotNull</code>  and  <code>@NotNull1</code>  annotations.</p>
+<p>Consequently, our <code>java.util</code> annotated APIs are littered with  <code>@NotNull</code>  and  <code>@NotNull1</code>  annotations.
+Note that we have not equipped  <em>e2immu</em>  with a  <code>@NotNull</code>  annotation on types.
+When a collection comes in as a parameter, and the collection should be present,  <code>@NotNull</code>  is the obvious choice:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">int</span> combinedSize(<span class="annotation">@NotNull</span> <span class="predefined-type">Set</span>&lt;T&gt; set) {
+    <span class="keyword">return</span> someValue + set.size();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The implementation of  <code>@NotNull1</code>  is rather patchy at the moment, focusing on arrays, functional interfaces, and iteration over collections, as in:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">void</span> method(<span class="annotation">@NotNull1</span> <span class="predefined-type">Set</span>&lt;T&gt; set) {
+    <span class="keyword">for</span>(T t: set) {
+        <span class="keyword">if</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">x</span><span class="delimiter">&quot;</span></span>.equals(t.toString)) { <span class="comment">// forces t to be @NotNull, set to be @NotNull1</span>
+            ...
+        }
+    }
+}</code></pre>
+</div>
 </div>
 </div>
 <div class="sect3">
