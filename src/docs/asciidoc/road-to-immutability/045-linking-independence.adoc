@@ -1,7 +1,7 @@
 [#linking-and-independence]
-== Linking, independence
+== Linking, dependence
 
-Let us now elaborate on how we will compute modifications, in a path towards level 2 immutability.
+Let us now elaborate on how we will compute modifications, in a path towards immutability.
 Consider the following example:
 
 .Example {counter:example}, a field assigned to a constructor parameter
@@ -81,27 +81,27 @@ On the other side of the spectrum, linking does not work on objects that cannot 
 Let us summarize by:
 
 ****
-*Definition*: Two objects are independent of each other when no modification to the first can imply a modification to the second.
+*Definition*: Two objects are not linked to each other when no modification to the first can imply a modification to the second.
 
-Conversely, two objects are linked when a modification to the first may imply a modification to the second.
+Conversely, two objects are dependent (or linked) when a modification to the first may imply a modification to the second.
 ****
 
-Linked objects typically share a common sub-object: the object returned by `subList`, for example, is "backed" by the original list, in other words, it maintains a reference to the original list.
+Linked objects must share a common sub-object: the object returned by `subList`, for example, is "backed" by the original list, in other words, it maintains a reference to the original list.
 
 We will discuss linking in more detail in <<computing-dependence>>.
 For now, assume that a field links to another field, or to a parameter, if there is a possibility that both variables represent (part of) the same object (their object graphs overlap).
 
-Linking and independence is important when it occurs from fields to parameters and return values of methods:
+Linking between fields and parameters, and fields and return values of methods, is important to us:
 
 ****
 *Definition*:
-A method or constructor parameter is *independent* when it is independent of the fields of the type.
-A method is *independent* when its return value is independent of the fields of the type.
+A method or constructor parameter is *not linked* when it is not linked to any of the fields of the type.
+A method is *not linked* when its return value is not linked to any of the fields of the type.
 
-The independence is marked with {independent} on the method for the return value, and on the relevant parameters otherwise.
+The absence of linking is marked with {notLinked} on the method for the return value, and on the relevant parameters otherwise.
 ****
 
-When a constructor parameter is not independent, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor's type.
+When a constructor parameter is linked, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor's type.
 But do all these modifications matter to the type?
 
 [#accessible-hidden-content]
@@ -215,6 +215,8 @@ A type that is part of the object graph of the fields, but is not accessible, is
 ****
 
 A type which is transparent can be replaced by an unbound type parameter, which is why we will use the term _hidden_ from now on.
+Note: if it were not for transparent types, which are clearly accessible but are never accessed, we would not define something "accessible" in terms of "accessed".
+But transparent types should not exist -- the analyser will raise an error when they are present -- and "hidden" is the complement of "accessible".
 
 When a type `C` extends from a parent type `P`, we see an instance of `C` as being composed of two parts: the methods and fields of `P`, augmented by the methods and fields of `C`.
 Whilst the part of the parent, `P`, can be accessible, the part of the child `C` may remain hidden.
@@ -222,7 +224,7 @@ Similarly, when `T` implements the interface `I`, but the interface is used as t
 In the example of `Level`, implementation or extensions may be modifiable (such as `Counter`), but when presented with `Level` only, there are no modifications to be made.
 Inside `Levels`, no such extensions are accessible.
 
-Note that we must make this distinction, because every interface is meant to be implemented, and every (non-`final`) type can be extended in Java.
+Note that we must make this distinction, because every interface is meant to be implemented, and every type, unless explicitly marked `final` or `sealed` can be extended in Java.
 These extensions could be completely outside the control of the current implementation (even though we can use the analyser to constrain them).
 
 Armed with this definition, we split the combined object graph of the fields of a type into the accessible content, and the hidden content:
@@ -230,7 +232,7 @@ Armed with this definition, we split the combined object graph of the fields of 
 ****
 *Definition:* The *accessible content* of a type are those objects of the object graph of the fields that are of accessible type.
 
-The *hidden content* of a type are those objects of the object graph of the fields that are of hidden or transparent type.
+The *hidden content* of a type are those objects of the object graph of the fields that are of hidden (or transparent) type.
 ****
 
 In the first example of this section, `LinkExample1`, objects of the type `X` form the hidden content of `LinkExample1`, while the `Set` instance is the accessible content.
@@ -243,26 +245,29 @@ One of the central tenets of immutability will be that
 A type is not responsible for modifications to its hidden content.
 ****
 
-We end this section by defining what independence means with respect to the accessible and hidden content of the fields.
-The definition of independence given in the previous section is absolute, in the sense that it covers the whole object graphs of the objects being linked, or not.
+We end this section by defining what linking means with respect to the accessible and hidden content of the fields.
+The definition of linking given in the previous section is absolute, in the sense that it covers the whole object graphs of the objects being linked, or not.
 
 When a parameter is linked to a field, we could try to find out if the modifications affect the accessible content, given that we state that modifications to the hidden content are outside the scope of the type anyway.
-In other words, we could distinguish between different forms of non-independence, or, in better English, dependence.
+In other words, we could distinguish between different forms of linking:
 
 ****
-*Definition:* a parameter or method return value is *dependent* on the fields if and only if it is linked to the accessible content of the type.
+*Definition:* a parameter or method return value is
+
+* *dependent* on the fields if and only if it is linked to the accessible content of the type.
+* *independent* of the fields if and only if it is at most linked to the hidden content of the type
 ****
 
 In other words, a parameter or method return value is dependent when a modification on the argument or returned value has the possibility to cause a modification in the accessible part of the fields.
 
-Linking between parameters or return value and fields which does not involve the accessible part of the fields, will be not be called dependence, but a lighter form of independence.
+Linking between parameters or return value and fields which does not involve the accessible part of the fields, is called independence.
 We will elaborate more in <<hidden-content>>.
-In the following sections, we will often use the term 'independent' when we mean 'not-dependent', i.e., when we only require one of the lighter forms of independence.
+In the following sections, we will often use the term 'independent' when we mean 'not-dependent', i.e., when there is no linking or only linking to the hidden part of the object graph of the fields.
 
 In terms of annotations, dependence will be the default state for objects of types where dependence is possible.
-We will not annotate it.
-Instead, {independent} on parameters and methods will be used for absolute independence.
-When a type is deeply immutable, {independent} is the default state, and therefore it will be omitted.
-We use {independent1} for the lighter forms of independence.
+We will not annotate it most of the time; if we do, we use the annotation {dependent}.
+The annotation {notLinked} on parameters and methods will be used for absence of linking.
+When a type is deeply immutable, {notLinked} is the default state, and therefore it will be omitted.
+We use {independent} for the linking to the hidden part, to be elaborated upon in <<hidden-content-linking>>.
 
 Now, all pieces of the puzzle are available to introduce immutability of types.

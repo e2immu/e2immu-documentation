@@ -9,32 +9,33 @@
 
 // annotations
 
+// allowsInterrupt
 :beforeMark: pass:normal[ `@BeforeMark` ]
+:constant: pass:normal[ `@Constant` ]
 :container:  pass:normal[ `@Container` ]
 :dependent: pass:normal[ `@Dependent` ]
-:e1container: pass:normal[ `@E1Container` ]
-:e1immutable: pass:normal[ `@E1Immutable` ]
-:e2container: pass:normal[ `@E2Container` ]
-:e2immutable: pass:normal[ `@E2Immutable` ]
-:ercontainer: pass:normal[ `@ERContainer` ]
-:exposed: pass:normal[ `@Exposed` ]
+// extensionClass
 :final:  pass:normal[ `@Final` ]
+:finalFields: pass:normal[ `@FinalFields` ]
 :finalizer:  pass:normal[ `@Finalizer` ]
 :fluent: pass:normal[ `@Fluent` ]
 :identity:  pass:normal[ `@Identity` ]
-:independent:  pass:normal[ `@Independent` ]
-:independent1:  pass:normal[ `@Independent1` ]
 :ignoreModifications:  pass:normal[ `@IgnoreModifications` ]
-:only:  pass:normal[ `@Only` ]
+:immutable: pass:normal[ `@Immutable` ]
+:immutableContainer: pass:normal[ `@ImmutableContainer` ]
+:independent:  pass:normal[ `@Independent` ]
 :mark: pass:normal[ `@Mark` ]
 :modified:  pass:normal[ `@Modified` ]
 :mutableModifiesArguments: pass:normal[ `@MutableModifiesArguments` ]
+:notLinked:  pass:normal[ `@NotLinked` ]
 :nm: pass:normal[ `@NotModified`]
-:nn1: pass:normal[ `@NotNull1` ]
 :nn: pass:normal[ `@NotNull` ]
+:nn1: pass:normal[ `@NotNull1` ]
 :nullable: pass:normal[ `@Nullable` ]
+:only:  pass:normal[ `@Only` ]
+// singleton
 :sse: pass:normal[ `@StaticSideEffects` ]
-:supportData: pass:normal[ `@SupportData` ]
 :testMark: pass:normal[ `@TestMark` ]
+// utility class
 :variable:  pass:normal[ `@Variable` ]
 

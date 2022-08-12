@@ -35,9 +35,8 @@ class Counter {
     }
 }
 
-@E1Immutable // <1>
+@FinalFields
 class CountedInfo {
-    @Final
     @Modified
     private final Counter counter = new Counter();
 
@@ -47,8 +46,6 @@ class CountedInfo {
     }
 }
 ----
-
-<1> The next section will show that the annotation will actually be {e1container}, representing the combination of {e1immutable} and {container}.
 
 We also see in the example that the `printInfo` method is {modified}.
 This is because it calls a modifying method on one of the fields: `increment`.

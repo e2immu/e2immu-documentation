@@ -1,9 +1,9 @@
-== Level 2 immutability
+== Immutability
 
 === Definition and examples
 
 First, what do we want intuitively?
-A useful form of immutability, less strong than deeply immutable, but better than level 1 immutability for many situations.
+A useful form of immutability, less strong than deeply immutable, but stronger than final fields for many situations.
 We propose the following description:
 
 ****
@@ -11,12 +11,12 @@ After construction, an immutable type holds a number of objects; the type will n
 The type is not responsible for what others do to the content of the objects it was given.
 ****
 
-Technically, level 2 immutability is much harder to define than level 1 immutability.
-We identify three rules, on top of the obvious level 1 immutability requirement.
+Technically, immutability is much harder to define than final fields.
+We identify three rules, on top of the obvious final fields requirement.
 The first one prevents the type from making changes to its own fields:
 
 ****
-*Definition*: the *first rule of level 2 immutability* is that all fields must be {nm}.
+*Definition*: the *first rule of immutability* is that all fields must be {nm}.
 ****
 
 Our friend the `Pair` satisfies this first rule:
@@ -80,7 +80,7 @@ class Point {
     }
 }
 
-@E1Container
+@Container @FinalFields
 class Line {
     @Final
     @Modified
@@ -113,24 +113,24 @@ class Line {
 
 The fields `point1` and `point2` are effectively final.
 Without the translation method, the fields would be {nm} as well.
-The translation method modifies the fields' content, preventing the type from becoming level 2 immutable.
+The translation method modifies the fields' content, preventing the type from becoming immutable.
 
-From the restriction of rule 1, that all its fields should remain unmodified, it follows that, excluding external changes, every method call on a level 2 immutable container object with the same arguments will render the same result.
+From the restriction of rule 1, that all its fields should remain unmodified, it follows that, excluding external changes, every method call on a immutable container object with the same arguments will render the same result.
 We note that this statement cannot be bypassed by using _static_ state, i.e., state specific to the type rather than the object.
 The definitions make no distinction between static and instance fields.
 
 To obtain a useful definition of immutability, one which is not too strict yet follows our intuitive requirements, we should allow modifiable fields, if they are properly shielded from the modifications they intrinsically allow.
 We will introduce two additional rules to constrain the modifications of this modifiable data.
-Together with the first rule, and building on level 1 immutability, we define:
+Together with the first rule, and building on final fields, we define:
 
 ****
-*Definition: level 2 immutability*:
+*Definition: immutability*:
 
-(*Rule 0*: The type is level 1 immutable: all fields are effectively final)
+*Rule 0*: All fields are effectively final.
 
 *Rule 1*: All fields are {nm}.
 
-*Rule 2*: All fields are either private, or of level 2 immutable type themselves.
+*Rule 2*: All fields are either private, or of immutable type themselves.
 
 *Rule 3*: No parameters of non-private methods or non-private constructors, no return values of non-private methods, are dependent on (the accessible part of) the fields.
 ****
@@ -138,24 +138,24 @@ Together with the first rule, and building on level 1 immutability, we define:
 Rule 2 is there to ensure that the modifiable fields of the object cannot be modified externally by means of direct field access to the non-private fields.
 Rule 3 ensures that the modifiable fields of the object cannot be modified externally by obtaining or sharing references to the fields via a parameter or return value.
 
-Types which are level 2 immutable will be marked {e2immutable}.
-When they are containers too, which should be the huge majority, we write {e2container}, stressing the container property.
+Types which are immutable will be marked {immutable}.
+When they are containers too, which should be the huge majority, we use  {immutableContainer} as a shorthand.
 
 Note that:
 
-* We state that all primitive types are level 2 immutable, as is `java.lang.Object`.
-Whilst this is fairly obvious in the case of primitives, level 2 immutability for `Object` requires us to either ignore the methods related to synchronization, or to assume that its implementation (for it is not an abstract type) has no fields.
-* A consequence of rule 1 is that all methods in a level 2 immutable type must be {nm}.
-* A field whose type is an unbound type parameter, can locally be considered to be of level 2 immutable type, and therefore need not be private.
-This is because the type parameter could be substituted by `java.lang.Object`, which we have just declared to be level 2 immutable.
+* We state that all primitive types are immutable, as is `java.lang.Object`.
+Whilst this is fairly obvious in the case of primitives, immutability for `Object` requires us to either ignore the methods related to synchronization, or to assume that its implementation (for it is not an abstract type) has no fields.
+* A consequence of rule 1 is that all methods in a immutable type must be {nm}.
+* A field whose type is an unbound type parameter, can locally be considered to be of immutable type, and therefore need not be private.
+This is because the type parameter could be substituted by `java.lang.Object`, which we have just declared to be immutable.
 More details can be found in the section on <<generics>>.
 * Constructor parameters whose formal type is an unbound type parameter, are of hidden type inside the type of the constructor.
 As a consequence, rule 3 does not apply to them.
 This will be expanded on in <<hidden-content>>.
 * The section on <<inheritance>> will show how the immutability property relates to implementing interfaces, and sub-classing.
-This is important because the definition is recursive, with `java.lang.Object` the level 2 immutable base of the recursion.
+This is important because the definition is recursive, with `java.lang.Object` the immutable base of the recursion.
 All other types must extend from it.
-* The section on <<abstract-methods>> will detail how level 2 immutability is computed for abstract types (interfaces, abstract classes).
+* The section on <<abstract-methods>> will detail how immutability is computed for abstract types (interfaces, abstract classes).
 * The first rule can be reached _eventually_ if there is one or more methods that effect a transition from the mutable to the immutable state.
 This typically means that all methods that assign or modify fields become off-limits after calling this marker method.
 Eventuality for rules 2 and 3 seems too far-fetched.
@@ -163,10 +163,10 @@ We address the topic of eventual immutability fully in the section <<eventual-im
 
 Let us go to examples immediately.
 
-.Example {counter:example}, explaining level 2 immutability: with array, version 1, not good
+.Example {counter:example}, explaining immutability: with array, version 1, not good
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class ArrayContainer1<T> {
     @NotModified
     private final T[] data;
@@ -176,7 +176,7 @@ class ArrayContainer1<T> {
     }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() {
         return Arrays.stream(data);
     }
@@ -187,12 +187,12 @@ After creation, external changes to the source array `ts` are effectively modifi
 This construct fails rule 3, as the parameter `ts` is dependent.
 The field is a modifiable data structure, and must be shielded from external modifications.
 
-Note the use of the lighter form of independence, {independent1}, on the return value of `stream()`, to indicate that modifications to the hidden content are possible on objects obtained from the stream.
+Note the use of {independent} annotation on the return value of `stream()`, to indicate that modifications to the hidden content are possible on objects obtained from the stream.
 
-.Example {counter:example}, explaining level 2 immutability: with array, version 2, not good
+.Example {counter:example}, explaining immutability: with array, version 2, not good
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class ArrayContainer2<T> {
     @NotModified
     public final T[] data;
@@ -203,7 +203,7 @@ class ArrayContainer2<T> {
     }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() {
         return Arrays.stream(data);
     }
@@ -213,21 +213,21 @@ class ArrayContainer2<T> {
 Users of this type can modify the content of the array using direct field access!
 This construct fails rule 2, which applies for the same reasons as in the previous example.
 
-.Example {counter:example}, explaining level 2 immutability: with array, version 3, safe
+.Example {counter:example}, explaining immutability: with array, version 3, safe
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 class ArrayContainer3<T> {
     @NotModified
     private final T[] data; // <1>
 
-    public ArrayContainer3(@Independent1 T[] ts) {
+    public ArrayContainer3(@Independent T[] ts) {
         this.data = new T[ts.length]; // <2>
         System.arraycopy(ts, 0, data, 0, ts.length);
     }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() {
         return Arrays.stream(data);
     }
@@ -240,10 +240,10 @@ class ArrayContainer3<T> {
 The independence rule enforces the type to have its own modifiable structure, rather than someone else's.
 Here is the same group of examples, now with JDK Collections:
 
-.Example {counter:example}, explaining level 2 immutability: with collection, version 1, not good
+.Example {counter:example}, explaining immutability: with collection, version 1, not good
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class SetBasedContainer1<T> {
     @NotModified
     private final Set<T> data;
@@ -254,7 +254,7 @@ class SetBasedContainer1<T> {
     }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() {
         return data.stream();
     }
@@ -265,20 +265,20 @@ class SetBasedContainer1<T> {
 
 The lack of independence of the constructor violates rule 3 in the first example.
 
-.Example {counter:example}, explaining level 2 immutability: with collection, version 2, not good
+.Example {counter:example}, explaining immutability: with collection, version 2, not good
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class SetBasedContainer2<T> {
     @NotModified
     public final Set<T> data; // <1>
 
-    public SetBasedContainer2(@Independent1 Set<T> ts) {
+    public SetBasedContainer2(@Independent Set<T> ts) {
         this.data = new HashSet<>(ts);
     }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() {
         return data.stream();
     }
@@ -289,20 +289,20 @@ class SetBasedContainer2<T> {
 
 Here, the `data` field is public, which allows for external modification.
 
-.Example {counter:example}, explaining level 2 immutability: with collection, version 3, safe
+.Example {counter:example}, explaining immutability: with collection, version 3, safe
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 class SetBasedContainer3<T> {
     @NotModified
     private final Set<T> data; // <1>
 
-    public SetBasedContainer3(@Independent1 Set<T> ts) {
+    public SetBasedContainer3(@Independent Set<T> ts) {
         this.data = new HashSet<>(ts); // <2>
     }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() {
         return data.stream();
     }
@@ -312,46 +312,46 @@ class SetBasedContainer3<T> {
 <1> The set is private, and therefore protected from external modification.
 <2> The set has been copied, and therefore is independent of the one passed in the parameter.
 
-Finally, we have a level 2 immutable type.
-The next one is level 2 immutable as well:
+Finally, we have an immutable type.
+The next one is immutable as well:
 
-.Example {counter:example}, explaining level 2 immutability: with collection, version 4, safe
+.Example {counter:example}, explaining immutability: with collection, version 4, safe
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 class SetBasedContainer4<T> {
 
-    @E2Container
+    @ImmutableContainer
     public final Set<T> data; // <1>
 
-    public SetBasedContainer4(@Independent1 Set<T> ts) {
+    public SetBasedContainer4(@Independent Set<T> ts) {
         this.data = Set.copyOf(ts); // <2>
     }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() {
         return data.stream();
     }
 }
 ----
 
-<1> the data is public, but the `Set` is {e2immutable} itself, because its content is the result of `Set.copyOf`, which is an implementation that blocks any modification.
+<1> the data is public, but the `Set` is {immutable} itself, because its content is the result of `Set.copyOf`, which is an implementation that blocks any modification.
 <2> Independence guaranteed.
 
-The section on <<dynamic-type-annotations>> will explain how the {e2container} annotation travels to the field `data`.
+The section on <<dynamic-type-annotations>> will explain how the {immutable} annotation travels to the field `data`.
 
 The independence rule, rule 3, is there to ensure that the type does not expose its modifiable data through parameters and return types:
 
-.Example {counter:example}, explaining level 2 immutability: with collection, version 5, not good
+.Example {counter:example}, explaining immutability: with collection, version 5, not good
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class SetBasedContainer5<T> {
     @NotModified
     private final Set<T> data; // <1>
 
-    public SetBasedContainer5(@Independent1 Set<T> ts) {
+    public SetBasedContainer5(@Independent Set<T> ts) {
         this.data = new HashSet<>(ts); // <2>
     }
 
@@ -370,19 +370,19 @@ The presence of the getter is equivalent to adding the modifiers `public final` 
 Note that by decomposing rules 0 and 1, we observe that requiring all fields to be {final} and {nm} is equivalent to requiring that all non-private fields have the `final` modifier, and that methods that are not part of the construction phase, are {nm}.
 The final example shows a type which violates this rule 1, because a modifying method has been added:
 
-.Example {counter:example}, explaining level 2 immutability: with collection, version 6, not good
+.Example {counter:example}, explaining immutability: with collection, version 6, not good
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class SetBasedContainer6<T> {
     @Modified
     public final Set<T> set = new HashSet<>();
 
     @Modified
-    public void add(@Independent1 T t) { set.add(t); }
+    public void add(@Independent T t) { set.add(t); }
 
     @NotModified
-    @Independent1
+    @Independent
     public Stream<T> stream() { return set.stream(); }
 }
 ----
@@ -390,7 +390,7 @@ class SetBasedContainer6<T> {
 [#inheritance]
 === Inheritance
 
-Deriving from a class that is level 2 immutable, is the most normal situation: since `java.lang.Object` is a level 2 immutable container, every class will do so.
+Deriving from a class that is immutable, is the most normal situation: since `java.lang.Object` is an immutable container, every class will do so.
 Clearly, the property is not inherited.
 
 Most importantly, in terms of inheritance, is that the analyser prohibits changing the modification status of methods from non-modifying to modifying in a derived type.
@@ -425,14 +425,14 @@ abstract class MyString implements Collection<String> {
 <1> Not allowed!
 Any implementation of `Collection.size()` must be non-modifying.
 <2> Not allowed!
-You cannot explicitly (contractually) change `Collection.add()` from {modified} to {nm} in a sub-type.
+You cannot explicitly (contractually) change `Collection.add()` from {modified} to {nm} in a subtype.
 
 Following the same principles, we observe that types deriving from a {container} super-type need not be a container themselves.
 So while we may state that `Collection` is a container, it is perfectly possible to implement a collection which has public methods which modify their parameters, _as long as the methods inherited from `Collection` do not modify their parameters_.
 In other words, you can add new parameter-modifying methods, but you cannot change the modification status of `size`!
 
 Note that sealed types (since JDK 17) reject the 'you can always extend' assumptions of Java types.
-In this case, all sub-types are known, and visible.
+In this case, all subtypes are known, and visible.
 The single practical consequence is that if the parent type is abstract, its annotations need not be contracted: they can be computed because all implementations are available to the analyser.
 
 [#generics]
@@ -446,14 +446,14 @@ In the case of an unbound parameter type, only the public methods of `java.lang.
 By definition, the type belongs to the hidden content, as defined in <<accessible-hidden-content>>.
 
 The analyser recognises types that can be replaced by an unbound parameter type, when they are used _transparently_, and therefore belong to the hidden content: no methods are called on it, save the ones from `java.lang.Object`; none of its fields are accessed, and it is not used as an argument to parameters where anything more specific than `java.lang.Object` is required.
-It will issue a warning, and internally treat the type as an unbound parameter type, and hence {e2container}, even if the type is obviously modifiable.
+It will issue a warning, and internally treat the type as an unbound parameter type, and hence {immutableContainer}, even if the type is obviously modifiable.
 
 The following trivial example should clarify:
 
 .Example {counter:example}, a type used transparently in a class
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 public class OddPair {
 
     private final Set<String> set;
@@ -474,28 +474,28 @@ The analyser encourages you to replace `Set` by some unbound parameter type, say
 The result is, of course, the type `Pair` as defined <<type-pair,earlier>>.
 
 Making a concrete choices for a type parameter may have an effect on the immutability level, as will be explained in <<hidden-content>>.
-Some examples are easy to see: any level 1 immutable type whose fields consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
-Any level 2 immutable type whose hidden content consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
+Some examples are easy to see: any final fields type whose fields consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
+Any immutable type whose hidden content consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
 The `Pair` mentioned before is a case in point, and an example for both rules: `Pair<Integer, Long>` is deeply immutable.
 
 [#abstract-methods]
 === Abstract methods
 
-Because `java.lang.Object` is a level 2 immutable container, trivial extensions are, too:
+Because `java.lang.Object` is an immutable container, trivial extensions are, too:
 
 .Example {counter:example}, trivial extensions of `java.lang.Object`
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 interface Marker { }
 
-@E2Container
+@ImmutableContainer
 class EmptyClass { }
 
-@E2Container
+@ImmutableContainer
 class ImplementsMarker implements Marker { }
 
-@E2Container
+@ImmutableContainer
 class ExtendsEmptyClass extends ImplementsMarker { }
 ----
 
@@ -504,23 +504,22 @@ Annotation-wise, we stipulate that
 
 IMPORTANT: Unless otherwise explicitly annotated, we will assume that abstract methods, be they in interfaces or abstract classes, are {nm}.
 
-Furthermore, we will also impose special variants of the rules for level 2 immutability of an abstract type `T`, to be obeyed by the abstract methods:
+Furthermore, we will also impose special variants of the rules for immutability of an abstract type `T`, to be obeyed by the abstract methods:
 
 ****
 *Variant of rule 1*: Abstract methods must be non-modifying.
 
-*Variant of rule 3*: Abstract methods returning values must be independent, i.e., the object they return must be not be dependent on the fields.
-They cannot expose the fields via parameters: parameters of non-primitive, non-level 2 immutable type must not be dependent.
+*Variant of rule 3*: Abstract methods returning values must be not be dependent, i.e., the object they return must be not be dependent on the fields.
+They cannot expose the fields via parameters: parameters of non-primitive, non-immutable type must not be dependent.
 ****
 
 The consequence of these choices is that implementations and extensions of abstract and non-abstract types will have the opportunity to have the same immutability properties.
-This allows us, e.g., to think of every implementation of `java.util.Set` as a level 1 immutable container, if we limit to the public methods of `Set`.
-Similarly, we can treat any implementation of `Comparable`, defined as:
+This allows us, e.g., to treat any implementation of `Comparable`, defined as:
 
 .Example {counter:example}, `java.lang.Comparable` annotated
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 interface Comparable<T> {
 
     // @NotModified implicitly present
@@ -528,15 +527,15 @@ interface Comparable<T> {
 }
 ----
 
-as a level 2 immutable type when the only method we can access is `compareTo`.
+as an immutable type when the only method we can access is `compareTo`.
 
 As for as the modification status of the _parameters_ of abstract methods is concerned, we start off with {modified} rather than with {nm}:
 
-IMPORTANT: Unless otherwise explicitly annotated, or their types are level 2 immutable, we will assume that the parameters of abstract methods, be they in interfaces or abstract classes, are {modified}.
+IMPORTANT: Unless otherwise explicitly annotated, or their types are immutable, we will assume that the parameters of abstract methods, be they in interfaces or abstract classes, are {modified}.
 Overriding the method, the contract can change from {modified} to {nm}, but not from {nm} to {modified}.
 
 While it is possible to compute the immutability and container status of interface types, using the rules presented above, it often makes more practical sense to use the annotations as contracts: they may save a lot of annotation work on the abstract methods in the interface.
-We repeat that no implementation of a level 2 immutable interface is guaranteed to be level 2 immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.
+We repeat that no implementation of a immutable interface is guaranteed to be immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.
 
 We continue this section with some examples which will form the backbone of the examples in <<hidden-content>>.
 
@@ -545,7 +544,7 @@ If semantically used correctly, types implementing the `HasSize` interface expos
 .Example {counter:example}, the `HasSize` interface
 [source,java]
 ----
-@E2Container // computed (or contracted)
+@ImmutableContainer // computed (or contracted)
 interface HasSize {
 
     // implicitly present: @NotModified
@@ -560,18 +559,18 @@ interface HasSize {
 
 We extend to:
 
-.Example {counter:example}, still level 2 immutable: `NonEmptyImmutableList`
+.Example {counter:example}, still immutable: `NonEmptyImmutableList`
 [source,java]
 ----
-@E2Container // computed, contracted
+@ImmutableContainer // computed, contracted
 interface NonEmptyImmutableList<T> extends HasSize {
 
     // implicitly present: @NotModified
-    @Independent1 // <1>
+    @Independent // <1>
     T first();
 
     // implicitly present: @NotModified
-    void visit(@Independent1 Consumer<T> consumer); // <2> <3>
+    void visit(@Independent Consumer<T> consumer); // <2> <3>
 
     @NotModified // <4>
     @Override
@@ -581,7 +580,7 @@ interface NonEmptyImmutableList<T> extends HasSize {
 }
 ----
 
-<1> Whilst formally, `T` can never be dependent because it must belong to the hidden content of the interface, contracting the {independent1} annotation here will force all concrete implementations to have an non-dependent `first` method.
+<1> Whilst formally, `T` can never be dependent because it must belong to the hidden content of the interface, contracting the {independent} annotation here will force all concrete implementations to have an non-dependent `first` method.
 If the concrete choice for `T` is modifiable, the independence rule must be satisfied.
 <2> The parameter `consumer` would normally be {modified}, which would break the {container} property that we wish for `NonEmptyImmutableList`.
 However, as detailed and explained in <<hidden-content>>, the abstract types in `java.util.function` receive an implicit {ignoreModifications} annotation.
@@ -604,23 +603,24 @@ interface Consumer<T> {
 Implementations of the `accept` method are allowed to be modifying (even though in `NonEmptyImmutableList.visit` we decide to ignore this modification!).
 They are also allowed to modify their parameter, as we will demonstrate shortly.
 
-Let's downgrade from {e2container} to {e1container} by adding a modifying method:
+Let's downgrade from {immutableContainer} to {finalFields} {container} by adding a modifying method:
 
-.Example {counter:example}, not level 2 immutable anymore: `NonEmptyList`
+.Example {counter:example}, not immutable anymore: `NonEmptyList`
 [[NonEmptyList]]
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 interface NonEmptyList<T> extends NonEmptyImmutableList<T> {
 
     @Modified
-    void setFirst(@NotModified @Independent1 T t);
+    void setFirst(@Independent T t);
 }
 ----
 
-The method `setFirst` goes against the default annotations twice: because it is modifying, and because it promises to keep its parameter unmodified.
-The {independent1} annotation states that arguments to `setFirst` will end up in the hidden content of the `NonEmptyList`.
-Implementations can even lose level 1 immutability:
+The method `setFirst` goes against the default annotations twice: because it is modifying, and because it promises to keep its parameter unmodified thanks
+to the {container} annotation on the type.
+The {independent} annotation states that arguments to `setFirst` will end up in the hidden content of the `NonEmptyList`.
+Implementations can even lose {finalFields}:
 
 .Example {counter:example}, mutable implementation of `NonEmptyList`
 [source,java]
@@ -657,12 +657,12 @@ static class One<T> implements NonEmptyList<T> {
 }
 ----
 
-Here is a (slightly more convoluted) implementation that remains {e1container}:
+Here is a (slightly more convoluted) implementation that remains {finalFields} and {container}:
 
-.Example {counter:example}, level 1 immutable implementation of `NonEmptyList`
+.Example {counter:example}, final fields implementation of `NonEmptyList`
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 static class OneWithOne<T> implements NonEmptyList<T> {
     private final One<T> one = new One<>();
 
@@ -692,7 +692,7 @@ static class OneWithOne<T> implements NonEmptyList<T> {
 }
 ----
 
-Obviously, a {e2container} implementation is not possible: the immutability status of an extension (`OneWithOne`, `One`) cannot be better than that of the type it is extending from (`NonEmptyList`).
+Obviously, an {immutableContainer} implementation is not possible: the immutability status of an extension (`OneWithOne`, `One`) cannot be better than that of the type it is extending from (`NonEmptyList`).
 
 We end the section by showing how concrete implementations of the `accept` method in `Consumer` can make modifications.
 First, modifications to the parameter:
@@ -724,7 +724,7 @@ Second, modifications to the fields of the type:
 .Example {counter:example}, the method `Consumer.accept` modifying a field
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class ReceiveStrings implements Consumer<String> {
 
     @Modified
@@ -748,7 +748,7 @@ In the following example, each call to `getK` increments a counter, which is a m
 .Example {counter:example}, modifications on static fields are modifications
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 public class CountAccess<K> {
 
     @NotModified
@@ -779,7 +779,7 @@ We can explicitly ignore modifications with the {ignoreModifications} annotation
 .Example {counter:example}, modification on static field, explicitly ignored
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 public class CountAccess<K> {
 
     @NotModified
@@ -812,7 +812,7 @@ Note that when the modification takes place inside the constructor, it is still 
 .Example {counter:example}, modification of static field can occur inside constructor
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 public class HasUniqueIdentifier<K> {
 
     public final K k;
@@ -853,7 +853,7 @@ Nevertheless, we introduce the following rule which does distinguish between mod
 When static modifying methods are called, on a field not belonging to the primary type or any of the parent types, or directly on a type expression which does not refer to any of the types in the primary type or parent types, we will make an exception to this rule, and classify the modification as a _static side effect_.
 ****
 
-This is still consistent with the rules of level 2 immutable types, which only look at the fields and assume that when methods do not modify the fields, they are actually non-modifying.
+This is still consistent with the rules of immutable types, which only look at the fields and assume that when methods do not modify the fields, they are actually non-modifying.
 Without an {ignoreModifications} annotation on the field `System.out` (which we would typically add), printing to the console results in
 
 .Example {counter:example}, static side effects annotation
@@ -883,19 +883,19 @@ Quoting from the JDK 8 documentation, value-based classes are
 . do not have accessible constructors, but are instead instantiated through factory methods which make no commitment as to the identity of returned instances;
 . are freely substitutable when equal, meaning that interchanging any two instances x and y that are equal according to equals() in any computation or method invocation should produce no visible change in behavior.
 
-Item 1 requires level 1 immutability (all fields are {final}) but does not specify any of the restrictions we require for level 2 immutability.
+Item 1 requires final fields but does not specify any of the restrictions we require for immutability.
 Item 2 implies that should `equals`, `hashCode` or `toString` make a modification to the object, its state changes, which would then change the object with respect to other objects.
 We could conclude that these three methods cannot be modifying.
 
 Loosely speaking, objects of a value-based class can be identified by the values of their fields.
-Level 2 immutability (or deeper) is not a requirement to be a value-based class.
-However, we expect many level 2 immutable types will become value-classes.
+Immutability is not a requirement to be a value-based class.
+However, we expect many immutable types will become value-classes.
 Revisiting the example from the previous section, we can construct a counter-example:
 
-.Example {counter:example}, level 2 immutable type which is not value-based
+.Example {counter:example}, immutable type which is not value-based
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 public class HasUniqueIdentifier<K> {
     public final K k;
     public final int identifier;
@@ -924,28 +924,29 @@ The `equals` method violates item 2 of the value-class definition, maybe not to 
 [#dynamic-type-annotations]
 === Dynamic type annotations
 
-When it is clear a method returns an immutable set, but the formal type is `java.util.Set`, the {e2immutable} annotation can 'travel':
+When it is clear a method returns an immutable set, but the formal type is `java.util.Set`, the {immutable} annotation can 'travel':
 
 .Example {counter:example}, revisiting `SetBasedContainer6`
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 class SetBasedContainer6<T> {
-    @E2Container
+
+    @ImmutableContainer
     public final Set<T> data;
 
     public SetBasedContainer4(Set<T> ts) {
         this.data = Set.copyOf(ts);
     }
 
-    @E2Container
+    @ImmutableContainer
     public Set<T> getSet() {
         return data;
     }
 }
 ----
 
-Whilst `Set` in general is not {e2immutable}, the `data` field itself is.
+Whilst `Set` in general is not {immutable}, the `data` field itself is.
 
 The computations that the analyser needs to track dynamic type annotations, are similar to those it needs to compute eventual immutability.
 We introduce them in the next chapter.

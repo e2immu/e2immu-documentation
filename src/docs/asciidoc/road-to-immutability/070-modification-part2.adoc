@@ -13,7 +13,7 @@ However, there could be indirect modifications, as in:
 .Example {counter:example}, indirect modifications
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 public class CyclicReferences {
 
     @MutableModifiesArguments
@@ -34,7 +34,7 @@ public class CyclicReferences {
 
     }
 
-    @E1Immutable
+    @FinalFields
     static class C2 {
 
         private final int j;
@@ -83,19 +83,19 @@ This is especially clear when `a == this`.
 
 We discern a number of special cases:
 
-. When `v` is of {e2immutable} type, there cannot be any linking; `v` does not link to `a` nor `b`.
-. If `b` is of {e2immutable} type, `v` cannot link to `b`.
-. When `method` has the annotation {independent} (or the lighter version, {independent1}), `v` cannot link to `a`.
+. When `v` is of {immutable} type, there cannot be any linking; `v` does not link to `a` nor `b`.
+. If `b` is of {immutable} type, `v` cannot link to `b`.
+. When `method` has the annotation {notLinked} (or the version for hidden content, {independent}), `v` cannot link to `a`.
 
-Recall that primitives, `java.lang.Object`, `java.lang.String`, and unbound parameter types, are {e2immutable}.
+Recall that primitives, `java.lang.Object`, `java.lang.String`, and unbound parameter types, are {immutable}.
 
 ****
 Rule 3: in an assignment `v = new A(b)`, `v` potentially links to `b`.
 ****
 
-. When `b` is of {e2immutable} type, `v` cannot link to `b`.
-. If `A` is {e2immutable}, then `v` cannot link to `b`, because all its constructor parameters are independent.
-. When `b` has been marked {independent} or {independent1}, `v` cannot link to `b`.
+. When `b` is of {immutable} type, `v` cannot link to `b`.
+. If `A` is {immutable}, then `v` cannot link to `b`, because all its constructor parameters are independent.
+. When `b` has been marked {notLinked} or {independent}, `v` cannot link to `b`.
 
 ****
 Rule 4: in a modifying method call `a.method(b)`, `a` potentially links to `b`
@@ -110,7 +110,6 @@ For example,
 . type casting does not prevent linking: in `v = (Type)w`, `v` links to `w`
 . a pattern variable `p` in an instance-of statement `a instanceof P p` links to `a`
 . Binary operators return primitives or `java.lang.String`, which prevents linking: in `v = a + b`, `v` does not link to `a` nor `b`.
-
 
 Note: in a method call `v = a.method(b, c, d)`, links between `b`, `c`, and `d` are possible.
 They are covered by the {modified} annotation:
@@ -150,7 +149,7 @@ Consider the following example:
 .Example {counter:example}, concrete implementation of suppliers
 [source,java]
 ----
-@E1Container
+@FinalFields @Container
 class ApplyLocalFunctions {
 
     @Container
@@ -197,7 +196,7 @@ Their concrete implementations of `get` each modify `myCounter`.
 A straightforward application of the rules of modification of fields makes  `getAndIncrement` and `explicitGetAndIncrement` {modified}:
 in `myIncrementer`, a modifying method is applied to `getAndIncrement`, and in `myExplicitIncrementer`, a modifying method is applied to `explicitGetAndIncrement`.
 
-Given that `ApplyLocalFunctions` is clearly {e1container}, and the inner classes hold no other data, the inner classes are {e1container} as well.
+Given that `ApplyLocalFunctions` is clearly {finalFields}, and the inner classes hold no other data, the inner classes are {finalFields} as well.
 
 Now, if we move away from suppliers, but use consumers, we can discuss:
 
@@ -224,10 +223,10 @@ class ApplyLocalFunctions2 {
     @NotModified
     private final Counter myCounter = new Counter();
 
-    @E2Immutable // <1>
+    @Immutable // <1>
     private static final Consumer<Counter> incrementer = Counter::increment;
 
-    @E2Immutable
+    @Immutable
     private static final Consumer<Counter> explicitIncrementer = new Consumer<Counter>() {
         @Override
         @NotModified
@@ -236,11 +235,11 @@ class ApplyLocalFunctions2 {
         }
     };
 
-    @E2Container // <3>
+    @ImmutableContainer // <3>
     private static final Consumer<Counter> printer = counter ->
         System.out.println("Have " + counter.getCounter());
 
-    @E2Container
+    @ImmutableContainer
     private static final Consumer<Counter> explicitPrinter = new Consumer<Counter>() {
         @Override
         @NotModified
@@ -262,7 +261,7 @@ class ApplyLocalFunctions2 {
 }
 ----
 
-<1> The anonymous type is static, has no fields, so is at least {e2immutable}.
+<1> The anonymous type is static, has no fields, so is {immutable}.
 It is not a container.
 This is clearly visible in the explicit variant...
 <2> Here we see why `incrementer` is not a container: the method modifies its parameters.

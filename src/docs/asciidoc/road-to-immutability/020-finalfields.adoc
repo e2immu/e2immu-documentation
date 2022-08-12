@@ -1,4 +1,4 @@
-== Level 1 immutability
+== Final fields
 
 Let us start with a definition:
 
@@ -123,27 +123,23 @@ Whatever the reason, the analyser should recognize effective finality.
 Note that we will not make a distinction between any of the different non-private access modes in Java.
 Only the private modifier gives sufficient guarantees that no reassignment to the fields is possible.
 
-We now have observed that for the purpose of defining immutability, having all your fields effectively final can be sufficient in certain circumstances.
-We use this as the basis for the first level of immutability:
+We now have observed that for the purpose of defining immutability, having all your fields effectively final can be sufficient in certain, limited circumstances.
+The analyser annotates types whose fields are all effectively final with {finalFields}.
 
-****
-*Definition*: We call a type *effectively level 1 immutable* when all its fields are effectively final.
-****
-
-The analyser annotates level 1 immutable types with {e1immutable}.
-Types that are not {e1immutable} because they have at least one {variable} field, are annotated either {mutableModifiesArguments} or {container}, depending on properties of the methods' parameters to be explained later.
+Types that are not {finalFields} because they have at least one {variable} field, are annotated either {mutableModifiesArguments} or {container}, depending on properties of the methods' parameters to be explained later.
 
 Note that as of more recent versions of Java, the `record` type enforces explicitly final fields, along with additional support for equality and visibility.
-Any `record` will be at least {e1immutable}.
+Any `record` will be at least {finalFields}.
 
-As above with effective finality, the term _effective_ is present to make a distinction between formal immutability, and immutability that the analyser computes.
-It will also serve to distinguish from _eventual_ immutability, where (in this case) the finality will be achieved only after the code reaches a certain state.
-More on this later, but here is a first example of an eventually level 1 immutable type:
+We will in this work make a distinction between a property being _effectively_ or _eventually_ present.
+The former indicates a property as computed after construction of the object, which is potentially a little broader than the definition of the language.
+The latter is used when this property can only be obtained after the code reaches a certain state.
+More on this later, but here is a first example of type with eventually final fields:
 
 .Example {counter:example}, simplified version of `SetOnce`
 [source,java]
 ----
-@E1Immutable(after="t")
+@FinalFields(after="t")
 class SetOnce<T> {
     private T t;
 
@@ -164,14 +160,14 @@ class SetOnce<T> {
 
 Once a value has been set, the field `t` cannot be assigned anymore.
 
-We have just observed that if one restricts to primitives and types like `java.lang.String`, level 1 immutability is sufficient to guarantee deep immutability.
-It is not feasible, and we do not wish to, work only with deeply immutable objects.
-Moreover, it is easy to see that level 1 immutability is not enough to guarantee what we intuitively may think immutability stands for:
+We have just observed that if one restricts to primitives and types like `java.lang.String`, final fields are sufficient to guarantee deep immutability.
+It is not feasible, and we do not wish to, work _only_ with deeply immutable objects.
+Moreover, it is easy to see that final fields alone not enough to guarantee what we intuitively may think immutability stands for:
 
-.Example {counter:example}, level 1 immutability does not guarantee intuitive immutability
+.Example {counter:example}, final fields do not guarantee intuitive immutability
 [source,java]
 ----
-@E1Immutable
+@FinalFields
 class StringsInArray {
     private final String[] data;
     public StringsInArray(String[] strings) {
@@ -189,6 +185,7 @@ Assert.assertEquals("a", sia.getFirst());
 strings[0] = "c"; // <1>
 Assert.assertEquals("c", sia.getFirst()); // <2>
 ----
+
 <1> External modification of the array.
 <2> As a consequence, the data structure has been modified.
 

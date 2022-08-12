@@ -14,7 +14,7 @@ include::{includedir}/util/definitions.adoc[]
 // all introductory sections
 include::{includedir}/road-to-immutability/010-intro.adoc[]
 
-include::{includedir}/road-to-immutability/020-e1immutable.adoc[]
+include::{includedir}/road-to-immutability/020-finalfields.adoc[]
 
 include::{includedir}/road-to-immutability/030-modification.adoc[]
 
@@ -22,13 +22,13 @@ include::{includedir}/road-to-immutability/040-container.adoc[]
 
 include::{includedir}/road-to-immutability/045-linking-independence.adoc[]
 
-include::{includedir}/road-to-immutability/050-e2immutable.adoc[]
+include::{includedir}/road-to-immutability/050-immutable.adoc[]
 
 include::{includedir}/road-to-immutability/060-eventual.adoc[]
 
 include::{includedir}/road-to-immutability/070-modification-part2.adoc[]
 include::{includedir}/road-to-immutability/077-hidden-content.adoc[]
-include::{includedir}/road-to-immutability/078-recursively-immutable.adoc[]
+include::{includedir}/road-to-immutability/078-constant.adoc[]
 
 include::{includedir}/road-to-immutability/080-support-classes.adoc[]
 include::{includedir}/road-to-immutability/081-use-in-analyser.adoc[]

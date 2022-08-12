@@ -541,12 +541,12 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <li><a href="#_introduction">1. Introduction</a></li>
 <li><a href="#assumptions">2. Assumptions</a></li>
 <li><a href="#_the_purpose_of_annotations">3. The purpose of annotations</a></li>
-<li><a href="#_level_1_immutability">4. Level 1 immutability</a></li>
+<li><a href="#_final_fields">4. Final fields</a></li>
 <li><a href="#modification">5. Modification</a></li>
 <li><a href="#containers">6. Containers</a></li>
-<li><a href="#linking-and-independence">7. Linking, independence</a></li>
+<li><a href="#linking-and-independence">7. Linking, dependence</a></li>
 <li><a href="#accessible-hidden-content">8. Accessible and hidden content</a></li>
-<li><a href="#_level_2_immutability">9. Level 2 immutability</a>
+<li><a href="#_immutability">9. Immutability</a>
 <ul class="sectlevel2">
 <li><a href="#_definition_and_examples">9.1. Definition and examples</a></li>
 <li><a href="#inheritance">9.2. Inheritance</a></li>
@@ -650,7 +650,7 @@ More concretely, the project focuses on adding various forms of immutability pro
 </div>
 <div class="paragraph">
 <p><em>Why Java?</em> As a widely used object-oriented programming language, it has evolved over the years, and it has been increasingly equipped with functional programming machinery.
-It is therefore possible to write Java code in different styles, from overly object oriented to almost fully functional.
+It is therefore possible to write Java code in different styles, from overly object-oriented to almost fully functional.
 Combine this with lots of legacy code, both in house and in libraries, and many large software projects will end up mixing styles a lot.
 This adds to the complexity of understanding and maintaining the code base.</p>
 </div>
@@ -747,7 +747,7 @@ Some annotations, like <code>@Linked</code> and <code>@Constant</code>, serve no
 </div>
 </div>
 <div class="sect1">
-<h2 id="_level_1_immutability">4. Level 1 immutability</h2>
+<h2 id="_final_fields">4. Final fields</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Let us start with a definition:</p>
@@ -883,33 +883,26 @@ Whatever the reason, the analyser should recognize effective finality.</p>
 Only the private modifier gives sufficient guarantees that no reassignment to the fields is possible.</p>
 </div>
 <div class="paragraph">
-<p>We now have observed that for the purpose of defining immutability, having all your fields effectively final can be sufficient in certain circumstances.
-We use this as the basis for the first level of immutability:</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="paragraph">
-<p><strong>Definition</strong>: We call a type <strong>effectively level 1 immutable</strong> when all its fields are effectively final.</p>
-</div>
-</div>
+<p>We now have observed that for the purpose of defining immutability, having all your fields effectively final can be sufficient in certain, limited circumstances.
+The analyser annotates types whose fields are all effectively final with  <code>@FinalFields</code> .</p>
 </div>
 <div class="paragraph">
-<p>The analyser annotates level 1 immutable types with  <code>@E1Immutable</code> .
-Types that are not  <code>@E1Immutable</code>  because they have at least one  <code>@Variable</code>  field, are annotated either  <code>@MutableModifiesArguments</code>  or  <code>@Container</code> , depending on properties of the methods' parameters to be explained later.</p>
+<p>Types that are not  <code>@FinalFields</code>  because they have at least one  <code>@Variable</code>  field, are annotated either  <code>@MutableModifiesArguments</code>  or  <code>@Container</code> , depending on properties of the methods' parameters to be explained later.</p>
 </div>
 <div class="paragraph">
 <p>Note that as of more recent versions of Java, the <code>record</code> type enforces explicitly final fields, along with additional support for equality and visibility.
-Any <code>record</code> will be at least  <code>@E1Immutable</code> .</p>
+Any <code>record</code> will be at least  <code>@FinalFields</code> .</p>
 </div>
 <div class="paragraph">
-<p>As above with effective finality, the term <em>effective</em> is present to make a distinction between formal immutability, and immutability that the analyser computes.
-It will also serve to distinguish from <em>eventual</em> immutability, where (in this case) the finality will be achieved only after the code reaches a certain state.
-More on this later, but here is a first example of an eventually level 1 immutable type:</p>
+<p>We will in this work make a distinction between a property being <em>effectively</em> or <em>eventually</em> present.
+The former indicates a property as computed after construction of the object, which is potentially a little broader than the definition of the language.
+The latter is used when this property can only be obtained after the code reaches a certain state.
+More on this later, but here is a first example of type with eventually final fields:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 4, simplified version of <code>SetOnce</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Immutable</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">t</span><span class="delimiter">&quot;</span></span>)
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">t</span><span class="delimiter">&quot;</span></span>)
 <span class="type">class</span> <span class="class">SetOnce</span>&lt;T&gt; {
     <span class="directive">private</span> T t;
 
@@ -932,14 +925,14 @@ More on this later, but here is a first example of an eventually level 1 immutab
 <p>Once a value has been set, the field <code>t</code> cannot be assigned anymore.</p>
 </div>
 <div class="paragraph">
-<p>We have just observed that if one restricts to primitives and types like <code>java.lang.String</code>, level 1 immutability is sufficient to guarantee deep immutability.
-It is not feasible, and we do not wish to, work only with deeply immutable objects.
-Moreover, it is easy to see that level 1 immutability is not enough to guarantee what we intuitively may think immutability stands for:</p>
+<p>We have just observed that if one restricts to primitives and types like <code>java.lang.String</code>, final fields are sufficient to guarantee deep immutability.
+It is not feasible, and we do not wish to, work <em>only</em> with deeply immutable objects.
+Moreover, it is easy to see that final fields alone not enough to guarantee what we intuitively may think immutability stands for:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 5, level 1 immutability does not guarantee intuitive immutability</div>
+<div class="title">Example 5, final fields do not guarantee intuitive immutability</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Immutable</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span>
 <span class="type">class</span> <span class="class">StringsInArray</span> {
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">String</span><span class="type">[]</span> data;
     <span class="directive">public</span> StringsInArray(<span class="predefined-type">String</span><span class="type">[]</span> strings) {
@@ -1018,9 +1011,8 @@ Consider:</p>
     }
 }
 
-<span class="annotation">@E1Immutable</span> <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="annotation">@FinalFields</span>
 <span class="type">class</span> <span class="class">CountedInfo</span> {
-    <span class="annotation">@Final</span>
     <span class="annotation">@Modified</span>
     <span class="directive">private</span> <span class="directive">final</span> Counter counter = <span class="keyword">new</span> Counter();
 
@@ -1030,14 +1022,6 @@ Consider:</p>
     }
 }</code></pre>
 </div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The next section will show that the annotation will actually be  <code>@E1Container</code> , representing the combination of  <code>@E1Immutable</code>  and  <code>@Container</code> .</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <p>We also see in the example that the <code>printInfo</code> method is  <code>@Modified</code> .
@@ -1176,14 +1160,12 @@ You obviously remain free to change them elsewhere; then the container will hold
 There are two archetypes for containers: collections and builders.</p>
 </div>
 <div class="paragraph">
-<p>The code analyser will annotate a type that is both level 1 immutable, and a container, with  <code>@E1Container</code> .
-This occurs frequently enough to justify a separate annotation.
-The simple but useful utility type <code>Pair</code> trivially satisfies both requirements:</p>
+<p>The simple but useful utility type <code>Pair</code> trivially satisfies both requirements:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 8, a <code>Pair</code> of objects</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Container</span>
 <span class="directive">public</span> <span class="type">class</span> <span class="class">Pair</span>&lt;K,V&gt; {
     <span class="directive">public</span> <span class="directive">final</span> K k;
     <span class="directive">public</span> <span class="directive">final</span> V v;
@@ -1204,7 +1186,7 @@ The simple but useful utility type <code>Pair</code> trivially satisfies both re
 </div>
 </div>
 <div class="paragraph">
-<p>While it is clearly level 1 immutable, it will remain to be seen if it satisfies all criteria for intuitive immutability.
+<p>While its fields are clearly final, it will remain to be seen if it satisfies all criteria for intuitive immutability.
 However, it is easily recognized as a container: a type you use and trust to hold objects.</p>
 </div>
 <div class="paragraph">
@@ -1284,7 +1266,7 @@ Indeed, consider the following semi-realistic implementation of an <code>Integer
 <div class="listingblock">
 <div class="title">Example 10, an array is a level 1 immutable container</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Container</span>
 <span class="type">interface</span> <span class="class">Array</span>&lt;T&gt; {
     <span class="type">int</span> length();
 
@@ -1294,7 +1276,7 @@ Indeed, consider the following semi-realistic implementation of an <code>Integer
     <span class="type">void</span> set(<span class="type">int</span> index, T t);
 }
 
-<span class="annotation">@E1Container</span>
+<span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="directive">static</span> <span class="type">class</span> <span class="class">IntArray</span> <span class="directive">implements</span> <span class="predefined-type">Array</span>&lt;<span class="predefined-type">Integer</span>&gt; {
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">ByteBuffer</span> byteBuffer;
     <span class="directive">private</span> <span class="directive">final</span> <span class="type">int</span> size;
@@ -1332,10 +1314,10 @@ Indeed, consider the following semi-realistic implementation of an <code>Integer
 </div>
 </div>
 <div class="sect1">
-<h2 id="linking-and-independence">7. Linking, independence</h2>
+<h2 id="linking-and-independence">7. Linking, dependence</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Let us now elaborate on how we will compute modifications, in a path towards level 2 immutability.
+<p>Let us now elaborate on how we will compute modifications, in a path towards immutability.
 Consider the following example:</p>
 </div>
 <div class="listingblock">
@@ -1430,37 +1412,37 @@ sub.set(<span class="integer">0</span>, x); <i class="conum" data-value="1"></i>
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph">
-<p><strong>Definition</strong>: Two objects are independent of each other when no modification to the first can imply a modification to the second.</p>
+<p><strong>Definition</strong>: Two objects are not linked to each other when no modification to the first can imply a modification to the second.</p>
 </div>
 <div class="paragraph">
-<p>Conversely, two objects are linked when a modification to the first may imply a modification to the second.</p>
+<p>Conversely, two objects are dependent (or linked) when a modification to the first may imply a modification to the second.</p>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>Linked objects typically share a common sub-object: the object returned by <code>subList</code>, for example, is "backed" by the original list, in other words, it maintains a reference to the original list.</p>
+<p>Linked objects must share a common sub-object: the object returned by <code>subList</code>, for example, is "backed" by the original list, in other words, it maintains a reference to the original list.</p>
 </div>
 <div class="paragraph">
 <p>We will discuss linking in more detail in <a href="#computing-dependence">How to compute linking</a>.
 For now, assume that a field links to another field, or to a parameter, if there is a possibility that both variables represent (part of) the same object (their object graphs overlap).</p>
 </div>
 <div class="paragraph">
-<p>Linking and independence is important when it occurs from fields to parameters and return values of methods:</p>
+<p>Linking between fields and parameters, and fields and return values of methods, is important to us:</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph">
 <p><strong>Definition</strong>:
-A method or constructor parameter is <strong>independent</strong> when it is independent of the fields of the type.
-A method is <strong>independent</strong> when its return value is independent of the fields of the type.</p>
+A method or constructor parameter is <strong>not linked</strong> when it is not linked to any of the fields of the type.
+A method is <strong>not linked</strong> when its return value is not linked to any of the fields of the type.</p>
 </div>
 <div class="paragraph">
-<p>The independence is marked with  <code>@Independent</code>  on the method for the return value, and on the relevant parameters otherwise.</p>
+<p>The absence of linking is marked with  <code>@NotLinked</code>  on the method for the return value, and on the relevant parameters otherwise.</p>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>When a constructor parameter is not independent, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor&#8217;s type.
+<p>When a constructor parameter is linked, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor&#8217;s type.
 But do all these modifications matter to the type?</p>
 </div>
 </div>
@@ -1588,7 +1570,9 @@ The methods of <code>java.lang.Object</code> are excluded from this definition.<
 </div>
 </div>
 <div class="paragraph">
-<p>A type which is transparent can be replaced by an unbound type parameter, which is why we will use the term <em>hidden</em> from now on.</p>
+<p>A type which is transparent can be replaced by an unbound type parameter, which is why we will use the term <em>hidden</em> from now on.
+Note: if it were not for transparent types, which are clearly accessible but are never accessed, we would not define something "accessible" in terms of "accessed".
+But transparent types should not exist&#8201;&#8212;&#8201;the analyser will raise an error when they are present&#8201;&#8212;&#8201;and "hidden" is the complement of "accessible".</p>
 </div>
 <div class="paragraph">
 <p>When a type <code>C</code> extends from a parent type <code>P</code>, we see an instance of <code>C</code> as being composed of two parts: the methods and fields of <code>P</code>, augmented by the methods and fields of <code>C</code>.
@@ -1598,7 +1582,7 @@ In the example of <code>Level</code>, implementation or extensions may be modifi
 Inside <code>Levels</code>, no such extensions are accessible.</p>
 </div>
 <div class="paragraph">
-<p>Note that we must make this distinction, because every interface is meant to be implemented, and every (non-<code>final</code>) type can be extended in Java.
+<p>Note that we must make this distinction, because every interface is meant to be implemented, and every type, unless explicitly marked <code>final</code> or <code>sealed</code> can be extended in Java.
 These extensions could be completely outside the control of the current implementation (even though we can use the analyser to constrain them).</p>
 </div>
 <div class="paragraph">
@@ -1610,7 +1594,7 @@ These extensions could be completely outside the control of the current implemen
 <p><strong>Definition:</strong> The <strong>accessible content</strong> of a type are those objects of the object graph of the fields that are of accessible type.</p>
 </div>
 <div class="paragraph">
-<p>The <strong>hidden content</strong> of a type are those objects of the object graph of the fields that are of hidden or transparent type.</p>
+<p>The <strong>hidden content</strong> of a type are those objects of the object graph of the fields that are of hidden (or transparent) type.</p>
 </div>
 </div>
 </div>
@@ -1630,17 +1614,27 @@ Exactly the same applies to <code>Levels</code>: <code>Map</code>, <code>String<
 </div>
 </div>
 <div class="paragraph">
-<p>We end this section by defining what independence means with respect to the accessible and hidden content of the fields.
-The definition of independence given in the previous section is absolute, in the sense that it covers the whole object graphs of the objects being linked, or not.</p>
+<p>We end this section by defining what linking means with respect to the accessible and hidden content of the fields.
+The definition of linking given in the previous section is absolute, in the sense that it covers the whole object graphs of the objects being linked, or not.</p>
 </div>
 <div class="paragraph">
 <p>When a parameter is linked to a field, we could try to find out if the modifications affect the accessible content, given that we state that modifications to the hidden content are outside the scope of the type anyway.
-In other words, we could distinguish between different forms of non-independence, or, in better English, dependence.</p>
+In other words, we could distinguish between different forms of linking:</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph">
-<p><strong>Definition:</strong> a parameter or method return value is <strong>dependent</strong> on the fields if and only if it is linked to the accessible content of the type.</p>
+<p><strong>Definition:</strong> a parameter or method return value is</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>dependent</strong> on the fields if and only if it is linked to the accessible content of the type.</p>
+</li>
+<li>
+<p><strong>independent</strong> of the fields if and only if it is at most linked to the hidden content of the type</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -1648,16 +1642,16 @@ In other words, we could distinguish between different forms of non-independence
 <p>In other words, a parameter or method return value is dependent when a modification on the argument or returned value has the possibility to cause a modification in the accessible part of the fields.</p>
 </div>
 <div class="paragraph">
-<p>Linking between parameters or return value and fields which does not involve the accessible part of the fields, will be not be called dependence, but a lighter form of independence.
+<p>Linking between parameters or return value and fields which does not involve the accessible part of the fields, is called independence.
 We will elaborate more in <a href="#hidden-content">Hidden content</a>.
-In the following sections, we will often use the term 'independent' when we mean 'not-dependent', i.e., when we only require one of the lighter forms of independence.</p>
+In the following sections, we will often use the term 'independent' when we mean 'not-dependent', i.e., when there is no linking or only linking to the hidden part of the object graph of the fields.</p>
 </div>
 <div class="paragraph">
 <p>In terms of annotations, dependence will be the default state for objects of types where dependence is possible.
-We will not annotate it.
-Instead,  <code>@Independent</code>  on parameters and methods will be used for absolute independence.
-When a type is deeply immutable,  <code>@Independent</code>  is the default state, and therefore it will be omitted.
-We use  <code>@Independent1</code>  for the lighter forms of independence.</p>
+We will not annotate it most of the time; if we do, we use the annotation  <code>@Dependent</code> .
+The annotation  <code>@NotLinked</code>  on parameters and methods will be used for absence of linking.
+When a type is deeply immutable,  <code>@NotLinked</code>  is the default state, and therefore it will be omitted.
+We use  <code>@Independent</code>  for the linking to the hidden part, to be elaborated upon in <a href="#hidden-content-linking">Hidden content linking</a>.</p>
 </div>
 <div class="paragraph">
 <p>Now, all pieces of the puzzle are available to introduce immutability of types.</p>
@@ -1665,13 +1659,13 @@ We use  <code>@Independent1</code>  for the lighter forms of independence.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_level_2_immutability">9. Level 2 immutability</h2>
+<h2 id="_immutability">9. Immutability</h2>
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_definition_and_examples">9.1. Definition and examples</h3>
 <div class="paragraph">
 <p>First, what do we want intuitively?
-A useful form of immutability, less strong than deeply immutable, but better than level 1 immutability for many situations.
+A useful form of immutability, less strong than deeply immutable, but stronger than final fields for many situations.
 We propose the following description:</p>
 </div>
 <div class="sidebarblock">
@@ -1683,14 +1677,14 @@ The type is not responsible for what others do to the content of the objects it 
 </div>
 </div>
 <div class="paragraph">
-<p>Technically, level 2 immutability is much harder to define than level 1 immutability.
-We identify three rules, on top of the obvious level 1 immutability requirement.
+<p>Technically, immutability is much harder to define than final fields.
+We identify three rules, on top of the obvious final fields requirement.
 The first one prevents the type from making changes to its own fields:</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph">
-<p><strong>Definition</strong>: the <strong>first rule of level 2 immutability</strong> is that all fields must be  <code>@NotModified</code>.</p>
+<p><strong>Definition</strong>: the <strong>first rule of immutability</strong> is that all fields must be  <code>@NotModified</code>.</p>
 </div>
 </div>
 </div>
@@ -1757,7 +1751,7 @@ Summarizing: <code>Pair</code> fits the intuitive definition nicely.</p>
     }
 }
 
-<span class="annotation">@E1Container</span>
+<span class="annotation">@Container</span> <span class="annotation">@FinalFields</span>
 <span class="type">class</span> <span class="class">Line</span> {
     <span class="annotation">@Final</span>
     <span class="annotation">@Modified</span>
@@ -1797,31 +1791,31 @@ Summarizing: <code>Pair</code> fits the intuitive definition nicely.</p>
 <div class="paragraph">
 <p>The fields <code>point1</code> and <code>point2</code> are effectively final.
 Without the translation method, the fields would be  <code>@NotModified</code> as well.
-The translation method modifies the fields' content, preventing the type from becoming level 2 immutable.</p>
+The translation method modifies the fields' content, preventing the type from becoming immutable.</p>
 </div>
 <div class="paragraph">
-<p>From the restriction of rule 1, that all its fields should remain unmodified, it follows that, excluding external changes, every method call on a level 2 immutable container object with the same arguments will render the same result.
+<p>From the restriction of rule 1, that all its fields should remain unmodified, it follows that, excluding external changes, every method call on a immutable container object with the same arguments will render the same result.
 We note that this statement cannot be bypassed by using <em>static</em> state, i.e., state specific to the type rather than the object.
 The definitions make no distinction between static and instance fields.</p>
 </div>
 <div class="paragraph">
 <p>To obtain a useful definition of immutability, one which is not too strict yet follows our intuitive requirements, we should allow modifiable fields, if they are properly shielded from the modifications they intrinsically allow.
 We will introduce two additional rules to constrain the modifications of this modifiable data.
-Together with the first rule, and building on level 1 immutability, we define:</p>
+Together with the first rule, and building on final fields, we define:</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph">
-<p><strong>Definition: level 2 immutability</strong>:</p>
+<p><strong>Definition: immutability</strong>:</p>
 </div>
 <div class="paragraph">
-<p>(<strong>Rule 0</strong>: The type is level 1 immutable: all fields are effectively final)</p>
+<p><strong>Rule 0</strong>: All fields are effectively final.</p>
 </div>
 <div class="paragraph">
 <p><strong>Rule 1</strong>: All fields are  <code>@NotModified</code>.</p>
 </div>
 <div class="paragraph">
-<p><strong>Rule 2</strong>: All fields are either private, or of level 2 immutable type themselves.</p>
+<p><strong>Rule 2</strong>: All fields are either private, or of immutable type themselves.</p>
 </div>
 <div class="paragraph">
 <p><strong>Rule 3</strong>: No parameters of non-private methods or non-private constructors, no return values of non-private methods, are dependent on (the accessible part of) the fields.</p>
@@ -1833,8 +1827,8 @@ Together with the first rule, and building on level 1 immutability, we define:</
 Rule 3 ensures that the modifiable fields of the object cannot be modified externally by obtaining or sharing references to the fields via a parameter or return value.</p>
 </div>
 <div class="paragraph">
-<p>Types which are level 2 immutable will be marked  <code>@E2Immutable</code> .
-When they are containers too, which should be the huge majority, we write  <code>@E2Container</code> , stressing the container property.</p>
+<p>Types which are immutable will be marked  <code>@Immutable</code> .
+When they are containers too, which should be the huge majority, we use   <code>@ImmutableContainer</code>  as a shorthand.</p>
 </div>
 <div class="paragraph">
 <p>Note that:</p>
@@ -1842,15 +1836,15 @@ When they are containers too, which should be the huge majority, we write  <code
 <div class="ulist">
 <ul>
 <li>
-<p>We state that all primitive types are level 2 immutable, as is <code>java.lang.Object</code>.
-Whilst this is fairly obvious in the case of primitives, level 2 immutability for <code>Object</code> requires us to either ignore the methods related to synchronization, or to assume that its implementation (for it is not an abstract type) has no fields.</p>
+<p>We state that all primitive types are immutable, as is <code>java.lang.Object</code>.
+Whilst this is fairly obvious in the case of primitives, immutability for <code>Object</code> requires us to either ignore the methods related to synchronization, or to assume that its implementation (for it is not an abstract type) has no fields.</p>
 </li>
 <li>
-<p>A consequence of rule 1 is that all methods in a level 2 immutable type must be  <code>@NotModified</code>.</p>
+<p>A consequence of rule 1 is that all methods in a immutable type must be  <code>@NotModified</code>.</p>
 </li>
 <li>
-<p>A field whose type is an unbound type parameter, can locally be considered to be of level 2 immutable type, and therefore need not be private.
-This is because the type parameter could be substituted by <code>java.lang.Object</code>, which we have just declared to be level 2 immutable.
+<p>A field whose type is an unbound type parameter, can locally be considered to be of immutable type, and therefore need not be private.
+This is because the type parameter could be substituted by <code>java.lang.Object</code>, which we have just declared to be immutable.
 More details can be found in the section on <a href="#generics">Generics</a>.</p>
 </li>
 <li>
@@ -1860,11 +1854,11 @@ This will be expanded on in <a href="#hidden-content">Hidden content</a>.</p>
 </li>
 <li>
 <p>The section on <a href="#inheritance">Inheritance</a> will show how the immutability property relates to implementing interfaces, and sub-classing.
-This is important because the definition is recursive, with <code>java.lang.Object</code> the level 2 immutable base of the recursion.
+This is important because the definition is recursive, with <code>java.lang.Object</code> the immutable base of the recursion.
 All other types must extend from it.</p>
 </li>
 <li>
-<p>The section on <a href="#abstract-methods">Abstract methods</a> will detail how level 2 immutability is computed for abstract types (interfaces, abstract classes).</p>
+<p>The section on <a href="#abstract-methods">Abstract methods</a> will detail how immutability is computed for abstract types (interfaces, abstract classes).</p>
 </li>
 <li>
 <p>The first rule can be reached <em>eventually</em> if there is one or more methods that effect a transition from the mutable to the immutable state.
@@ -1878,9 +1872,9 @@ We address the topic of eventual immutability fully in the section <a href="#eve
 <p>Let us go to examples immediately.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 18, explaining level 2 immutability: with array, version 1, not good</div>
+<div class="title">Example 18, explaining immutability: with array, version 1, not good</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">ArrayContainer1</span>&lt;T&gt; {
     <span class="annotation">@NotModified</span>
     <span class="directive">private</span> <span class="directive">final</span> T<span class="type">[]</span> data;
@@ -1890,7 +1884,7 @@ We address the topic of eventual immutability fully in the section <a href="#eve
     }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() {
         <span class="keyword">return</span> <span class="predefined-type">Arrays</span>.stream(data);
     }
@@ -1903,12 +1897,12 @@ This construct fails rule 3, as the parameter <code>ts</code> is dependent.
 The field is a modifiable data structure, and must be shielded from external modifications.</p>
 </div>
 <div class="paragraph">
-<p>Note the use of the lighter form of independence,  <code>@Independent1</code> , on the return value of <code>stream()</code>, to indicate that modifications to the hidden content are possible on objects obtained from the stream.</p>
+<p>Note the use of  <code>@Independent</code>  annotation on the return value of <code>stream()</code>, to indicate that modifications to the hidden content are possible on objects obtained from the stream.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 19, explaining level 2 immutability: with array, version 2, not good</div>
+<div class="title">Example 19, explaining immutability: with array, version 2, not good</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">ArrayContainer2</span>&lt;T&gt; {
     <span class="annotation">@NotModified</span>
     <span class="directive">public</span> <span class="directive">final</span> T<span class="type">[]</span> data;
@@ -1919,7 +1913,7 @@ The field is a modifiable data structure, and must be shielded from external mod
     }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() {
         <span class="keyword">return</span> <span class="predefined-type">Arrays</span>.stream(data);
     }
@@ -1931,20 +1925,20 @@ The field is a modifiable data structure, and must be shielded from external mod
 This construct fails rule 2, which applies for the same reasons as in the previous example.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 20, explaining level 2 immutability: with array, version 3, safe</div>
+<div class="title">Example 20, explaining immutability: with array, version 3, safe</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">ArrayContainer3</span>&lt;T&gt; {
     <span class="annotation">@NotModified</span>
     <span class="directive">private</span> <span class="directive">final</span> T<span class="type">[]</span> data; <i class="conum" data-value="1"></i><b>(1)</b>
 
-    <span class="directive">public</span> ArrayContainer3(<span class="annotation">@Independent1</span> T<span class="type">[]</span> ts) {
+    <span class="directive">public</span> ArrayContainer3(<span class="annotation">@Independent</span> T<span class="type">[]</span> ts) {
         <span class="local-variable">this</span>.data = <span class="keyword">new</span> T[ts.length]; <i class="conum" data-value="2"></i><b>(2)</b>
         <span class="predefined-type">System</span>.arraycopy(ts, <span class="integer">0</span>, data, <span class="integer">0</span>, ts.length);
     }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() {
         <span class="keyword">return</span> <span class="predefined-type">Arrays</span>.stream(data);
     }
@@ -1968,9 +1962,9 @@ This construct fails rule 2, which applies for the same reasons as in the previo
 Here is the same group of examples, now with JDK Collections:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 21, explaining level 2 immutability: with collection, version 1, not good</div>
+<div class="title">Example 21, explaining immutability: with collection, version 1, not good</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">SetBasedContainer1</span>&lt;T&gt; {
     <span class="annotation">@NotModified</span>
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; data;
@@ -1981,7 +1975,7 @@ Here is the same group of examples, now with JDK Collections:</p>
     }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() {
         <span class="keyword">return</span> data.stream();
     }
@@ -2000,19 +1994,19 @@ Here is the same group of examples, now with JDK Collections:</p>
 <p>The lack of independence of the constructor violates rule 3 in the first example.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 22, explaining level 2 immutability: with collection, version 2, not good</div>
+<div class="title">Example 22, explaining immutability: with collection, version 2, not good</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">SetBasedContainer2</span>&lt;T&gt; {
     <span class="annotation">@NotModified</span>
     <span class="directive">public</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; data; <i class="conum" data-value="1"></i><b>(1)</b>
 
-    <span class="directive">public</span> SetBasedContainer2(<span class="annotation">@Independent1</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
+    <span class="directive">public</span> SetBasedContainer2(<span class="annotation">@Independent</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
         <span class="local-variable">this</span>.data = <span class="keyword">new</span> <span class="predefined-type">HashSet</span>&lt;&gt;(ts);
     }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() {
         <span class="keyword">return</span> data.stream();
     }
@@ -2031,19 +2025,19 @@ Here is the same group of examples, now with JDK Collections:</p>
 <p>Here, the <code>data</code> field is public, which allows for external modification.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 23, explaining level 2 immutability: with collection, version 3, safe</div>
+<div class="title">Example 23, explaining immutability: with collection, version 3, safe</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">SetBasedContainer3</span>&lt;T&gt; {
     <span class="annotation">@NotModified</span>
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; data; <i class="conum" data-value="1"></i><b>(1)</b>
 
-    <span class="directive">public</span> SetBasedContainer3(<span class="annotation">@Independent1</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
+    <span class="directive">public</span> SetBasedContainer3(<span class="annotation">@Independent</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
         <span class="local-variable">this</span>.data = <span class="keyword">new</span> <span class="predefined-type">HashSet</span>&lt;&gt;(ts); <i class="conum" data-value="2"></i><b>(2)</b>
     }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() {
         <span class="keyword">return</span> data.stream();
     }
@@ -2063,24 +2057,24 @@ Here is the same group of examples, now with JDK Collections:</p>
 </table>
 </div>
 <div class="paragraph">
-<p>Finally, we have a level 2 immutable type.
-The next one is level 2 immutable as well:</p>
+<p>Finally, we have an immutable type.
+The next one is immutable as well:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 24, explaining level 2 immutability: with collection, version 4, safe</div>
+<div class="title">Example 24, explaining immutability: with collection, version 4, safe</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">SetBasedContainer4</span>&lt;T&gt; {
 
-    <span class="annotation">@E2Container</span>
+    <span class="annotation">@ImmutableContainer</span>
     <span class="directive">public</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; data; <i class="conum" data-value="1"></i><b>(1)</b>
 
-    <span class="directive">public</span> SetBasedContainer4(<span class="annotation">@Independent1</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
+    <span class="directive">public</span> SetBasedContainer4(<span class="annotation">@Independent</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
         <span class="local-variable">this</span>.data = <span class="predefined-type">Set</span>.copyOf(ts); <i class="conum" data-value="2"></i><b>(2)</b>
     }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() {
         <span class="keyword">return</span> data.stream();
     }
@@ -2091,7 +2085,7 @@ The next one is level 2 immutable as well:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>the data is public, but the <code>Set</code> is  <code>@E2Immutable</code>  itself, because its content is the result of <code>Set.copyOf</code>, which is an implementation that blocks any modification.</td>
+<td>the data is public, but the <code>Set</code> is  <code>@Immutable</code>  itself, because its content is the result of <code>Set.copyOf</code>, which is an implementation that blocks any modification.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -2100,20 +2094,20 @@ The next one is level 2 immutable as well:</p>
 </table>
 </div>
 <div class="paragraph">
-<p>The section on <a href="#dynamic-type-annotations">Dynamic type annotations</a> will explain how the  <code>@E2Container</code>  annotation travels to the field <code>data</code>.</p>
+<p>The section on <a href="#dynamic-type-annotations">Dynamic type annotations</a> will explain how the  <code>@Immutable</code>  annotation travels to the field <code>data</code>.</p>
 </div>
 <div class="paragraph">
 <p>The independence rule, rule 3, is there to ensure that the type does not expose its modifiable data through parameters and return types:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 25, explaining level 2 immutability: with collection, version 5, not good</div>
+<div class="title">Example 25, explaining immutability: with collection, version 5, not good</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">SetBasedContainer5</span>&lt;T&gt; {
     <span class="annotation">@NotModified</span>
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; data; <i class="conum" data-value="1"></i><b>(1)</b>
 
-    <span class="directive">public</span> SetBasedContainer5(<span class="annotation">@Independent1</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
+    <span class="directive">public</span> SetBasedContainer5(<span class="annotation">@Independent</span> <span class="predefined-type">Set</span>&lt;T&gt; ts) {
         <span class="local-variable">this</span>.data = <span class="keyword">new</span> <span class="predefined-type">HashSet</span>&lt;&gt;(ts); <i class="conum" data-value="2"></i><b>(2)</b>
     }
 
@@ -2146,18 +2140,18 @@ The presence of the getter is equivalent to adding the modifiers <code>public fi
 The final example shows a type which violates this rule 1, because a modifying method has been added:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 26, explaining level 2 immutability: with collection, version 6, not good</div>
+<div class="title">Example 26, explaining immutability: with collection, version 6, not good</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">SetBasedContainer6</span>&lt;T&gt; {
     <span class="annotation">@Modified</span>
     <span class="directive">public</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; set = <span class="keyword">new</span> <span class="predefined-type">HashSet</span>&lt;&gt;();
 
     <span class="annotation">@Modified</span>
-    <span class="directive">public</span> <span class="type">void</span> add(<span class="annotation">@Independent1</span> T t) { set.add(t); }
+    <span class="directive">public</span> <span class="type">void</span> add(<span class="annotation">@Independent</span> T t) { set.add(t); }
 
     <span class="annotation">@NotModified</span>
-    <span class="annotation">@Independent1</span>
+    <span class="annotation">@Independent</span>
     <span class="directive">public</span> Stream&lt;T&gt; stream() { <span class="keyword">return</span> set.stream(); }
 }</code></pre>
 </div>
@@ -2166,7 +2160,7 @@ The final example shows a type which violates this rule 1, because a modifying m
 <div class="sect2">
 <h3 id="inheritance">9.2. Inheritance</h3>
 <div class="paragraph">
-<p>Deriving from a class that is level 2 immutable, is the most normal situation: since <code>java.lang.Object</code> is a level 2 immutable container, every class will do so.
+<p>Deriving from a class that is immutable, is the most normal situation: since <code>java.lang.Object</code> is an immutable container, every class will do so.
 Clearly, the property is not inherited.</p>
 </div>
 <div class="paragraph">
@@ -2211,7 +2205,7 @@ Any implementation of <code>Collection.size()</code> must be non-modifying.</td>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Not allowed!
-You cannot explicitly (contractually) change <code>Collection.add()</code> from  <code>@Modified</code>  to  <code>@NotModified</code> in a sub-type.</td>
+You cannot explicitly (contractually) change <code>Collection.add()</code> from  <code>@Modified</code>  to  <code>@NotModified</code> in a subtype.</td>
 </tr>
 </table>
 </div>
@@ -2222,7 +2216,7 @@ In other words, you can add new parameter-modifying methods, but you cannot chan
 </div>
 <div class="paragraph">
 <p>Note that sealed types (since JDK 17) reject the 'you can always extend' assumptions of Java types.
-In this case, all sub-types are known, and visible.
+In this case, all subtypes are known, and visible.
 The single practical consequence is that if the parent type is abstract, its annotations need not be contracted: they can be computed because all implementations are available to the analyser.</p>
 </div>
 </div>
@@ -2239,7 +2233,7 @@ By definition, the type belongs to the hidden content, as defined in <a href="#a
 </div>
 <div class="paragraph">
 <p>The analyser recognises types that can be replaced by an unbound parameter type, when they are used <em>transparently</em>, and therefore belong to the hidden content: no methods are called on it, save the ones from <code>java.lang.Object</code>; none of its fields are accessed, and it is not used as an argument to parameters where anything more specific than <code>java.lang.Object</code> is required.
-It will issue a warning, and internally treat the type as an unbound parameter type, and hence  <code>@E2Container</code> , even if the type is obviously modifiable.</p>
+It will issue a warning, and internally treat the type as an unbound parameter type, and hence  <code>@ImmutableContainer</code> , even if the type is obviously modifiable.</p>
 </div>
 <div class="paragraph">
 <p>The following trivial example should clarify:</p>
@@ -2247,7 +2241,7 @@ It will issue a warning, and internally treat the type as an unbound parameter t
 <div class="listingblock">
 <div class="title">Example 28, a type used transparently in a class</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="directive">public</span> <span class="type">class</span> <span class="class">OddPair</span> {
 
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;<span class="predefined-type">String</span>&gt; set;
@@ -2270,29 +2264,29 @@ The result is, of course, the type <code>Pair</code> as defined <a href="#type-p
 </div>
 <div class="paragraph">
 <p>Making a concrete choices for a type parameter may have an effect on the immutability level, as will be explained in <a href="#hidden-content">Hidden content</a>.
-Some examples are easy to see: any level 1 immutable type whose fields consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
-Any level 2 immutable type whose hidden content consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
+Some examples are easy to see: any final fields type whose fields consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
+Any immutable type whose hidden content consists only of types of unbound type parameter, will become deeply immutable when the unbound type parameters are substituted for deeply immutable types.
 The <code>Pair</code> mentioned before is a case in point, and an example for both rules: <code>Pair&lt;Integer, Long&gt;</code> is deeply immutable.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="abstract-methods">9.4. Abstract methods</h3>
 <div class="paragraph">
-<p>Because <code>java.lang.Object</code> is a level 2 immutable container, trivial extensions are, too:</p>
+<p>Because <code>java.lang.Object</code> is an immutable container, trivial extensions are, too:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 29, trivial extensions of <code>java.lang.Object</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="type">interface</span> <span class="class">Marker</span> { }
 
-<span class="annotation">@E2Container</span>
+<span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">EmptyClass</span> { }
 
-<span class="annotation">@E2Container</span>
+<span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">ImplementsMarker</span> <span class="directive">implements</span> Marker { }
 
-<span class="annotation">@E2Container</span>
+<span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">ExtendsEmptyClass</span> <span class="directive">extends</span> ImplementsMarker { }</code></pre>
 </div>
 </div>
@@ -2313,7 +2307,7 @@ Unless otherwise explicitly annotated, we will assume that abstract methods, be 
 </table>
 </div>
 <div class="paragraph">
-<p>Furthermore, we will also impose special variants of the rules for level 2 immutability of an abstract type <code>T</code>, to be obeyed by the abstract methods:</p>
+<p>Furthermore, we will also impose special variants of the rules for immutability of an abstract type <code>T</code>, to be obeyed by the abstract methods:</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -2321,20 +2315,19 @@ Unless otherwise explicitly annotated, we will assume that abstract methods, be 
 <p><strong>Variant of rule 1</strong>: Abstract methods must be non-modifying.</p>
 </div>
 <div class="paragraph">
-<p><strong>Variant of rule 3</strong>: Abstract methods returning values must be independent, i.e., the object they return must be not be dependent on the fields.
-They cannot expose the fields via parameters: parameters of non-primitive, non-level 2 immutable type must not be dependent.</p>
+<p><strong>Variant of rule 3</strong>: Abstract methods returning values must be not be dependent, i.e., the object they return must be not be dependent on the fields.
+They cannot expose the fields via parameters: parameters of non-primitive, non-immutable type must not be dependent.</p>
 </div>
 </div>
 </div>
 <div class="paragraph">
 <p>The consequence of these choices is that implementations and extensions of abstract and non-abstract types will have the opportunity to have the same immutability properties.
-This allows us, e.g., to think of every implementation of <code>java.util.Set</code> as a level 1 immutable container, if we limit to the public methods of <code>Set</code>.
-Similarly, we can treat any implementation of <code>Comparable</code>, defined as:</p>
+This allows us, e.g., to treat any implementation of <code>Comparable</code>, defined as:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 30, <code>java.lang.Comparable</code> annotated</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="type">interface</span> <span class="class">Comparable</span>&lt;T&gt; {
 
     <span class="comment">// @NotModified implicitly present</span>
@@ -2343,7 +2336,7 @@ Similarly, we can treat any implementation of <code>Comparable</code>, defined a
 </div>
 </div>
 <div class="paragraph">
-<p>as a level 2 immutable type when the only method we can access is <code>compareTo</code>.</p>
+<p>as an immutable type when the only method we can access is <code>compareTo</code>.</p>
 </div>
 <div class="paragraph">
 <p>As for as the modification status of the <em>parameters</em> of abstract methods is concerned, we start off with  <code>@Modified</code>  rather than with  <code>@NotModified</code>:</p>
@@ -2355,7 +2348,7 @@ Similarly, we can treat any implementation of <code>Comparable</code>, defined a
 <i class="fa icon-important" title="Important"></i>
 </td>
 <td class="content">
-Unless otherwise explicitly annotated, or their types are level 2 immutable, we will assume that the parameters of abstract methods, be they in interfaces or abstract classes, are  <code>@Modified</code> .
+Unless otherwise explicitly annotated, or their types are immutable, we will assume that the parameters of abstract methods, be they in interfaces or abstract classes, are  <code>@Modified</code> .
 Overriding the method, the contract can change from  <code>@Modified</code>  to  <code>@NotModified</code>, but not from  <code>@NotModified</code> to  <code>@Modified</code> .
 </td>
 </tr>
@@ -2363,7 +2356,7 @@ Overriding the method, the contract can change from  <code>@Modified</code>  to 
 </div>
 <div class="paragraph">
 <p>While it is possible to compute the immutability and container status of interface types, using the rules presented above, it often makes more practical sense to use the annotations as contracts: they may save a lot of annotation work on the abstract methods in the interface.
-We repeat that no implementation of a level 2 immutable interface is guaranteed to be level 2 immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.</p>
+We repeat that no implementation of a immutable interface is guaranteed to be immutable itself; nor does this guarantee hold for the container property unless no new non-private methods have been added.</p>
 </div>
 <div class="paragraph">
 <p>We continue this section with some examples which will form the backbone of the examples in <a href="#hidden-content">Hidden content</a>.</p>
@@ -2374,7 +2367,7 @@ We repeat that no implementation of a level 2 immutable interface is guaranteed 
 <div class="listingblock">
 <div class="title">Example 31, the <code>HasSize</code> interface</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span> <span class="comment">// computed (or contracted)</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span> <span class="comment">// computed (or contracted)</span>
 <span class="type">interface</span> <span class="class">HasSize</span> {
 
     <span class="comment">// implicitly present: @NotModified</span>
@@ -2391,17 +2384,17 @@ We repeat that no implementation of a level 2 immutable interface is guaranteed 
 <p>We extend to:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 32, still level 2 immutable: <code>NonEmptyImmutableList</code></div>
+<div class="title">Example 32, still immutable: <code>NonEmptyImmutableList</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span> <span class="comment">// computed, contracted</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span> <span class="comment">// computed, contracted</span>
 <span class="type">interface</span> <span class="class">NonEmptyImmutableList</span>&lt;T&gt; <span class="directive">extends</span> HasSize {
 
     <span class="comment">// implicitly present: @NotModified</span>
-    <span class="annotation">@Independent1</span> <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="annotation">@Independent</span> <i class="conum" data-value="1"></i><b>(1)</b>
     T first();
 
     <span class="comment">// implicitly present: @NotModified</span>
-    <span class="type">void</span> visit(<span class="annotation">@Independent1</span> Consumer&lt;T&gt; consumer);  <i class="conum" data-value="2"></i><b>(2)</b> <i class="conum" data-value="3"></i><b>(3)</b>
+    <span class="type">void</span> visit(<span class="annotation">@Independent</span> Consumer&lt;T&gt; consumer);  <i class="conum" data-value="2"></i><b>(2)</b> <i class="conum" data-value="3"></i><b>(3)</b>
 
     <span class="annotation">@NotModified</span> <i class="conum" data-value="4"></i><b>(4)</b>
     <span class="annotation">@Override</span>
@@ -2415,7 +2408,7 @@ We repeat that no implementation of a level 2 immutable interface is guaranteed 
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Whilst formally, <code>T</code> can never be dependent because it must belong to the hidden content of the interface, contracting the  <code>@Independent1</code>  annotation here will force all concrete implementations to have an non-dependent <code>first</code> method.
+<td>Whilst formally, <code>T</code> can never be dependent because it must belong to the hidden content of the interface, contracting the  <code>@Independent</code>  annotation here will force all concrete implementations to have an non-dependent <code>first</code> method.
 If the concrete choice for <code>T</code> is modifiable, the independence rule must be satisfied.</td>
 </tr>
 <tr>
@@ -2452,23 +2445,24 @@ However, as detailed and explained in <a href="#hidden-content">Hidden content</
 They are also allowed to modify their parameter, as we will demonstrate shortly.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s downgrade from  <code>@E2Container</code>  to  <code>@E1Container</code>  by adding a modifying method:</p>
+<p>Let&#8217;s downgrade from  <code>@ImmutableContainer</code>  to  <code>@FinalFields</code>   <code>@Container</code>  by adding a modifying method:</p>
 </div>
 <div id="NonEmptyList" class="listingblock">
-<div class="title">Example 4, not level 2 immutable anymore: <code>NonEmptyList</code></div>
+<div class="title">Example 4, not immutable anymore: <code>NonEmptyList</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">interface</span> <span class="class">NonEmptyList</span>&lt;T&gt; <span class="directive">extends</span> NonEmptyImmutableList&lt;T&gt; {
 
     <span class="annotation">@Modified</span>
-    <span class="type">void</span> setFirst(<span class="annotation">@NotModified</span> <span class="annotation">@Independent1</span> T t);
+    <span class="type">void</span> setFirst(<span class="annotation">@Independent</span> T t);
 }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The method <code>setFirst</code> goes against the default annotations twice: because it is modifying, and because it promises to keep its parameter unmodified.
-The  <code>@Independent1</code>  annotation states that arguments to <code>setFirst</code> will end up in the hidden content of the <code>NonEmptyList</code>.
-Implementations can even lose level 1 immutability:</p>
+<p>The method <code>setFirst</code> goes against the default annotations twice: because it is modifying, and because it promises to keep its parameter unmodified thanks
+to the  <code>@Container</code>  annotation on the type.
+The  <code>@Independent</code>  annotation states that arguments to <code>setFirst</code> will end up in the hidden content of the <code>NonEmptyList</code>.
+Implementations can even lose  <code>@FinalFields</code> :</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 34, mutable implementation of <code>NonEmptyList</code></div>
@@ -2506,12 +2500,12 @@ Implementations can even lose level 1 immutability:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Here is a (slightly more convoluted) implementation that remains  <code>@E1Container</code> :</p>
+<p>Here is a (slightly more convoluted) implementation that remains  <code>@FinalFields</code>  and  <code>@Container</code> :</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 35, level 1 immutable implementation of <code>NonEmptyList</code></div>
+<div class="title">Example 35, final fields implementation of <code>NonEmptyList</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="directive">static</span> <span class="type">class</span> <span class="class">OneWithOne</span>&lt;T&gt; <span class="directive">implements</span> NonEmptyList&lt;T&gt; {
     <span class="directive">private</span> <span class="directive">final</span> One&lt;T&gt; one = <span class="keyword">new</span> One&lt;&gt;();
 
@@ -2542,7 +2536,7 @@ Implementations can even lose level 1 immutability:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Obviously, a  <code>@E2Container</code>  implementation is not possible: the immutability status of an extension (<code>OneWithOne</code>, <code>One</code>) cannot be better than that of the type it is extending from (<code>NonEmptyList</code>).</p>
+<p>Obviously, an  <code>@ImmutableContainer</code>  implementation is not possible: the immutability status of an extension (<code>OneWithOne</code>, <code>One</code>) cannot be better than that of the type it is extending from (<code>NonEmptyList</code>).</p>
 </div>
 <div class="paragraph">
 <p>We end the section by showing how concrete implementations of the <code>accept</code> method in <code>Consumer</code> can make modifications.
@@ -2577,7 +2571,7 @@ one.visit(sb -&gt; sb.append(<span class="string"><span class="delimiter">&quot;
 <div class="listingblock">
 <div class="title">Example 38, the method <code>Consumer.accept</code> modifying a field</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">ReceiveStrings</span> <span class="directive">implements</span> Consumer&lt;<span class="predefined-type">String</span>&gt; {
 
     <span class="annotation">@Modified</span>
@@ -2602,7 +2596,7 @@ In the following example, each call to <code>getK</code> increments a counter, w
 <div class="listingblock">
 <div class="title">Example 39, modifications on static fields are modifications</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="directive">public</span> <span class="type">class</span> <span class="class">CountAccess</span>&lt;K&gt; {
 
     <span class="annotation">@NotModified</span>
@@ -2634,7 +2628,7 @@ In the following example, each call to <code>getK</code> increments a counter, w
 <div class="listingblock">
 <div class="title">Example 40, modification on static field, explicitly ignored</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="directive">public</span> <span class="type">class</span> <span class="class">CountAccess</span>&lt;K&gt; {
 
     <span class="annotation">@NotModified</span>
@@ -2674,7 +2668,7 @@ In the following example, each call to <code>getK</code> increments a counter, w
 <div class="listingblock">
 <div class="title">Example 41, modification of static field can occur inside constructor</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span> <span class="annotation">@Container</span>
 <span class="directive">public</span> <span class="type">class</span> <span class="class">HasUniqueIdentifier</span>&lt;K&gt; {
 
     <span class="directive">public</span> <span class="directive">final</span> K k;
@@ -2727,7 +2721,7 @@ In the following example, each call to <code>getK</code> increments a counter, w
 </div>
 </div>
 <div class="paragraph">
-<p>This is still consistent with the rules of level 2 immutable types, which only look at the fields and assume that when methods do not modify the fields, they are actually non-modifying.
+<p>This is still consistent with the rules of immutable types, which only look at the fields and assume that when methods do not modify the fields, they are actually non-modifying.
 Without an  <code>@IgnoreModifications</code>  annotation on the field <code>System.out</code> (which we would typically add), printing to the console results in</p>
 </div>
 <div class="listingblock">
@@ -2775,20 +2769,20 @@ In singletons the normal modification rules apply, unless  <code>@IgnoreModifica
 </ol>
 </div>
 <div class="paragraph">
-<p>Item 1 requires level 1 immutability (all fields are  <code>@Final</code> ) but does not specify any of the restrictions we require for level 2 immutability.
+<p>Item 1 requires final fields but does not specify any of the restrictions we require for immutability.
 Item 2 implies that should <code>equals</code>, <code>hashCode</code> or <code>toString</code> make a modification to the object, its state changes, which would then change the object with respect to other objects.
 We could conclude that these three methods cannot be modifying.</p>
 </div>
 <div class="paragraph">
 <p>Loosely speaking, objects of a value-based class can be identified by the values of their fields.
-Level 2 immutability (or deeper) is not a requirement to be a value-based class.
-However, we expect many level 2 immutable types will become value-classes.
+Immutability is not a requirement to be a value-based class.
+However, we expect many immutable types will become value-classes.
 Revisiting the example from the previous section, we can construct a counter-example:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example 44, level 2 immutable type which is not value-based</div>
+<div class="title">Example 44, immutable type which is not value-based</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="directive">public</span> <span class="type">class</span> <span class="class">HasUniqueIdentifier</span>&lt;K&gt; {
     <span class="directive">public</span> <span class="directive">final</span> K k;
     <span class="directive">public</span> <span class="directive">final</span> <span class="type">int</span> identifier;
@@ -2819,21 +2813,22 @@ Revisiting the example from the previous section, we can construct a counter-exa
 <div class="sect2">
 <h3 id="dynamic-type-annotations">9.7. Dynamic type annotations</h3>
 <div class="paragraph">
-<p>When it is clear a method returns an immutable set, but the formal type is <code>java.util.Set</code>, the  <code>@E2Immutable</code>  annotation can 'travel':</p>
+<p>When it is clear a method returns an immutable set, but the formal type is <code>java.util.Set</code>, the  <code>@Immutable</code>  annotation can 'travel':</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 45, revisiting <code>SetBasedContainer6</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">SetBasedContainer6</span>&lt;T&gt; {
-    <span class="annotation">@E2Container</span>
+
+    <span class="annotation">@ImmutableContainer</span>
     <span class="directive">public</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; data;
 
     <span class="directive">public</span> SetBasedContainer4(<span class="predefined-type">Set</span>&lt;T&gt; ts) {
         <span class="local-variable">this</span>.data = <span class="predefined-type">Set</span>.copyOf(ts);
     }
 
-    <span class="annotation">@E2Container</span>
+    <span class="annotation">@ImmutableContainer</span>
     <span class="directive">public</span> <span class="predefined-type">Set</span>&lt;T&gt; getSet() {
         <span class="keyword">return</span> data;
     }
@@ -2841,7 +2836,7 @@ Revisiting the example from the previous section, we can construct a counter-exa
 </div>
 </div>
 <div class="paragraph">
-<p>Whilst <code>Set</code> in general is not  <code>@E2Immutable</code> , the <code>data</code> field itself is.</p>
+<p>Whilst <code>Set</code> in general is not  <code>@Immutable</code> , the <code>data</code> field itself is.</p>
 </div>
 <div class="paragraph">
 <p>The computations that the analyser needs to track dynamic type annotations, are similar to those it needs to compute eventual immutability.
@@ -2864,7 +2859,7 @@ We introduce them in the next chapter.</p>
 <div class="listingblock">
 <div class="title">Example 46, static nested builder type</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">Point</span> {
     <span class="directive">public</span> <span class="directive">final</span> <span class="type">double</span> x;
     <span class="directive">public</span> <span class="directive">final</span> <span class="type">double</span> y;
@@ -2875,17 +2870,17 @@ We introduce them in the next chapter.</p>
     }
 }
 
-<span class="annotation">@E2Container</span>
+<span class="annotation">@ImmutableContainer</span>
 <span class="type">class</span> <span class="class">Polygon</span> {
 
-    <span class="annotation">@E2Container</span>
+    <span class="annotation">@ImmutableContainer</span>
     <span class="directive">public</span> <span class="directive">final</span> <span class="predefined-type">List</span>&lt;<span class="predefined-type">Point</span>&gt; points;
 
     <span class="directive">private</span> <span class="predefined-type">Polygon</span>(<span class="predefined-type">List</span>&lt;<span class="predefined-type">Point</span>&gt; points) { <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="local-variable">this</span>.points = points;
     }
 
-    <span class="annotation">@E1Container</span>(builds=<span class="predefined-type">Polygon</span>.class)
+    <span class="annotation">@FinalFields</span>(builds=<span class="predefined-type">Polygon</span>.class)
     <span class="directive">static</span> <span class="type">class</span> <span class="class">Builder</span> {
 
         <span class="annotation">@Modified</span>
@@ -2908,7 +2903,7 @@ We introduce them in the next chapter.</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The private constructor combined with the construction of an immutable copy in the <code>build</code> method guarantees level 2 immutability.</td>
+<td>The private constructor combined with the construction of an immutable copy in the <code>build</code> method guarantees immutability.</td>
 </tr>
 </table>
 </div>
@@ -2955,7 +2950,7 @@ It is <em>eventually immutable</em>:</p>
 <div class="listingblock">
 <div class="title">Example 48, state change in a boolean field</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">frozen</span><span class="delimiter">&quot;</span></span>)
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">frozen</span><span class="delimiter">&quot;</span></span>)
 <span class="type">class</span> <span class="class">SimpleImmutableSet1</span>&lt;T&gt; {
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; set = <span class="keyword">new</span> <span class="predefined-type">HashSet</span>&lt;&gt;();
     <span class="directive">private</span> <span class="type">boolean</span> frozen;
@@ -3005,7 +3000,7 @@ This example does not require an additional field, but relies on the empty/not-e
 <div class="listingblock">
 <div class="title">Example 49, state change going from empty to non-empty</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E2Container</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">set</span><span class="delimiter">&quot;</span></span>)
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@ImmutableContainer</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">set</span><span class="delimiter">&quot;</span></span>)
 <span class="type">class</span> <span class="class">SimpleImmutableSet2</span>&lt;T&gt; {
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">Set</span>&lt;T&gt; set = <span class="keyword">new</span> <span class="predefined-type">HashSet</span>&lt;&gt;();
 
@@ -3049,7 +3044,7 @@ This example does not require an additional field, but relies on the empty/not-e
 There is a parameter to indicate that instead of returning <code>true</code> when the object is <em>after</em>, the method actually returns <code>true</code> on <em>before</em>.</p>
 </li>
 <li>
-<p>Finally, the eventuality of the type shows in the <code>after="&#8230;&#8203;"</code> parameter of  <code>@E1Immutable</code> ,  <code>@E2Immutable</code>  or their container versions.</p>
+<p>Finally, the eventuality of the type shows in the <code>after="&#8230;&#8203;"</code> parameter of  <code>@FinalFields</code> ,  <code>@Immutable</code>  or the shorthand  <code>@ImmutableContainer</code> .</p>
 </li>
 </ul>
 </div>
@@ -3082,7 +3077,7 @@ Consider the following utility method for <a href="#support-eventuallyfinal">Eve
 <h3 id="_propagation">10.3. Propagation</h3>
 <div class="paragraph">
 <p>The support types detailed in <a href="#support-classes">Support classes</a> can be used as building blocks to make ever more complex eventually immutable classes.
-Effectively final fields of eventually immutable type will at some point hold objects that are in their final or <code>after</code> state, in which case they act as level 2 immutable fields.</p>
+Effectively final fields of eventually immutable type will at some point hold objects that are in their final or <code>after</code> state, in which case they act as immutable fields.</p>
 </div>
 <div class="paragraph">
 <p>The analyser itself consists of many eventually immutable classes; we show some examples in <a href="#in-the-analyser">Support classes in the analyser</a>.</p>
@@ -3128,7 +3123,7 @@ This situation must occur in a type with a  <code>@Finalizer</code> , as explain
 <h3 id="_extensions_of_annotations">10.5. Extensions of annotations</h3>
 <div class="paragraph">
 <p>When a type is eventually level 1 immutable, should the field(s) of the state transition be  <code>@Variable</code>  or  <code>@Final</code> ?
-Similarly, when a type is eventually level 2 immutable, should the analyser mark the initially mutable or assignable fields  <code>@Modified</code>  or  <code>@NotModified</code>?</p>
+Similarly, when a type is eventually immutable, should the analyser mark the initially mutable or assignable fields  <code>@Modified</code>  or  <code>@NotModified</code>?</p>
 </div>
 <div class="paragraph">
 <p>Basically, we propose to mark with the end state, qualifying with the parameter <code>after</code>:</p>
@@ -3168,10 +3163,10 @@ Similarly, when a type is eventually level 2 immutable, should the analyser mark
 </div>
 <div class="paragraph">
 <p>When a type is effectively level 1 immutable (not eventually), all fields are effectively final.
-The analyser wants to emphasise the rules needed to obtain (eventual) level 2 immutability, by clearly indicating which fields break the level 2 immutability rules.</p>
+The analyser wants to emphasise the rules needed to obtain (eventual) immutability, by clearly indicating which fields break the immutability rules.</p>
 </div>
 <div class="paragraph">
-<p>Eventual finality simply adds a  <code>@Final(after="mark")</code> annotation to each of these situations.</p>
+<p>Eventual finality simply adds a <code>@Final(after="mark")</code> annotation to each of these situations.</p>
 </div>
 </div>
 <div class="sect2">
@@ -3187,7 +3182,7 @@ The example below shows how this could be done for the <code>Verticle</code> int
 <div class="listingblock">
 <div class="title">Example 52, excerpts and annotations of <code>Verticle.java</code> and <code>AbstractVerticle.java</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@E1Container</span>(after = <span class="string"><span class="delimiter">&quot;</span><span class="content">init</span><span class="delimiter">&quot;</span></span>)
+<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span>(after = <span class="string"><span class="delimiter">&quot;</span><span class="content">init</span><span class="delimiter">&quot;</span></span>)
 <span class="type">interface</span> <span class="class">Verticle</span> {
 
     <span class="annotation">@Mark</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">init</span><span class="delimiter">&quot;</span></span>)
@@ -3337,18 +3332,18 @@ This is especially clear when <code>a == this</code>.</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>When <code>v</code> is of  <code>@E2Immutable</code>  type, there cannot be any linking; <code>v</code> does not link to <code>a</code> nor <code>b</code>.</p>
+<p>When <code>v</code> is of {e2immutable} type, there cannot be any linking; <code>v</code> does not link to <code>a</code> nor <code>b</code>.</p>
 </li>
 <li>
-<p>If <code>b</code> is of  <code>@E2Immutable</code>  type, <code>v</code> cannot link to <code>b</code>.</p>
+<p>If <code>b</code> is of {e2immutable} type, <code>v</code> cannot link to <code>b</code>.</p>
 </li>
 <li>
-<p>When <code>method</code> has the annotation  <code>@Independent</code>  (or the lighter version,  <code>@Independent1</code> ), <code>v</code> cannot link to <code>a</code>.</p>
+<p>When <code>method</code> has the annotation  <code>@Independent</code>  (or the lighter version, {independent1}), <code>v</code> cannot link to <code>a</code>.</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>Recall that primitives, <code>java.lang.Object</code>, <code>java.lang.String</code>, and unbound parameter types, are  <code>@E2Immutable</code> .</p>
+<p>Recall that primitives, <code>java.lang.Object</code>, <code>java.lang.String</code>, and unbound parameter types, are {e2immutable}.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -3360,13 +3355,13 @@ This is especially clear when <code>a == this</code>.</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>When <code>b</code> is of  <code>@E2Immutable</code>  type, <code>v</code> cannot link to <code>b</code>.</p>
+<p>When <code>b</code> is of {e2immutable} type, <code>v</code> cannot link to <code>b</code>.</p>
 </li>
 <li>
-<p>If <code>A</code> is  <code>@E2Immutable</code> , then <code>v</code> cannot link to <code>b</code>, because all its constructor parameters are independent.</p>
+<p>If <code>A</code> is {e2immutable}, then <code>v</code> cannot link to <code>b</code>, because all its constructor parameters are independent.</p>
 </li>
 <li>
-<p>When <code>b</code> has been marked  <code>@Independent</code>  or  <code>@Independent1</code> , <code>v</code> cannot link to <code>b</code>.</p>
+<p>When <code>b</code> has been marked  <code>@Independent</code>  or {independent1}, <code>v</code> cannot link to <code>b</code>.</p>
 </li>
 </ol>
 </div>
@@ -3526,7 +3521,7 @@ A straightforward application of the rules of modification of fields makes  <cod
 in <code>myIncrementer</code>, a modifying method is applied to <code>getAndIncrement</code>, and in <code>myExplicitIncrementer</code>, a modifying method is applied to <code>explicitGetAndIncrement</code>.</p>
 </div>
 <div class="paragraph">
-<p>Given that <code>ApplyLocalFunctions</code> is clearly  <code>@E1Container</code> , and the inner classes hold no other data, the inner classes are  <code>@E1Container</code>  as well.</p>
+<p>Given that <code>ApplyLocalFunctions</code> is clearly {e1container}, and the inner classes hold no other data, the inner classes are {e1container} as well.</p>
 </div>
 <div class="paragraph">
 <p>Now, if we move away from suppliers, but use consumers, we can discuss:</p>
@@ -3596,7 +3591,7 @@ in <code>myIncrementer</code>, a modifying method is applied to <code>getAndIncr
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The anonymous type is static, has no fields, so is at least  <code>@E2Immutable</code> .
+<td>The anonymous type is static, has no fields, so is at least {e2immutable}.
 It is not a container.
 This is clearly visible in the explicit variant&#8230;&#8203;</td>
 </tr>
@@ -3635,8 +3630,8 @@ when only containers are allowed, then the abstract types must not have implemen
 <div class="sectionbody">
 <div class="paragraph">
 <p>In this section, we consider modifications to the hidden content of a type, and explain when they are of importance.
-We give a formal definition of deeply or recursively immutable types, introduce the annotation  <code>@ERContainer</code> , as well as a sliding scale between level 2 and recursively immutable.
-The annotation  <code>@Independent1</code> , which we have touched upon earlier, will be formally introduced.</p>
+We give a formal definition of deeply or recursively immutable types, introduce the annotation {ercontainer}, as well as a sliding scale between level 2 and recursively immutable.
+The annotation {independent1}, which we have touched upon earlier, will be formally introduced.</p>
 </div>
 <div class="sect2">
 <h3 id="_visitors">12.1. Visitors</h3>
@@ -3729,7 +3724,7 @@ We will have to revert to a contracted  <code>@IgnoreModifications</code>  annot
 <div class="paragraph">
 <p>The second modification, however, is one we will ignore in the <code>ImmutableOne</code> type, and <em>defer</em> or <em>propagate</em> to the place where a concrete implementation of the consumer is presented.
 We can ignore it here, because <code>t</code> is part of the hidden content of the type; what happens to its content happens outside the zone of control of <code>ImmutableOne</code>.
-The fact that it is passed as an argument to a method of <code>consumer</code> is reflected by the  <code>@Independent1</code>  annotation.
+The fact that it is passed as an argument to a method of <code>consumer</code> is reflected by the {independent1} annotation.
 It will take care of the propagation of modifications from the concrete implementation into the hidden content.</p>
 </div>
 <div class="paragraph">
@@ -3775,7 +3770,7 @@ A parameter of formal functional interface type will be marked  <code>@IgnoreMod
 </div>
 <div class="paragraph">
 <p>Modifications to the parameter, made by the concrete implementation, are propagated into the hidden content of <code>list</code>, as shown in the next section.
-The  <code>@Independent1</code>  annotation appears because hidden content in <code>list</code> is exposed to the <code>consumer</code> parameter.
+The {independent1} annotation appears because hidden content in <code>list</code> is exposed to the <code>consumer</code> parameter.
 This annotation does not appear for the accessible content of the level 2 immutable type.
 Parameters of modifiable type are already shielded from external modification by the  <code>@Independent</code>  annotation, which is "trivial" for level 2 immutable types.</p>
 </div>
@@ -3811,7 +3806,7 @@ Parameters of modifiable type are already shielded from external modification by
 </div>
 <div class="paragraph">
 <p>It is the second method, <code>addNewLine</code>, that is of importance here.
-Thanks to the  <code>@Independent1</code>  annotation, we know of a modification to <code>list</code>, even if <code>list</code> is of level 2 immutable type!
+Thanks to the {independent1} annotation, we know of a modification to <code>list</code>, even if <code>list</code> is of level 2 immutable type!
 It may help to see the for-loop written out, if we temporarily assume that we have added an implementation of <code>Iterable</code> to <code>NonEmptyImmutableList</code>, functionally identical to <code>visit</code>:</p>
 </div>
 <div class="listingblock">
@@ -3892,7 +3887,7 @@ In other words, applying the two methods further on, we cannot</p>
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph">
-<p>The example shows that the introduction of  <code>@Independent1</code>  only gets us so far: from the concrete, modifying implementation, to the parameter (or field).
+<p>The example shows that the introduction of {independent1} only gets us so far: from the concrete, modifying implementation, to the parameter (or field).
 We do not plan to keep track of the distinction between modification of hidden content vs modification of modifiable content to a further extent.</p>
 </div>
 </div>
@@ -3915,7 +3910,7 @@ We do not plan to keep track of the distinction between modification of hidden c
 <h3 id="hidden-content-linking">12.3. Hidden content linking</h3>
 <div class="paragraph">
 <p>Going back to <code>ImmutableOne</code>, we see that the constructor links the parameter <code>t</code> to the instance&#8217;s field by means of assignment.
-Let us call this binding of parameters of hidden content to the field <em>content linking</em>, and mark it using  <code>@Independent1</code> , <em>content dependence</em>:</p>
+Let us call this binding of parameters of hidden content to the field <em>content linking</em>, and mark it using {independent1}, <em>content dependence</em>:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 65, constructor of <code>ImmutableOne</code></div>
@@ -3928,7 +3923,7 @@ Let us call this binding of parameters of hidden content to the field <em>conten
 </div>
 </div>
 <div class="paragraph">
-<p>Returning a part of the hidden content of the type, or exposing it as argument, both warrants a  <code>@Independent1</code>  annotation:</p>
+<p>Returning a part of the hidden content of the type, or exposing it as argument, both warrants a {independent1} annotation:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 66, more methods of <code>ImmutableOne</code></div>
@@ -3946,7 +3941,7 @@ Let us call this binding of parameters of hidden content to the field <em>conten
 </div>
 </div>
 <div class="paragraph">
-<p>Observe that content dependence implies absence of dependence, as described in <a href="#linking-and-independence">Linking, independence</a> and <a href="#computing-dependence">How to compute linking</a>, exactly because we are dealing with parameters of level 2 immutable type.</p>
+<p>Observe that content dependence implies absence of dependence, as described in <a href="#linking-and-independence">Linking, dependence</a> and <a href="#computing-dependence">How to compute linking</a>, exactly because we are dealing with parameters of level 2 immutable type.</p>
 </div>
 <div class="paragraph">
 <p>Another place where the hidden content linking can be seen, is the <em>for-each</em> statement:</p>
@@ -3976,7 +3971,7 @@ Let us call this binding of parameters of hidden content to the field <em>conten
 Similarly, this loop variable contains hidden content from the <code>list</code> object.</p>
 </div>
 <div class="paragraph">
-<p>We reuse the annotation  <code>@Independent1</code>  to indicate that the hidden content of two objects are linked.
+<p>We reuse the annotation {independent1} to indicate that the hidden content of two objects are linked.
 Let us look at a possible implementation of <code>Collection.addAll</code>:</p>
 </div>
 <div class="listingblock">
@@ -4021,7 +4016,7 @@ Because <code>e</code> is also content linked to <code>c</code>, the parameter <
 <div class="paragraph">
 <p>Either the <code>next</code> method, or the <code>hasNext</code> method, must make a change to the iterator, because it has to keep track of the next element.
 As such, we make both  <code>@Modified</code> .
-Following the discussion in the previous section, <code>next</code> is  <code>@Independent1</code> , because it returns part of the hidden content held by the iterator.</p>
+Following the discussion in the previous section, <code>next</code> is {independent1}, because it returns part of the hidden content held by the iterator.</p>
 </div>
 <div class="paragraph">
 <p>The interface <code>Iterable</code> is a supplier of iterators:</p>
@@ -4065,7 +4060,7 @@ Second, the iterator itself is independent of the fields of the implementing typ
 <p>How does the whole story of eventual level 1 or level 2 immutability mix with hidden content?
 At some point, once a necessary precondition has been met, the hidden content will be well-defined, and modifying methods become unavailable.
 Before that, fields that will eventually contain the hidden content may still be <code>null</code>, or may be re-assigned.
-This should not have any effect, however, on the computation of hidden content linking,  <code>@Independent1</code>  annotations, and the propagation of modifications, since the actual types do not change.
+This should not have any effect, however, on the computation of hidden content linking, {independent1} annotations, and the propagation of modifications, since the actual types do not change.
 The two concepts are sufficiently perpendicular to each other, and can easily co-exist.</p>
 </div>
 </div>
@@ -4110,7 +4105,7 @@ This means that it is of the form of an unbound type parameter.</p>
 This means that every type that is part of the hidden content, must be at least level 2 immutable.</p>
 </div>
 <div class="paragraph">
-<p>Annotation-wise, we use  <code>@E2Container(level = 4),  <code>@ERContainer</code>  in combination with the  <code>@Container</code> 
+<p>Annotation-wise, we use  <code>@E2Container(level = 4), {ercontainer} in combination with the  <code>@Container</code> 
 property, and `@E2Immutable(level = 3)</code>, <code>@E2Immutable(recursive = true)</code> in its absence.</p>
 </div>
 <div class="paragraph">
@@ -4209,7 +4204,7 @@ Let&#8217;s first go there in a roundabout way:</p>
 <p>A type is <strong>dependent</strong> when external modifications impact the accessible content of the type.</p>
 </div>
 <div class="paragraph">
-<p>A type is <strong>level 1 independent</strong>, annotated  <code>@Independent1</code> , when external modifications cannot impact the accessible content of the type.
+<p>A type is <strong>level 1 independent</strong>, annotated {independent1}, when external modifications cannot impact the accessible content of the type.
 The hidden content of the type is mutable or modifiable.</p>
 </div>
 <div class="paragraph">
@@ -4289,7 +4284,7 @@ The third way is computationally the most interesting one.</p>
 <p>The type <code>T</code> is part of the hidden content, the <code>T[]</code> and the counter <code>i</code> are part of the accessible content.
 No external modification can impact the array or the counter; indeed, only <code>T</code> and a <code>boolean</code> are exposed.
 The latter is recursively immutable, so does not allow modifications.
-The former allows modifications on the hidden content, whence the  <code>@Independent1</code>  annotation for <code>IteratorImpl</code>.</p>
+The former allows modifications on the hidden content, whence the {independent1} annotation for <code>IteratorImpl</code>.</p>
 </div>
 <div class="paragraph">
 <p>Recursively immutable types are independent as a type, but a type does not even have to be level 1 immutable to be independent.
@@ -4450,7 +4445,7 @@ Consider:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Would have been  <code>@E2Container</code> , were it not for the <code>break</code> methods</td>
+<td>Would have been {e2container}, were it not for the <code>break</code> methods</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -4824,7 +4819,7 @@ Properly implemented, it is an eventually level 2 immutable type:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The annotation has travelled from the field to the parameter; therefore the parameter has  <code>@Independent1</code> .</td>
+<td>The annotation has travelled from the field to the parameter; therefore the parameter has {independent1}.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -4843,14 +4838,14 @@ The statement also causes the  <code>@NotNull1</code>  annotation, as defined in
 </div>
 <div class="paragraph">
 <p>After calling the marker method <code>get()</code>, <code>t</code> cannot be assigned anymore, and it becomes  <code>@Final</code> .
-The constructor parameter <code>supplier</code> is  <code>@Independent1</code> , as its hidden content (the result of <code>get()</code>) links to that of <code>Lazy</code>, namely the field <code>t</code>.</p>
+The constructor parameter <code>supplier</code> is {independent1}, as its hidden content (the result of <code>get()</code>) links to that of <code>Lazy</code>, namely the field <code>t</code>.</p>
 </div>
 <div class="paragraph">
 <p>But why is <code>supplier</code> as a field not linked to the constructor parameter?
 Clearly, <code>supplier</code> is part of the accessible content of <code>Lazy</code>, as its <code>get()</code> method gets called.
 The criterion is: a modification on one may cause a modification on the other.
 Modifications can only be made by calling the <code>get()</code> method, as there are no other methods, and no fields.
-Consequently, the constructor should link to the field, and <code>supplier</code> cannot be  <code>@Independent1</code> .</p>
+Consequently, the constructor should link to the field, and <code>supplier</code> cannot be {independent1}.</p>
 </div>
 <div class="paragraph">
 <p>The answer lies in the eventual nature of <code>Lazy</code>: <em>before</em> the first call to <code>get</code>, the <code>supplier</code> field is of relevance to the type, and <code>t</code> is not.
@@ -5208,7 +5203,7 @@ The simplest way is by some severe restrictions:</p>
 <p>A finalizer method can only be called on a field inside a method which is marked as a finalizer as well.</p>
 </li>
 <li>
-<p>A finalizer method can never be called on a parameter or any variable linked to it, with linking as defined throughout this document (see <a href="#linking-and-independence">Linking, independence</a>).</p>
+<p>A finalizer method can never be called on a parameter or any variable linked to it, with linking as defined throughout this document (see <a href="#linking-and-independence">Linking, dependence</a>).</p>
 </li>
 </ol>
 </div>
@@ -5677,7 +5672,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-10-10 17:45:12 +0200
+Last updated 2022-08-12 12:28:59 +0200
 </div>
 </div>
 </body>

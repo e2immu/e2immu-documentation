@@ -14,14 +14,12 @@ You obviously remain free to change them elsewhere; then the container will hold
 Containers are complementary to immutable objects, and we will find that many immutable objects are containers, while some containers are the precursors to immutable types.
 There are two archetypes for containers: collections and builders.
 
-The code analyser will annotate a type that is both level 1 immutable, and a container, with {e1container}.
-This occurs frequently enough to justify a separate annotation.
 The simple but useful utility type `Pair` trivially satisfies both requirements:
 
 .Example {counter:example}, a `Pair` of objects
 [source,java]
 ----
-@E1Container
+@Container
 public class Pair<K,V> {
     public final K k;
     public final V v;
@@ -41,7 +39,7 @@ public class Pair<K,V> {
 }
 ----
 
-While it is clearly level 1 immutable, it will remain to be seen if it satisfies all criteria for intuitive immutability.
+While its fields are clearly final, it will remain to be seen if it satisfies all criteria for intuitive immutability.
 However, it is easily recognized as a container: a type you use and trust to hold objects.
 
 Containers occur frequently as static nested types to build immutable objects.
@@ -108,7 +106,7 @@ Indeed, consider the following semi-realistic implementation of an `Integer` arr
 .Example {counter:example}, an array is a level 1 immutable container
 [source,java]
 ----
-@E1Container
+@Container
 interface Array<T> {
     int length();
 
@@ -118,7 +116,7 @@ interface Array<T> {
     void set(int index, T t);
 }
 
-@E1Container
+@FinalFields @Container
 static class IntArray implements Array<Integer> {
     private final ByteBuffer byteBuffer;
     private final int size;

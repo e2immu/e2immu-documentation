@@ -915,7 +915,7 @@ It also pushes these errors, warnings, and computed annotations to the annotatio
 So while you&#8217;re working on your project, each time you run the analyser, your editor is updated.
 We&#8217;re suggesting that you confirm critical annotations in the source code.
 They will get the annotation type <code>VERIFY</code> which is the default for source code read by the analyser, they allow you to 'stabilize' your code with respect to class types like  <code>@Container</code>  or
- <code>@E2Immutable</code> .</p>
+{e2immutable}.</p>
 </div>
 <div class="paragraph">
 <p>This set-up will get you pretty far, as long as</p>
@@ -1540,7 +1540,7 @@ We must therefore annotate</p>
 Modifications to the iterator (e.g., by calling the <code>remove()</code> method), will modify the map.</p>
 </div>
 <div class="paragraph">
-<p>The <code>entry</code> is obtained by calling the method <code>next()</code> on the iterator, which is marked  <code>@Independent1</code> .
+<p>The <code>entry</code> is obtained by calling the method <code>next()</code> on the iterator, which is marked {independent1}.
 This means that the method result is linked to the hidden content of the iterator, which consists of <code>Entry</code> objects.
 These <code>Entry</code> objects, however, are not part of the hidden content of <code>Map</code>: only objects of types <code>K</code> and <code>V</code> have that property.
 Because the <code>Entry</code> objects have been obtained from <code>Map</code> in a  <code>@Dependent</code>  way, and <code>Map</code> is mutable, we equate changes to an <code>Entry</code> object to changes to the map.</p>
@@ -1557,15 +1557,15 @@ Because the <code>Entry</code> objects have been obtained from <code>Map</code> 
 <div class="sidebarblock">
 <div class="content">
 <div class="paragraph">
-<p>The links are:  <code>@Independent1</code>  from <code>entry</code> to <code>iterator</code>,  <code>@Dependent</code>  from <code>iterator</code> to the entry set, and  <code>@Dependent</code>  from the entry set to the <code>map</code>.
+<p>The links are: {independent1} from <code>entry</code> to <code>iterator</code>,  <code>@Dependent</code>  from <code>iterator</code> to the entry set, and  <code>@Dependent</code>  from the entry set to the <code>map</code>.
 Because <code>entry</code> is hidden in <code>iterator</code>, and <code>iterator</code> is dependent on map <code>map</code>, and <code>entry</code> is not of a hidden type in <code>map</code>, and it is mutable, we link <code>entry</code> to <code>map</code> in a  <code>@Dependent</code>  way.</p>
 </div>
 </div>
 </div>
 <div class="paragraph">
 <p>Suppose we tell the analyser that the user can never use the <code>setValue</code> method of <code>Entry</code>.
-Then, <code>Entry</code> becomes  <code>@E2Container</code> .
-Because it is now immutable, <code>entry</code> can only be content linked to <code>map</code>, i.e., at the  <code>@Independent1</code>  level.
+Then, <code>Entry</code> becomes {e2container}.
+Because it is now immutable, <code>entry</code> can only be content linked to <code>map</code>, i.e., at the {independent1} level.
 This is depicted by:</p>
 </div>
 <div id="foreach-nosenvalue" class="imageblock">
@@ -1575,7 +1575,7 @@ This is depicted by:</p>
 <div class="title">Figure 5. No setValue() method, entry to map</div>
 </div>
 <div class="paragraph">
-<p>Alternatively, we could forbid the modification of entry sets, e.g., by contracting <code>entrySet()</code> to return an  <code>@E2Container</code>  object.
+<p>Alternatively, we could forbid the modification of entry sets, e.g., by contracting <code>entrySet()</code> to return an {e2container} object.
 (Calling a modifying method on such an object will cause  <em>e2immu</em>  to raise an error.) Then, <code>iterator</code>, still linked to the entry set, remains linked to the mutable <code>map</code>: while the <em>set</em> is immutable, the non-hidden <code>Entry</code> objects are not.
 As a consequence, <code>Entry</code> objects remain linked to the map, because the previous rule still applies.</p>
 </div>
@@ -1880,7 +1880,7 @@ A constructor or method parameter is <em>dependent</em> when it links to one of 
 <div class="paragraph">
 <p>A method or parameter is independent when it is not dependent.
 However, given the possibility of hidden content linking, we differentiate between different <em>levels</em> of independence.
-When the hidden content of the field being linked to the return value or parameter is mutable or level 1 immutable, we speak of level 1 independence, and mark with  <code>@Independent1</code> .
+When the hidden content of the field being linked to the return value or parameter is mutable or level 1 immutable, we speak of level 1 independence, and mark with {independent1}.
 When the hidden content is level 2 immutable, we speak of level 2 independence, and write <code>@Independent1(level=2)</code>.
 When no modifications are possible at all, the hidden content must be recursively immutable, and we speak of independence, marked as  <code>@Independent</code> .</p>
 </div>
@@ -2206,8 +2206,8 @@ Methods can be annotated with <code>@AllowsInterrupt(false)</code> to explicitly
 <dt class="hdlist1">Summary</dt>
 <dd>
 <p>Annotation computed when an eventually immutable type is guaranteed to be in its <em>before</em> state, i.e., none of the marked methods have been called yet.
-As a dynamic type annotation (<a href="#technical-dynamic-type-annotations">Dynamic type annotations</a>), it is the opposite of  <code>@E1Immutable</code> ,
- <code>@E2Immutable</code> , or its container variants  <code>@E1Container</code> ,  <code>@E2Container</code> ,  <code>@ERContainer</code> .
+As a dynamic type annotation (<a href="#technical-dynamic-type-annotations">Dynamic type annotations</a>), it is the opposite of {e1immutable},
+{e2immutable}, or its container variants {e1container}, {e2container}, {ercontainer}.
 They guarantee that an eventually immutable object is in its <em>after</em> state, i.e., a marked method has been called, and the object has become immutable.</p>
 </dd>
 </dl>
@@ -2304,7 +2304,7 @@ See <a href="#concept-containers">Containers</a> for an in-depth discussion.</p>
 </dd>
 <dt class="hdlist1">Group</dt>
 <dd>
-<p>The opposite is  <code>@MutableModifiesArguments</code>  if the type has  <code>@Variable</code>  fields, or  <code>@E1Immutable</code>  if all the type&#8217;s fields are effectively final.</p>
+<p>The opposite is  <code>@MutableModifiesArguments</code>  if the type has  <code>@Variable</code>  fields, or {e1immutable} if all the type&#8217;s fields are effectively final.</p>
 </dd>
 <dt class="hdlist1">Example</dt>
 <dd>
@@ -2347,13 +2347,13 @@ Non-containers are in <a href="#e1immutable-annotation">@E1Immutable</a> and <a 
 </dl>
 </div>
 <div class="paragraph">
-<p>This annotation is the default value in the  <code>@Dependent</code> ,  <code>@Independent1</code> ,  <code>@Independent</code>  sequence; hence, it is never explicitly generated by the analyser.</p>
+<p>This annotation is the default value in the  <code>@Dependent</code> , {independent1},  <code>@Independent</code>  sequence; hence, it is never explicitly generated by the analyser.</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Group</dt>
 <dd>
-<p>Its opposites are is  <code>@Independent</code>  (no linking is possible) and  <code>@Independent1</code>  (content linking only).</p>
+<p>Its opposites are is  <code>@Independent</code>  (no linking is possible) and {independent1} (content linking only).</p>
 </dd>
 <dt class="hdlist1">Example</dt>
 <dd>
@@ -2409,11 +2409,11 @@ Non-containers are in <a href="#e1immutable-annotation">@E1Immutable</a> and <a 
 <dl>
 <dt class="hdlist1">Summary</dt>
 <dd>
-<p>This annotation is a short-hand for the combination of  <code>@E1Immutable</code>  and  <code>@Container</code> , as described in <a href="#concept-e1immutable">Level 1 immutable</a> and <a href="#concept-containers">Containers</a>.</p>
+<p>This annotation is a short-hand for the combination of {e1immutable} and  <code>@Container</code> , as described in <a href="#concept-e1immutable">Level 1 immutable</a> and <a href="#concept-containers">Containers</a>.</p>
 </dd>
 <dt class="hdlist1">Group</dt>
 <dd>
-<p>This annotation sits in between  <code>@MutableModifiesArguments</code> ,  <code>@Container</code>  and  <code>@E2Container</code> .</p>
+<p>This annotation sits in between  <code>@MutableModifiesArguments</code> ,  <code>@Container</code>  and {e2container}.</p>
 </dd>
 <dt class="hdlist1">Example</dt>
 <dd>
@@ -2506,7 +2506,7 @@ Non-containers are in <a href="#e1immutable-annotation">@E1Immutable</a> and <a 
 </dd>
 <dt class="hdlist1">Group</dt>
 <dd>
-<p>This annotation sits in between  <code>@MutableModifiesArguments</code>  and  <code>@E2Immutable</code> .</p>
+<p>This annotation sits in between  <code>@MutableModifiesArguments</code>  and {e2immutable}.</p>
 </dd>
 <dt class="hdlist1">Example</dt>
 <dd>
@@ -2560,7 +2560,7 @@ Non-containers are in <a href="#e1immutable-annotation">@E1Immutable</a> and <a 
 <dl>
 <dt class="hdlist1">Summary</dt>
 <dd>
-<p>This annotation is a short-hand for the combination of  <code>@E2Immutable</code>  and  <code>@Container</code> , as described in <a href="#concept-e2immutable">Level n immutable</a> and <a href="#concept-containers">Containers</a>.</p>
+<p>This annotation is a short-hand for the combination of {e2immutable} and  <code>@Container</code> , as described in <a href="#concept-e2immutable">Level n immutable</a> and <a href="#concept-containers">Containers</a>.</p>
 </dd>
 <dt class="hdlist1">Group</dt>
 <dt class="hdlist1">Example</dt>
@@ -2666,7 +2666,7 @@ Non-containers are in <a href="#e1immutable-annotation">@E1Immutable</a> and <a 
 </dd>
 <dt class="hdlist1">Group</dt>
 <dd>
-<p>it sits at the very end of the  <code>@Container</code> ,  <code>@E1Container</code> ,  <code>@E2Container</code> , <code>@E2Container(level=3)</code>, &#8230;&#8203;,  <code>@ERContainer</code>  sequence.</p>
+<p>it sits at the very end of the  <code>@Container</code> , {e1container}, {e2container}, <code>@E2Container(level=3)</code>, &#8230;&#8203;, {ercontainer} sequence.</p>
 </dd>
 <dt class="hdlist1">Example</dt>
 </dl>
@@ -3063,7 +3063,7 @@ Its opposite is  <code>@Dependent</code> .</p>
 <dl>
 <dt class="hdlist1">Summary</dt>
 <dd>
-<p>As one of the <a href="#concept-higher-order-modification">[concept-higher-order-modification]</a> annotations,  <code>@Independent1</code> 
+<p>As one of the <a href="#concept-higher-order-modification">[concept-higher-order-modification]</a> annotations, {independent1}
 on a parameter, of <a href="#concept-implicitly-immutable">implicitly immutable type</a>, indicates that this parameter is assigned to one of the fields, or assigned into the object graph of one of the fields.
 When computed on a method, the return value of the method, again of implicitly immutable type, is known to be part of the object graph of the fields.</p>
 </dd>
@@ -3279,7 +3279,7 @@ Definitions are in <a href="#concept-containers">Containers</a> and <a href="#co
 </dd>
 <dt class="hdlist1">Mode</dt>
 <dd>
-<p>It is the default in the green mode when none of  <code>@Container</code> ,  <code>@E1Immutable</code> ,  <code>@E1Container</code> ,  <code>@E2Immutable</code> ,  <code>@E2Container</code>  is present.
+<p>It is the default in the green mode when none of  <code>@Container</code> , {e1immutable}, {e1container}, {e2immutable}, {e2container} is present.
 Use it for contracting in the red mode.</p>
 </dd>
 <dt class="hdlist1">Example</dt>
@@ -3822,25 +3822,25 @@ It is the opposite of  <code>@Final</code> .</p>
 <div class="ulist">
 <ul>
 <li>
-<p> <code>@E2Container</code>  is a shorthand for the combination of  <code>@E2Immutable</code>  and  <code>@Container</code> ;</p>
+<p>{e2container} is a shorthand for the combination of {e2immutable} and  <code>@Container</code> ;</p>
 </li>
 <li>
-<p> <code>@E1Container</code>  is a shorthand for the combination of  <code>@E1Immutable</code>  and  <code>@Container</code> ;</p>
+<p>{e1container} is a shorthand for the combination of {e1immutable} and  <code>@Container</code> ;</p>
 </li>
 <li>
-<p> <code>@E2Immutable</code>  requires  <code>@E1Immutable</code> ;</p>
+<p>{e2immutable} requires {e1immutable};</p>
 </li>
 <li>
-<p>a type is  <code>@MutableModifiesArguments</code>  if and only if it is not  <code>@E1Immutable</code>  and not  <code>@Container</code> ;</p>
+<p>a type is  <code>@MutableModifiesArguments</code>  if and only if it is not {e1immutable} and not  <code>@Container</code> ;</p>
 </li>
 <li>
 <p>when a type is  <code>@MutableModifiesArguments</code> , there will be at least one field marked  <code>@Variable</code> , and at least one parameter marked  <code>@Modified</code> ;</p>
 </li>
 <li>
-<p>by definition, types without fields are  <code>@E2Immutable</code> ;</p>
+<p>by definition, types without fields are {e2immutable};</p>
 </li>
 <li>
-<p>all primitive types are implicitly  <code>@E2Container</code> ; the analyser will not mark them.</p>
+<p>all primitive types are implicitly {e2container}; the analyser will not mark them.</p>
 </li>
 </ul>
 </div>
@@ -3877,10 +3877,10 @@ The opposite, a  <code>@Final</code>  field that is  <code>@Nullable</code> , ca
 <p> <code>@Variable</code>  implies  <code>@Modified</code> , whether modifying methods exist for the field or not;</p>
 </li>
 <li>
-<p> <code>@Final</code>   <code>@Modified</code> : part of  <code>@E1Immutable</code> ;</p>
+<p> <code>@Final</code>   <code>@Modified</code> : part of {e1immutable};</p>
 </li>
 <li>
-<p> <code>@Final</code>   <code>@NotModified</code>: part of  <code>@E2Immutable</code> ; sufficient for implicitly immutable types; for other types, the visibility and dependence rules kick in.</p>
+<p> <code>@Final</code>   <code>@NotModified</code>: part of {e2immutable}; sufficient for implicitly immutable types; for other types, the visibility and dependence rules kick in.</p>
 </li>
 </ul>
 </div>
@@ -3890,10 +3890,10 @@ The opposite, a  <code>@Final</code>  field that is  <code>@Nullable</code> , ca
 <div class="ulist">
 <ul>
 <li>
-<p>if a type is effectively  <code>@E2Immutable</code> , all its fields are  <code>@Final</code>   <code>@NotModified</code>;</p>
+<p>if a type is effectively {e2immutable}, all its fields are  <code>@Final</code>   <code>@NotModified</code>;</p>
 </li>
 <li>
-<p>if a type is effectively  <code>@E1Immutable</code> , all its fields are  <code>@Final</code> ;</p>
+<p>if a type is effectively {e1immutable}, all its fields are  <code>@Final</code> ;</p>
 </li>
 <li>
 <p>if a type is  <code>@MutableModifiesArguments</code> , at least one of its field is  <code>@Variable</code> .</p>
@@ -3916,7 +3916,7 @@ The opposite, a  <code>@Final</code>  field that is  <code>@Nullable</code> , ca
 <div class="paragraph">
 <p>Non-trivial constructors have the  <code>@Modified</code>  property.
 When there is support data, a constructor is either  <code>@Independent</code>  (green) or  <code>@Dependent</code>  (red).
-A constructor without annotations therefore implies either that the type is not  <code>@E1Immutable</code> , or that the constructor is not assigning to support data fields.</p>
+A constructor without annotations therefore implies either that the type is not {e1immutable}, or that the constructor is not assigning to support data fields.</p>
 </div>
 </div>
 <div class="sect3">
@@ -3944,7 +3944,7 @@ This property is only relevant when there is support data, and the method is  <c
 <div class="ulist">
 <ul>
 <li>
-<p>if a type is effectively  <code>@E2Immutable</code>  (green), all its methods are  <code>@NotModified</code> (green).</p>
+<p>if a type is effectively {e2immutable} (green), all its methods are  <code>@NotModified</code> (green).</p>
 </li>
 </ul>
 </div>
@@ -3986,7 +3986,7 @@ This property is only relevant when there is support data, and the method is  <c
 <p>if a type is  <code>@Container</code> , the parameters of all non-private methods and constructors are  <code>@NotModified</code> (green);</p>
 </li>
 <li>
-<p>a parameter of primitive type, unbound parameter type, functional type, or  <code>@E2Immutable</code>  type, is always  <code>@NotModified</code> (green);</p>
+<p>a parameter of primitive type, unbound parameter type, functional type, or {e2immutable} type, is always  <code>@NotModified</code> (green);</p>
 </li>
 </ul>
 </div>
@@ -4644,11 +4644,11 @@ Its associated annotations are  <code>@Nullable</code> ,  <code>@NotNull</code> 
 </li>
 <li>
 <p><code>IMMUTABLE</code>: the immutability aspect of an evaluated expression, tied to the dynamic type, seen outside its context.
-Associated annotations are  <code>@MutableModifiesArguments</code> ,  <code>@E1Immutable</code> ,  <code>@E2Container</code> , &#8230;&#8203;</p>
+Associated annotations are  <code>@MutableModifiesArguments</code> , {e1immutable}, {e2container}, &#8230;&#8203;</p>
 </li>
 <li>
 <p><code>INDEPENDENT</code>: the "independent" aspect of the evaluated expression, tied to the dynamic type.
-Annotations are  <code>@Dependent</code> ,  <code>@Independent1</code> ,  <code>@Independent</code> .</p>
+Annotations are  <code>@Dependent</code> , {independent1},  <code>@Independent</code> .</p>
 </li>
 <li>
 <p><code>CONTAINER</code>: the "container" aspect, by default tied to the dynamic type, but potentially modified (from false to true) by a contract.
@@ -5015,7 +5015,7 @@ We based our initial implementation on the <a href="https://plugins.jetbrains.co
 <div class="sect3">
 <h4 id="visual-objectives">13.3.1. Visual objectives</h4>
 <div class="paragraph">
-<p>For the proof of concept, we aim to color elements of the source code in such a way that there is visual information explaining why a type is not  <code>@E2Immutable</code>  or  <code>@Container</code> .
+<p>For the proof of concept, we aim to color elements of the source code in such a way that there is visual information explaining why a type is not {e2immutable} or  <code>@Container</code> .
 In the green mode, we highlight the immutable elements, which useful when they are sparse.
 In the red mode, we warn for mutable ones in an otherwise pretty immutable environment:</p>
 </div>
@@ -5037,22 +5037,22 @@ In the red mode, we warn for mutable ones in an otherwise pretty immutable envir
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@E2Container</code>  (incl. primitives)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{e2container} (incl. primitives)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">green</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">black</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@E2Immutable</code> </p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{e2immutable}</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">green</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">black</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@E1Container</code> </p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{e1container}</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">brown</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">brown</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@E1Immutable</code> </p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{e1immutable}</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">brown</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">brown</p></td>
 </tr>
@@ -5085,10 +5085,10 @@ In the red mode, we warn for mutable ones in an otherwise pretty immutable envir
 <p> <code>@Variable</code>   <code>@NotModified</code></p>
 </li>
 <li>
-<p> <code>@Final</code>   <code>@Modified</code> : part of  <code>@E1Immutable</code> , impossible for unmodifiable types</p>
+<p> <code>@Final</code>   <code>@Modified</code> : part of {e1immutable}, impossible for unmodifiable types</p>
 </li>
 <li>
-<p> <code>@Final</code>   <code>@NotModified</code>: part of  <code>@E2Immutable</code> </p>
+<p> <code>@Final</code>   <code>@NotModified</code>: part of {e2immutable}</p>
 </li>
 </ul>
 </div>
@@ -5139,20 +5139,20 @@ In the red mode, we warn for mutable ones in an otherwise pretty immutable envir
 <td class="tableblock halign-left valign-top"><p class="tableblock">black</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@SupportData</code>  (when field  <code>@NotModified</code> and owning type  <code>@E1Immutable</code> )</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@SupportData</code> </p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{supportData} (when field  <code>@NotModified</code> and owning type {e1immutable})</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{supportData}</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">green italics</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">black italics</p></td>
 </tr>
 </tbody>
 </table>
 <div class="paragraph">
-<p>The  <code>@SupportData</code>  annotation is relevant to understand why a type is not level 2 immutable.
+<p>The {supportData} annotation is relevant to understand why a type is not level 2 immutable.
 In other situations, it simply clutters.
-The analyser will only emit it when the type is already  <code>@E1Immutable</code>  or  <code>@E1Container</code> , and the field is already  <code>@NotModified</code>.</p>
+The analyser will only emit it when the type is already {e1immutable} or {e1container}, and the field is already  <code>@NotModified</code>.</p>
 </div>
 <div class="paragraph">
-<p>The plugin transfers dynamic type annotations involving immutability (such as  <code>@E2Container</code> ) from the field to the type.
+<p>The plugin transfers dynamic type annotations involving immutability (such as {e2container}) from the field to the type.
 As a consequence, the left-hand side <code>Set</code> type will color green in:</p>
 </div>
 <div class="listingblock">

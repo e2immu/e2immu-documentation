@@ -15,7 +15,7 @@ The overarching aim of the {e2immu} project is to improve every day programming 
 More concretely, the project focuses on adding various forms of immutability protections to your Java code base, by making the immutable nature of the types more visible.
 
 _Why Java?_ As a widely used object-oriented programming language, it has evolved over the years, and it has been increasingly equipped with functional programming machinery.
-It is therefore possible to write Java code in different styles, from overly object oriented to almost fully functional.
+It is therefore possible to write Java code in different styles, from overly object-oriented to almost fully functional.
 Combine this with lots of legacy code, both in house and in libraries, and many large software projects will end up mixing styles a lot.
 This adds to the complexity of understanding and maintaining the code base.
 
