@@ -2,8 +2,8 @@
 == Hidden content
 
 In this section, we consider modifications to the hidden content of a type, and explain when they are of importance.
-We give a formal definition of deeply or recursively immutable types, introduce the annotation {ercontainer}, as well as a sliding scale between level 2 and recursively immutable.
-The annotation {independent1}, which we have touched upon earlier, will be formally introduced.
+We give a formal definition of deeply or recursively immutable types, call them _constant_, and introduce the annotation {constant}.
+The annotation {independent}, which we have touched upon earlier, will be formally introduced.
 
 === Visitors
 
@@ -12,15 +12,15 @@ Let's start by going back to `NonEmptyImmutableList`, first defined in <<abstrac
 .Example {counter:example}, revisiting `NonEmptyImmutableList`
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 interface NonEmptyImmutableList<T> extends HasSize {
 
     // implicitly present: @NotModified
-    @Independent1
+    @Independent
     T first();
 
     // implicitly present: @NotModified
-    void visit(@Independent1 Consumer<T> consumer); // @IgnoreModifications
+    void visit(@Independent Consumer<T> consumer); // @IgnoreModifications
 
     @NotModified
     @Override
@@ -30,16 +30,16 @@ interface NonEmptyImmutableList<T> extends HasSize {
 }
 ----
 
-We start the discussion with the following level 2 immutable implementation of this interface:
+We start the discussion with the following immutable implementation of this interface:
 
-.Example {counter:example}, level 2 immutable implementation of `NonEmptyImmutableList`
+.Example {counter:example}, immutable implementation of `NonEmptyImmutableList`
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 class ImmutableOne<T> implements NonEmptyImmutableList<T> {
     private final T t;
 
-    public ImmutableOne(@Independent1 T t) {
+    public ImmutableOne(@Independent T t) {
         this.t = t;
     }
 
@@ -82,7 +82,7 @@ We will have to revert to a contracted {ignoreModifications} annotation on the p
 
 The second modification, however, is one we will ignore in the `ImmutableOne` type, and _defer_ or _propagate_ to the place where a concrete implementation of the consumer is presented.
 We can ignore it here, because `t` is part of the hidden content of the type; what happens to its content happens outside the zone of control of `ImmutableOne`.
-The fact that it is passed as an argument to a method of `consumer` is reflected by the {independent1} annotation.
+The fact that it is passed as an argument to a method of `consumer` is reflected by the {independent} annotation.
 It will take care of the propagation of modifications from the concrete implementation into the hidden content.
 
 This results in the following annotations for `visit` in `ImmutableOne`:
@@ -91,7 +91,7 @@ This results in the following annotations for `visit` in `ImmutableOne`:
 [source,java]
 ----
 @NotModified
-public void visit(@IgnoreModifications @Independent1 Consumer<T> consumer) {
+public void visit(@IgnoreModifications @Independent Consumer<T> consumer) {
     consumer.accept(t);
 }
 ----
@@ -108,15 +108,16 @@ Looking at the more general case of a `forEach` implementation iterating over a 
 [source,java]
 ----
 @NotModified
-public void forEach(@Independent1 Consumer<T> consumer) {
+public void forEach(@Independent Consumer<T> consumer) {
     for(T t: list) consumer.accept(t);
 }
 ----
 
 Modifications to the parameter, made by the concrete implementation, are propagated into the hidden content of `list`, as shown in the next section.
-The {independent1} annotation appears because hidden content in `list` is exposed to the `consumer` parameter.
-This annotation does not appear for the accessible content of the level 2 immutable type.
-Parameters of modifiable type are already shielded from external modification by the {independent} annotation, which is "trivial" for level 2 immutable types.
+The {independent} annotation appears because hidden content in `list` is exposed to the `consumer` parameter.
+This annotation does not appear for the accessible content of the immutable type.
+
+Recall that parameters of modifiable type can already be shielded from external modification by the {notLinked} annotation.
 
 === Propagating modifications
 
@@ -138,7 +139,7 @@ static void addNewLine(@Modified NonEmptyImmutableList<StringBuilder> list) {
 <2> Parameter-modifying lambda propagates a modification to `list` 's hidden content.
 
 It is the second method, `addNewLine`, that is of importance here.
-Thanks to the {independent1} annotation, we know of a modification to `list`, even if `list` is of level 2 immutable type!
+Thanks to the {modified} annotation, we know of a modification to `list`, even if `list` is of immutable type!
 It may help to see the for-loop written out, if we temporarily assume that we have added an implementation of `Iterable` to `NonEmptyImmutableList`, functionally identical to `visit`:
 
 .Example {counter:example}, alternative implementation of `addNewLine`
@@ -146,7 +147,7 @@ It may help to see the for-loop written out, if we temporarily assume that we ha
 ----
 static void addNewLine(@Modified NonEmptyImmutableList<StringBuilder> list) {
     for(StringBuilder sb: list) {
-      sb.append("\n"));
+        sb.append("\n"));
     }
 }
 ----
@@ -172,7 +173,7 @@ static void replace(@Modified NonEmptyList<StringBuilder> list) {
 <2> Modification to the modifiable content of `list`
 
 Without storing additional information (e.g., using an as yet undefined annotation like `@Modified1` on `list` in `addNewLine`), however, we cannot make the distinction between a modification to the string builders inside `list`, or a modification to `list` itself.
-In other words, applying the two methods further on, we cannot
+In other words, applying the two methods further on, we cannot compute
 
 .Example {counter:example}, using `print` and `addNewLine`
 [source,java]
@@ -196,7 +197,7 @@ static String useReplace(@NotModified StringBuilder input) {
 <2> This action discards `input` from `list` without modifying it.
 
 ****
-The example shows that the introduction of {independent1} only gets us so far: from the concrete, modifying implementation, to the parameter (or field).
+The example shows that the introduction of {independent} only gets us so far: from the concrete, modifying implementation, to the parameter (or field).
 We do not plan to keep track of the distinction between modification of hidden content vs modification of modifiable content to a further extent.
 ****
 
@@ -216,36 +217,36 @@ void addToStrings(@NotModified NonEmptyList<StringBuilder> list) {
 === Hidden content linking
 
 Going back to `ImmutableOne`, we see that the constructor links the parameter `t` to the instance's field by means of assignment.
-Let us call this binding of parameters of hidden content to the field _content linking_, and mark it using {independent1}, _content dependence_:
+Let us call this binding of parameters of hidden content to the field _content linking_, and mark it using {independent}, _content dependence_:
 
 .Example {counter:example}, constructor of `ImmutableOne`
 [source,java]
 ----
 private final T t;
 
-public ImmutableOne(@Independent1 T t) {
+public ImmutableOne(@Independent T t) {
     this.t = t;
 }
 ----
 
-Returning a part of the hidden content of the type, or exposing it as argument, both warrants a {independent1} annotation:
+Returning a part of the hidden content of the type, or exposing it as argument, both warrants a {independent} annotation:
 
 .Example {counter:example}, more methods of `ImmutableOne`
 [source,java]
 ----
-@Independent1
+@Independent
 @Override
 public T first() {
     return t;
 }
 
 @Override
-public void visit(@Independent1 Consumer<T> consumer) {
+public void visit(@Independent Consumer<T> consumer) {
     consumer.accept(t);
 }
 ----
 
-Observe that content dependence implies absence of dependence, as described in <<linking-and-independence>> and <<computing-dependence>>, exactly because we are dealing with parameters of level 2 immutable type.
+Observe that content dependence implies absence of dependence, as described in <<linking-and-independence>> and <<computing-dependence>>, exactly because we are dealing with type parameters of an immutable type.
 
 Another place where the hidden content linking can be seen, is the _for-each_ statement:
 
@@ -265,20 +266,20 @@ Because the `Collection` API contains an `add` method annotated as:
 [source,java]
 ----
 @Modified
-boolean add(@NotNull @Independent1 E e);
+boolean add(@NotNull @Independent E e);
 ----
 
 indicating that after calling `add`, the argument will become part of the hidden content of the collection, we conclude that the local loop variable `sb` gets content linked to the `builders` list.
 Similarly, this loop variable contains hidden content from the `list` object.
 
-We reuse the annotation {independent1} to indicate that the hidden content of two objects are linked.
+We reuse the annotation {independent} to indicate that the hidden content of two objects are linked.
 Let us look at a possible implementation of `Collection.addAll`:
 
 .Example {counter:example}, a possible implementation of `addAll` in `Collection`
 [source,java]
 ----
 @Modified
-boolean addAll(@NotNull1 @Independent1 Collection<? extends E> collection) {
+boolean addAll(@NotNull1 @Independent Collection<? extends E> collection) {
     boolean modified = false;
     for (E e : c) if (add(e)) modified = true;
     return modified;
@@ -288,7 +289,7 @@ boolean addAll(@NotNull1 @Independent1 Collection<? extends E> collection) {
 The call to `add` content links `e` to `this`.
 Because `e` is also content linked to `c`, the parameter `collection` holds hidden content linked to the hidden content of the instance.
 
-We are now properly armed to see how a for-each loop can be implemented using an iterator whose hidden content links to that of a level 1 immutable container.
+We are now properly armed to see how a for-each loop can be implemented using an iterator whose hidden content links to that of a container.
 
 === Iterator, Iterable, loops
 
@@ -297,11 +298,11 @@ Let us start with the simplest definition of an iterator, without `remove` metho
 .Example {counter:example}, the `Iterator` type, without `remove` method
 [source,java]
 ----
-@E1Container
+@Container
 interface Iterator<T> {
 
     @Modified
-    @Independent1
+    @Independent
     T next();
 
     @Modified
@@ -311,23 +312,23 @@ interface Iterator<T> {
 
 Either the `next` method, or the `hasNext` method, must make a change to the iterator, because it has to keep track of the next element.
 As such, we make both {modified}.
-Following the discussion in the previous section, `next` is {independent1}, because it returns part of the hidden content held by the iterator.
+Following the discussion in the previous section, `next` is {independent}, because it returns part of the hidden content held by the iterator.
 
 The interface `Iterable` is a supplier of iterators:
 
 .Example {counter:example}, the `Iterable` type
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 interface Iterable<T> {
 
-    @Independent1
+    @Independent
     Iterator<T> iterator();
 }
 ----
 
 First, creating an iterator should never be a modifying operation on a type.
-Typically, as we explore in the next section, it implies creating a sub-type, static or not, of the type implementing `Iterable`.
+Typically, as we explore in the next section, it implies creating a subtype, static or not, of the type implementing `Iterable`.
 Second, the iterator itself is independent of the fields of the implementing type, but has the ability to return its hidden content.
 
 The loop, on a variable `list` of type implementing `Iterable<T>`, is expressed as `for(T t: list) { ... }`, and can be interpreted as
@@ -346,10 +347,10 @@ The iterator `it` content-links to `list`; via the `next` method, it content-lin
 
 === Eventual immutability
 
-How does the whole story of eventual level 1 or level 2 immutability mix with hidden content?
+How does the whole story of eventually final fields and eventual immutability mix with hidden content?
 At some point, once a necessary precondition has been met, the hidden content will be well-defined, and modifying methods become unavailable.
 Before that, fields that will eventually contain the hidden content may still be `null`, or may be re-assigned.
-This should not have any effect, however, on the computation of hidden content linking, {independent1} annotations, and the propagation of modifications, since the actual types do not change.
+This should not have any effect, however, on the computation of hidden content linking, {independent} annotations, and the propagation of modifications, since the actual types do not change.
 The two concepts are sufficiently perpendicular to each other, and can easily co-exist.
 
 //end of file

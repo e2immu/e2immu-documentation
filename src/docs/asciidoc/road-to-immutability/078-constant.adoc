@@ -1,39 +1,16 @@
-== Higher-order immutability
+== Constant types
 
-=== Definition
-
-Without much ado, we extend the definition of immutability, by adding a single rule:
+== Definition
 
 ****
-*Definition: level n immutability, n > 2*:
-
-(*Rule 0*: The type is level 1 immutable: all fields are effectively final)
-
-*Rule 1*: All fields are {nm}.
-
-*Rule 2*: All fields are either private, or of level 2 immutable type.
-
-*Rule 3*: No parameters of non-private methods or non-private constructors, no return values of non-private methods, are dependent on (the accessible part of) the fields.
-
-*Rule 4*: The hidden content of the type is at least level n-1 immutable.
+A *constant type* is a type which is immutable yet cannot have hidden content.
 ****
 
-In a level 2 immutable type, the hidden content can be mutable or level 1 immutable.
-This means that it is of the form of an unbound type parameter.
+Let's see how this definition plays out.
 
-In a level 3 immutable type, the hidden content has to be level 2 immutable.
-This means that every type that is part of the hidden content, must be at least level 2 immutable.
+The core type `java.lang.String` is a good example: it is non-extensible (`public final class String { ... }`),
 
-Annotation-wise, we use  `@E2Container(level = 4), {ercontainer} in combination with the {container}
-property, and `@E2Immutable(level = 3)`, `@E2Immutable(recursive = true)` in its absence.
-
-Why this definition?
-Firstly, it is consistent with what we would think of as recursively or deeply immutable types:
-their hidden content is either absent or recursively immutable itself; think n equals infinity.
-In reality, of course, types are build from the "ground up" starting from recursively immutable types and the array construct.
-Observe that a level 2 immutable type whose hidden content consists of recursively immutable types only, becomes recursively immutable itself.
-
-Secondly, it allows us to quantify the level of independence as well.
+#TODO# how does this chime with transparent types? a constant type can have a transparent component to it??
 
 [#independent-type]
 === Independence of types
@@ -102,13 +79,8 @@ Armed with this definition, we can define the independence of types:
 
 A type is *dependent* when external modifications impact the accessible content of the type.
 
-A type is *level 1 independent*, annotated {independent1}, when external modifications cannot impact the accessible content of the type.
+A type is *independent*, annotated {independent}, when external modifications cannot impact the accessible content of the type.
 The hidden content of the type is mutable or modifiable.
-
-A type is *level n independent, n>1*, annotated `@Independent1(level = n)`, when external modifications cannot impact the accessible content of the type.
-The hidden content of the type is level n immutable.
-
-A type is *independent*, annotated {independent}, when external modifications cannot impact the content of the type.
 ****
 
 This definition is entirely equivalent to the definition of immutability without rules 0 and 1, and rules 2 and 3 restricted to those fields that are 'exposed' to the outside world via linking or hidden content linking.

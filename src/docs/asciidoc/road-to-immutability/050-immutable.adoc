@@ -197,7 +197,7 @@ class ArrayContainer2<T> {
     @NotModified
     public final T[] data;
 
-    public ArrayContainer2(@Independent1 T[] ts) {
+    public ArrayContainer2(@Independent T[] ts) {
         this.data = new T[ts.length];
         System.arraycopy(ts, 0, data, 0, ts.length);
     }
