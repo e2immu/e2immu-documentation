@@ -1,5 +1,3 @@
-
-
 :y: icon:check[role="green"]
 :n: icon:times[role="red"]
 :c: icon:file-text-o[role="blue"]
@@ -12,10 +10,10 @@
 :allowsInterrupt: pass:normal[ `@AllowsInterrupt` ]
 :beforeMark: pass:normal[ `@BeforeMark` ]
 :container:  pass:normal[ `@Container` ]
-:dependent: pass:normal[ `@Dependent` ]
 :extensionClass: pass:normal[ `@ExtensionClass` ]
 :final:  pass:normal[ `@Final` ]
 :finalFields: pass:normal[ `@FinalFields` ]
+:finalFieldsAbsent: pass:normal[ `@FinalFields(absent=true)` ]
 :finalizer:  pass:normal[ `@Finalizer` ]
 :fluent: pass:normal[ `@Fluent` ]
 :identity:  pass:normal[ `@Identity` ]
@@ -25,6 +23,7 @@
 :immutableContainer: pass:normal[ `@ImmutableContainer` ]
 :immutableContainerHC: pass:normal[ `@ImmutableContainer(hc=true)` ]
 :independent:  pass:normal[ `@Independent` ]
+:independentAbsent: pass:normal[ `@Independent(absent=true)` ]
 :independentHC:  pass:normal[ `@Independent(hc=true)` ]
 :mark: pass:normal[ `@Mark` ]
 :modified:  pass:normal[ `@Modified` ]

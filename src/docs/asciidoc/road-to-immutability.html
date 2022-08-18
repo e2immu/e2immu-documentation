@@ -1654,7 +1654,7 @@ In the following sections, we will often use the term 'independent' when we mean
 </div>
 <div class="paragraph">
 <p>In terms of annotations, dependence will be the default state for objects of types where dependence is possible.
-We will not annotate it most of the time; if we do, we use the annotation  <code>@Dependent</code> .
+We will not annotate it most of the time; if we do, we use the annotation {dependent}.
 The annotation {notLinked} on parameters and methods will be used for absence of linking.
 When a type is deeply immutable, {notLinked} is the default state, and therefore it will be omitted.
 We use  <code>@Independent</code>  for the linking to the hidden part, to be elaborated upon in <a href="#hidden-content-linking">Hidden content linking</a>.</p>
@@ -5653,7 +5653,7 @@ We refer to the manual for a more in-depth treatment of companion methods and in
 <div class="paragraph">
 <p>Only when all three are satisfied, we reach immutability.
 The first table shows which annotations are used in function of the presence of these three properties.
-The reason we add <code>@FinalFields(absent=true)</code>,  <code>@Dependent</code>  and  <code>@Modified</code>  is to indicate to the user that there is only one property missing to reach immutability.</p>
+The reason we add  <code>@FinalFields(absent=true)</code> ,  <code>@Independent(absent=true)</code>  and  <code>@Modified</code>  is to indicate to the user that there is only one property missing to reach immutability.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Leading up to immutability</caption>
@@ -5688,7 +5688,7 @@ The reason we add <code>@FinalFields(absent=true)</code>,  <code>@Dependent</cod
 <th class="tableblock halign-left valign-top"><p class="tableblock">no modifying methods</p></th>
 <td class="tableblock halign-left valign-top"><p class="tableblock">no annotation (variable, dependent)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>@FinalFields(absent=true)</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@FinalFields</code>  <code>@Dependent</code> </p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@FinalFields</code>  <code>@Independent(absent=true)</code> </p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"> <code>@Immutable</code> </p></td>
 </tr>
 </tbody>
@@ -5742,10 +5742,10 @@ Because of the importance and hopefully abundant presence of the container prope
 <div class="ulist">
 <ul>
 <li>
-<p> <code>@Dependent</code> : modification of communicated values potentially implies a change to the accessible part of the object graph of the fields</p>
+<p>dependent: modification of communicated values potentially implies a change to the accessible part of the object graph of the fields</p>
 </li>
 <li>
-<p> <code>@Independent</code> : not dependent.
+<p>independent: defined as not dependent.
 When required, this can be split into</p>
 <div class="ulist">
 <ul>
@@ -5781,7 +5781,7 @@ When required, this can be split into</p>
 <th class="tableblock halign-center valign-top"><p class="tableblock">no hidden content</p></th>
 </tr>
 <tr>
-<th class="tableblock halign-left valign-top"><p class="tableblock"> <code>@Dependent</code> </p></th>
+<th class="tableblock halign-left valign-top"><p class="tableblock">dependent (no annotation)</p></th>
 <td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon green"><i class="fa fa-check"></i></span></p></td>
 <td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon red"><i class="fa fa-times"></i></span></p></td>
 <td class="tableblock halign-center valign-top"><p class="tableblock"><span class="icon red"><i class="fa fa-times"></i></span></p></td>
@@ -5819,12 +5819,12 @@ Change this by explicitly marking the method  <code>@NotModified</code> or  <cod
 </div>
 <div class="paragraph">
 <p>Parameters of a non-modifying method are  <code>@Independent</code>  by default, regardless of an independence annotation on the type.
-This can be overwritten by  <code>@Dependent</code>  or  <code>@Independent(hc=true)</code>  when the method 'leaks' content via its parameters.</p>
+This can be overwritten by  <code>@Independent(absent=true)</code>  or  <code>@Independent(hc=true)</code>  when the method 'leaks' content via its parameters.</p>
 </div>
 <div class="paragraph">
-<p>When a type is not immutable,  <code>@Dependent</code>  is the default dependence annotation for methods, parameters and types.
-It is only written on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate which property is missing to reach immutability.
-Marking a non-immutable type with  <code>@Independent</code>  specifies that no parameter or return value can be  <code>@Dependent</code> .
+<p>When a type is not immutable, dependence is the normal state for methods, parameters and types.
+It is only explicitly written as  <code>@Independent(absent=true)</code>  on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate which property is missing to reach immutability.
+Marking a non-immutable type with  <code>@Independent</code>  specifies that no parameter or return value can be dependent.
 The hidden content parameter given by the user is ignored: you will still have to mark any method or parameter which communicates hidden content with  <code>@Independent(hc=true)</code> .</p>
 </div>
 <div class="paragraph">
