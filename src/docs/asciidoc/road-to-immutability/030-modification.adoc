@@ -20,7 +20,7 @@ Consider:
 [source,java]
 ----
 class Counter {
-    @Variable
+    // variable
     private int counter;
 
     @NotModified

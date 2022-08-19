@@ -6,11 +6,11 @@ Immutability requires three properties:
 
 . the fields are effectively final
 . there are no modifying methods
-. there is independence of method return values and parameters
+. the fields' values are not exposed: there is independence of method return values and parameters
 
-Only when all three are satisfied, we reach immutability.
+Only when all three are satisfied, a type reaches immutability.
 The first table shows which annotations are used in function of the presence of these three properties.
-The reason we add {finalFieldsAbsent}, {independentAbsent} and {modified} is to indicate to the user that there is only one property missing to reach immutability.
+The reason the analyser add {finalFieldsAbsent}, {independentAbsent} and {modified} is to indicate to the user that there is only one property missing to reach immutability.
 
 .Leading up to immutability
 [cols="5"]
@@ -59,7 +59,7 @@ h|constant
 h|type is not container
 |`@Immutable(hc=true)`
 |`@Immutable`
-|`@Immutable(value="abc")`
+|-
 
 h|type is container
 |`@ImmutableContainer(hc=true)`
@@ -76,14 +76,14 @@ The independence levels are
 * dependent: modification of communicated values potentially implies a change to the accessible part of the object graph of the fields
 * independent: defined as not dependent.
 When required, this can be split into
-** allow hidden content transfer, or `hc = true`: modification of communicated values potentially implies a change to the hidden part of the object graph of the fields, but not in the accessible part
-** don't allow any transfer, or `hc = false`: modification of communicated values is either impossible or cannot change to the object graph of the fields
+** allow hidden content transfer, or `hc = true`: modification of communicated values potentially implies a change to the hidden part of the object graph of the fields, but not to the accessible part
+** don't allow any transfer, or `hc = false`: modification of communicated values is either impossible or cannot change the object graph of the fields
 
 .Possible combinations of dependence of communicated values in relation to immutability
 [cols=4]
 |===
 
-h|type
+h|type is
 ^h|not immutable
 2+^h|immutable
 
@@ -109,34 +109,40 @@ h|{independent}
 
 |===
 
+Immutable types with hidden content in the form of a type parameter, take the immutability level of the concrete types when that type parameter receives them:
+
+* if the concrete type is mutable, then the combination is mutable, e.g., `Optional<StringBuilder>` is mutable
+* if the concrete type is immutable, but has hidden content, the combination is immutable with hidden content, e.g., `Optional<Object>`
+* if the concrete type is deeply immutable (no hidden content), the combination is deeply immutable, e.g., `Optional<Integer>`
+
+The immutable type with hidden content acts as a wrapper.
+
 === Default annotations
 
-When annotating abstract types, or types in the Annotated APIs, observe the following rules.
+When annotating abstract types and methods, or types in the Annotated APIs, observe the following rules.
 
-A method is {nm} unless otherwise specified, its parameters are assumed to be {modified}.
+A method is {nm} unless otherwise specified, its parameters are assumed to be {modified}, unless they are of immutable type.
 
 The annotations {container} and {independent} on types are essentially shorthands to avoid having to write, respectively and where applicable, {nm} on parameters, and {independent} on parameters and methods.
-Their values on types are computed by the analyser after processing the other information about the type, and the annotations on methods and parameters.
+When not explicitly annotated on a type, their values are computed by the analyser after processing the other information about the type, and the annotations on methods and parameters.
 
 In a {container} type, all {fluent} methods and all void methods are assumed to be {modified}.
 Change this by explicitly marking the method {nm} or {sse}.
 
 Parameters of a non-modifying method are {independent} by default, regardless of an independence annotation on the type.
-This can be overwritten by {independentAbsent} or {independentHC} when the method 'leaks' content via its parameters.
+This can be overwritten by {independentAbsent} or {independentHC} when the method exposes parts of the fields' object graph via its parameters.
 
 When a type is not immutable, dependence is the normal state for methods, parameters and types.
-It is only explicitly written as {independentAbsent} on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate which property is missing to reach immutability.
+It is only explicitly written as {independentAbsent} on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate that it is the independence property that is missing to reach immutability.
 Marking a non-immutable type with {independent} specifies that no parameter or return value can be dependent.
 The hidden content parameter given by the user is ignored: you will still have to mark any method or parameter which communicates hidden content with {independentHC}.
 
 When a type is immutable, {independent} becomes the default independence annotation for methods and parameters.
 You must still use {independentHC} to indicate communication of hidden content.
 
-The analyser computes the final independence value of the type by inspecting the methods and their parameters.
-
 Methods marked {fluent} are always {independent}, because returning the type itself does not expose any additional information.
 
-Following its definition, a {utilityClass} implies {immutable}.
+Following its definition, {utilityClass} on a type implies {immutable}.
 
 In the {immutable} annotation, we generally do not write `hc = false`, as that is the default value in the annotation.
 The analyser adds `hc = true` automatically when a type is abstract (it is an interface, or an abstract class).
@@ -151,5 +157,12 @@ The default nullable annotation for parameters and return values of non-primitiv
 
 A factory method is a static method returning an object of the type of the class.
 Independence of a factory method is always with respect to the method's parameters, rather than to the type.
-This rule applies to any static method in a immutable type.
-(Utility classes are classes that are immutable and cannot be instantiated.)
+This rule also applies to any static method in an immutable type.
+Note that utility classes are classes that are immutable and cannot be instantiated, so it applies to their static methods.
+
+In general, annotations are inherited on types, methods and parameters.
+The properties can deviate,
+
+- from {modified} to {nm} is possible, from {nm} to {modified} is not
+- independence can go from left to right in {independentAbsent} -> {independentHC} -> {independent}, but not from right to left
+- a type deriving from an immutable type does not need to be immutable; however, a type deriving from a non-immutable type can never be immutable

@@ -19,7 +19,7 @@ public class CyclicReferences {
     @MutableModifiesArguments
     static class C1 {
 
-        @Variable
+        // variable
         private int i;
 
         @Modified

@@ -12,6 +12,7 @@
 :container:  pass:normal[ `@Container` ]
 :extensionClass: pass:normal[ `@ExtensionClass` ]
 :final:  pass:normal[ `@Final` ]
+:finalAbsent:  pass:normal[ `@Final(absent=true)` ]
 :finalFields: pass:normal[ `@FinalFields` ]
 :finalFieldsAbsent: pass:normal[ `@FinalFields(absent=true)` ]
 :finalizer:  pass:normal[ `@Finalizer` ]

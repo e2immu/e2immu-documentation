@@ -7,7 +7,7 @@ Let us start with a definition:
 ****
 
 The analyser annotates with {final} in the latter case; there is no point in cluttering with an annotation when the modifier is already there.
-It annotates fields that are not effectively final with {variable}.
+Fields that are not effectively final are called _variable_, they can optionally be annotated with {finalAbsent}.
 
 This definition allows effectively final fields to be assigned in methods accessible only from the constructor:
 
@@ -40,7 +40,7 @@ Obviously, if the same method is also accessible after construction, the field b
 [source,java]
 ----
 class EffectivelyFinal2 {
-    @Variable
+    @Final(absent = true)
     private Random random;
 
     public EffectivelyFinal2() {
@@ -124,9 +124,9 @@ Note that we will not make a distinction between any of the different non-privat
 Only the private modifier gives sufficient guarantees that no reassignment to the fields is possible.
 
 We now have observed that for the purpose of defining immutability, having all your fields effectively final can be sufficient in certain, limited circumstances.
-The analyser annotates types whose fields are all effectively final with {finalFields}.
 
-Types that are not {finalFields} because they have at least one {variable} field, are annotated either {mutableModifiesArguments} or {container}, depending on properties of the methods' parameters to be explained later.
+The analyser annotates types which are not immutable, but whose fields are all effectively final, with {finalFields}.
+Types that have at least one variable field are never immutable, and are optionally annotated with {finalFieldsAbsent}.
 
 Note that as of more recent versions of Java, the `record` type enforces explicitly final fields, along with additional support for equality and visibility.
 Any `record` will be at least {finalFields}.
@@ -139,26 +139,28 @@ More on this later, but here is a first example of type with eventually final fi
 .Example {counter:example}, simplified version of `SetOnce`
 [source,java]
 ----
-@FinalFields(after="t")
-class SetOnce<T> {
-    private T t;
+import java.util.Random;
 
-    @Mark("t")
-    public void set(T t) {
-        if(t == null) throw new NullPointerException();
-        if(this.t != null) throw new IllegalStateException("Already set");
-        this.t = t;
+@FinalFields(after="random")
+class OneRandom {
+    private Random random;
+
+    @Mark("random")
+    public void set(Random r) {
+        if(r == null) throw new NullPointerException();
+        if(this.random != null) throw new IllegalStateException("Already set");
+        this.random = r;
     }
 
-    @Only(after="t")
-    public void get() {
-        if(this.t == null) throw new IllegalStateException("Not yet set");
-        return this.t;
+    @Only(after="random")
+    public Random get() {
+        if(this.random == null) throw new IllegalStateException("Not yet set");
+        return this.random;
     }
 }
 ----
 
-Once a value has been set, the field `t` cannot be assigned anymore.
+Once a value has been set, the field `random` cannot be assigned anymore.
 
 We have just observed that if one restricts to primitives and types like `java.lang.String`, final fields are sufficient to guarantee deep immutability.
 It is not feasible, and we do not wish to, work _only_ with deeply immutable objects.
@@ -170,9 +172,11 @@ Moreover, it is easy to see that final fields alone not enough to guarantee what
 @FinalFields
 class StringsInArray {
     private final String[] data;
+
     public StringsInArray(String[] strings) {
         this.data = strings;
     }
+
     public String getFirst() {
         return data[0];
     }

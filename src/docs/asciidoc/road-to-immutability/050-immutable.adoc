@@ -53,10 +53,10 @@ Here is an example which shows the necessity of the first rule more explicitly:
 ----
 @Container
 class Point {
-    @Variable
+    // variable
     private double x;
 
-    @Variable
+    // variable
     private double y;
 
     @NotModified
@@ -628,7 +628,7 @@ Implementations can even lose {finalFields}:
 @Container
 static class One<T> implements NonEmptyList<T> {
 
-    @Variable
+    // variable
     private T t;
 
     @NotModified

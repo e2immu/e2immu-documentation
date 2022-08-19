@@ -9,12 +9,12 @@ This is the formal rule:
 ****
 
 Whatever else the container does, storing the parameters in fields or not, it will not change your objects.
-You obviously remain free to change them elsewhere; then the container will hold on to the changed object, not some copy.
+You obviously remain free to change them elsewhere; then the container may hold on to the changed object.
 
 Containers are complementary to immutable objects, and we will find that many immutable objects are containers, while some containers are the precursors to immutable types.
 There are two archetypes for containers: collections and builders.
 
-The simple but useful utility type `Pair` trivially satisfies both requirements:
+The simple but useful utility type `Pair` trivially satisfies the container requirements:
 
 .Example {counter:example}, a `Pair` of objects
 [source,java]
@@ -43,7 +43,7 @@ While its fields are clearly final, it will remain to be seen if it satisfies al
 However, it is easily recognized as a container: a type you use and trust to hold objects.
 
 Containers occur frequently as static nested types to build immutable objects.
-Examples of these will follow later, after the definition of level 2 immutability.
+Examples of these will follow later, after the definition of immutability.
 
 In the following example, the first class is computed to be a container, the second is a container according to the contract, and the third is a class which cannot be a container:
 
@@ -52,7 +52,7 @@ In the following example, the first class is computed to be a container, the sec
 ----
 @Container
 class ErrorMessage {
-    @Variable
+    // variable
     private String message;
 
     public ErrorMessage(String message) {
@@ -100,7 +100,7 @@ class BinaryExpression extends Expression {
 
 The `BinaryExpression` class is not a container, because it uses one of the parameters of a public method, `errorRegistry` of `evaluate`, as a writable container.
 
-We conclude this section by noting that arrays are essentially level 1 immutable containers: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
+We conclude this section by noting that arrays are essentially containers holding the {finalFields} property: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
 Indeed, consider the following semi-realistic implementation of an `Integer` array based on a `ByteBuffer`:
 
 .Example {counter:example}, an array is a level 1 immutable container

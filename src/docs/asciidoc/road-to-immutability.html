@@ -767,7 +767,7 @@ Some annotations, like <code>@Linked</code> and <code>@Constant</code>, serve no
 </div>
 <div class="paragraph">
 <p>The analyser annotates with  <code>@Final</code>  in the latter case; there is no point in cluttering with an annotation when the modifier is already there.
-It annotates fields that are not effectively final with {variable}.</p>
+Fields that are not effectively final are called <em>variable</em>, they can optionally be annotated with  <code>@Final(absent=true)</code> .</p>
 </div>
 <div class="paragraph">
 <p>This definition allows effectively final fields to be assigned in methods accessible only from the constructor:</p>
@@ -802,7 +802,7 @@ It annotates fields that are not effectively final with {variable}.</p>
 <div class="title">Example 2, the method setting the field is accessible after construction</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="type">class</span> <span class="class">EffectivelyFinal2</span> {
-    <span class="annotation">@Variable</span>
+    <span class="annotation">@Final</span>(absent = <span class="predefined-constant">true</span>)
     <span class="directive">private</span> <span class="predefined-type">Random</span> random;
 
     <span class="directive">public</span> EffectivelyFinal2() {
@@ -889,11 +889,11 @@ Whatever the reason, the analyser should recognize effective finality.</p>
 Only the private modifier gives sufficient guarantees that no reassignment to the fields is possible.</p>
 </div>
 <div class="paragraph">
-<p>We now have observed that for the purpose of defining immutability, having all your fields effectively final can be sufficient in certain, limited circumstances.
-The analyser annotates types whose fields are all effectively final with  <code>@FinalFields</code> .</p>
+<p>We now have observed that for the purpose of defining immutability, having all your fields effectively final can be sufficient in certain, limited circumstances.</p>
 </div>
 <div class="paragraph">
-<p>Types that are not  <code>@FinalFields</code>  because they have at least one {variable} field, are annotated either {mutableModifiesArguments} or  <code>@Container</code> , depending on properties of the methods' parameters to be explained later.</p>
+<p>The analyser annotates types which are not immutable, but whose fields are all effectively final, with  <code>@FinalFields</code> .
+Types that have at least one variable field are never immutable, and are optionally annotated with  <code>@FinalFields(absent=true)</code> .</p>
 </div>
 <div class="paragraph">
 <p>Note that as of more recent versions of Java, the <code>record</code> type enforces explicitly final fields, along with additional support for equality and visibility.
@@ -908,27 +908,29 @@ More on this later, but here is a first example of type with eventually final fi
 <div class="listingblock">
 <div class="title">Example 4, simplified version of <code>SetOnce</code></div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">t</span><span class="delimiter">&quot;</span></span>)
-<span class="type">class</span> <span class="class">SetOnce</span>&lt;T&gt; {
-    <span class="directive">private</span> T t;
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">import</span> <span class="include">java.util.Random</span>;
 
-    <span class="annotation">@Mark</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">t</span><span class="delimiter">&quot;</span></span>)
-    <span class="directive">public</span> <span class="type">void</span> set(T t) {
-        <span class="keyword">if</span>(t == <span class="predefined-constant">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">NullPointerException</span>();
-        <span class="keyword">if</span>(<span class="local-variable">this</span>.t != <span class="predefined-constant">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">IllegalStateException</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">Already set</span><span class="delimiter">&quot;</span></span>);
-        <span class="local-variable">this</span>.t = t;
+<span class="annotation">@FinalFields</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">random</span><span class="delimiter">&quot;</span></span>)
+<span class="type">class</span> <span class="class">OneRandom</span> {
+    <span class="directive">private</span> <span class="predefined-type">Random</span> random;
+
+    <span class="annotation">@Mark</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">random</span><span class="delimiter">&quot;</span></span>)
+    <span class="directive">public</span> <span class="type">void</span> set(<span class="predefined-type">Random</span> r) {
+        <span class="keyword">if</span>(r == <span class="predefined-constant">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">NullPointerException</span>();
+        <span class="keyword">if</span>(<span class="local-variable">this</span>.random != <span class="predefined-constant">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">IllegalStateException</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">Already set</span><span class="delimiter">&quot;</span></span>);
+        <span class="local-variable">this</span>.random = r;
     }
 
-    <span class="annotation">@Only</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">t</span><span class="delimiter">&quot;</span></span>)
-    <span class="directive">public</span> <span class="type">void</span> get() {
-        <span class="keyword">if</span>(<span class="local-variable">this</span>.t == <span class="predefined-constant">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">IllegalStateException</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">Not yet set</span><span class="delimiter">&quot;</span></span>);
-        <span class="keyword">return</span> <span class="local-variable">this</span>.t;
+    <span class="annotation">@Only</span>(after=<span class="string"><span class="delimiter">&quot;</span><span class="content">random</span><span class="delimiter">&quot;</span></span>)
+    <span class="directive">public</span> <span class="predefined-type">Random</span> get() {
+        <span class="keyword">if</span>(<span class="local-variable">this</span>.random == <span class="predefined-constant">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">IllegalStateException</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">Not yet set</span><span class="delimiter">&quot;</span></span>);
+        <span class="keyword">return</span> <span class="local-variable">this</span>.random;
     }
 }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Once a value has been set, the field <code>t</code> cannot be assigned anymore.</p>
+<p>Once a value has been set, the field <code>random</code> cannot be assigned anymore.</p>
 </div>
 <div class="paragraph">
 <p>We have just observed that if one restricts to primitives and types like <code>java.lang.String</code>, final fields are sufficient to guarantee deep immutability.
@@ -941,9 +943,11 @@ Moreover, it is easy to see that final fields alone not enough to guarantee what
 <pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@FinalFields</span>
 <span class="type">class</span> <span class="class">StringsInArray</span> {
     <span class="directive">private</span> <span class="directive">final</span> <span class="predefined-type">String</span><span class="type">[]</span> data;
+
     <span class="directive">public</span> StringsInArray(<span class="predefined-type">String</span><span class="type">[]</span> strings) {
         <span class="local-variable">this</span>.data = strings;
     }
+
     <span class="directive">public</span> <span class="predefined-type">String</span> getFirst() {
         <span class="keyword">return</span> data[<span class="integer">0</span>];
     }
@@ -1002,7 +1006,7 @@ Consider:</p>
 <div class="title">Example 6, modifying and non-modifying methods</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="type">class</span> <span class="class">Counter</span> {
-    <span class="annotation">@Variable</span>
+    <span class="comment">// variable</span>
     <span class="directive">private</span> <span class="type">int</span> counter;
 
     <span class="annotation">@NotModified</span>
@@ -1159,14 +1163,14 @@ This is the formal rule:</p>
 </div>
 <div class="paragraph">
 <p>Whatever else the container does, storing the parameters in fields or not, it will not change your objects.
-You obviously remain free to change them elsewhere; then the container will hold on to the changed object, not some copy.</p>
+You obviously remain free to change them elsewhere; then the container may hold on to the changed object.</p>
 </div>
 <div class="paragraph">
 <p>Containers are complementary to immutable objects, and we will find that many immutable objects are containers, while some containers are the precursors to immutable types.
 There are two archetypes for containers: collections and builders.</p>
 </div>
 <div class="paragraph">
-<p>The simple but useful utility type <code>Pair</code> trivially satisfies both requirements:</p>
+<p>The simple but useful utility type <code>Pair</code> trivially satisfies the container requirements:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example 8, a <code>Pair</code> of objects</div>
@@ -1197,7 +1201,7 @@ However, it is easily recognized as a container: a type you use and trust to hol
 </div>
 <div class="paragraph">
 <p>Containers occur frequently as static nested types to build immutable objects.
-Examples of these will follow later, after the definition of level 2 immutability.</p>
+Examples of these will follow later, after the definition of immutability.</p>
 </div>
 <div class="paragraph">
 <p>In the following example, the first class is computed to be a container, the second is a container according to the contract, and the third is a class which cannot be a container:</p>
@@ -1207,7 +1211,7 @@ Examples of these will follow later, after the definition of level 2 immutabilit
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">ErrorMessage</span> {
-    <span class="annotation">@Variable</span>
+    <span class="comment">// variable</span>
     <span class="directive">private</span> <span class="predefined-type">String</span> message;
 
     <span class="directive">public</span> ErrorMessage(<span class="predefined-type">String</span> message) {
@@ -1266,7 +1270,7 @@ Examples of these will follow later, after the definition of level 2 immutabilit
 <p>The <code>BinaryExpression</code> class is not a container, because it uses one of the parameters of a public method, <code>errorRegistry</code> of <code>evaluate</code>, as a writable container.</p>
 </div>
 <div class="paragraph">
-<p>We conclude this section by noting that arrays are essentially level 1 immutable containers: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
+<p>We conclude this section by noting that arrays are essentially containers holding the  <code>@FinalFields</code>  property: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
 Indeed, consider the following semi-realistic implementation of an <code>Integer</code> array based on a <code>ByteBuffer</code>:</p>
 </div>
 <div class="listingblock">
@@ -1730,10 +1734,10 @@ Summarizing: <code>Pair</code> fits the intuitive definition nicely.</p>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Container</span>
 <span class="type">class</span> <span class="class">Point</span> {
-    <span class="annotation">@Variable</span>
+    <span class="comment">// variable</span>
     <span class="directive">private</span> <span class="type">double</span> x;
 
-    <span class="annotation">@Variable</span>
+    <span class="comment">// variable</span>
     <span class="directive">private</span> <span class="type">double</span> y;
 
     <span class="annotation">@NotModified</span>
@@ -2476,7 +2480,7 @@ Implementations can even lose  <code>@FinalFields</code> :</p>
 <pre class="CodeRay highlight"><code data-lang="java"><span class="annotation">@Container</span>
 <span class="directive">static</span> <span class="type">class</span> <span class="class">One</span>&lt;T&gt; <span class="directive">implements</span> NonEmptyList&lt;T&gt; {
 
-    <span class="annotation">@Variable</span>
+    <span class="comment">// variable</span>
     <span class="directive">private</span> T t;
 
     <span class="annotation">@NotModified</span>
@@ -3254,7 +3258,7 @@ However, there could be indirect modifications, as in:</p>
     <span class="annotation">@MutableModifiesArguments</span>
     <span class="directive">static</span> <span class="type">class</span> <span class="class">C1</span> {
 
-        <span class="annotation">@Variable</span>
+        <span class="comment">// variable</span>
         <span class="directive">private</span> <span class="type">int</span> i;
 
         <span class="annotation">@Modified</span>
@@ -5646,14 +5650,14 @@ We refer to the manual for a more in-depth treatment of companion methods and in
 <p>there are no modifying methods</p>
 </li>
 <li>
-<p>there is independence of method return values and parameters</p>
+<p>the fields' values are not exposed: there is independence of method return values and parameters</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>Only when all three are satisfied, we reach immutability.
+<p>Only when all three are satisfied, a type reaches immutability.
 The first table shows which annotations are used in function of the presence of these three properties.
-The reason we add  <code>@FinalFields(absent=true)</code> ,  <code>@Independent(absent=true)</code>  and  <code>@Modified</code>  is to indicate to the user that there is only one property missing to reach immutability.</p>
+The reason the analyser add  <code>@FinalFields(absent=true)</code> ,  <code>@Independent(absent=true)</code>  and  <code>@Modified</code>  is to indicate to the user that there is only one property missing to reach immutability.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Leading up to immutability</caption>
@@ -5721,7 +5725,7 @@ Because of the importance and hopefully abundant presence of the container prope
 <th class="tableblock halign-left valign-top"><p class="tableblock">type is not container</p></th>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>@Immutable(hc=true)</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>@Immutable</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>@Immutable(value="abc")</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
 </tr>
 <tr>
 <th class="tableblock halign-left valign-top"><p class="tableblock">type is container</p></th>
@@ -5750,10 +5754,10 @@ When required, this can be split into</p>
 <div class="ulist">
 <ul>
 <li>
-<p>allow hidden content transfer, or <code>hc = true</code>: modification of communicated values potentially implies a change to the hidden part of the object graph of the fields, but not in the accessible part</p>
+<p>allow hidden content transfer, or <code>hc = true</code>: modification of communicated values potentially implies a change to the hidden part of the object graph of the fields, but not to the accessible part</p>
 </li>
 <li>
-<p>don&#8217;t allow any transfer, or <code>hc = false</code>: modification of communicated values is either impossible or cannot change to the object graph of the fields</p>
+<p>don&#8217;t allow any transfer, or <code>hc = false</code>: modification of communicated values is either impossible or cannot change the object graph of the fields</p>
 </li>
 </ul>
 </div>
@@ -5770,7 +5774,7 @@ When required, this can be split into</p>
 </colgroup>
 <tbody>
 <tr>
-<th class="tableblock halign-left valign-top"><p class="tableblock">type</p></th>
+<th class="tableblock halign-left valign-top"><p class="tableblock">type is</p></th>
 <th class="tableblock halign-center valign-top"><p class="tableblock">not immutable</p></th>
 <th class="tableblock halign-center valign-top" colspan="2"><p class="tableblock">immutable</p></th>
 </tr>
@@ -5800,14 +5804,33 @@ When required, this can be split into</p>
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>Immutable types with hidden content in the form of a type parameter, take the immutability level of the concrete types when that type parameter receives them:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>if the concrete type is mutable, then the combination is mutable, e.g., <code>Optional&lt;StringBuilder&gt;</code> is mutable</p>
+</li>
+<li>
+<p>if the concrete type is immutable, but has hidden content, the combination is immutable with hidden content, e.g., <code>Optional&lt;Object&gt;</code></p>
+</li>
+<li>
+<p>if the concrete type is deeply immutable (no hidden content), the combination is deeply immutable, e.g., <code>Optional&lt;Integer&gt;</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The immutable type with hidden content acts as a wrapper.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_default_annotations">18.2. Default annotations</h3>
 <div class="paragraph">
-<p>When annotating abstract types, or types in the Annotated APIs, observe the following rules.</p>
+<p>When annotating abstract types and methods, or types in the Annotated APIs, observe the following rules.</p>
 </div>
 <div class="paragraph">
-<p>A method is  <code>@NotModified</code> unless otherwise specified, its parameters are assumed to be  <code>@Modified</code> .</p>
+<p>A method is  <code>@NotModified</code> unless otherwise specified, its parameters are assumed to be  <code>@Modified</code> , unless they are of immutable type.</p>
 </div>
 <div class="paragraph">
 <p>The annotations  <code>@Container</code>  and  <code>@Independent</code>  on types are essentially shorthands to avoid having to write, respectively and where applicable,  <code>@NotModified</code> on parameters, and  <code>@Independent</code>  on parameters and methods.
@@ -5819,11 +5842,11 @@ Change this by explicitly marking the method  <code>@NotModified</code> or  <cod
 </div>
 <div class="paragraph">
 <p>Parameters of a non-modifying method are  <code>@Independent</code>  by default, regardless of an independence annotation on the type.
-This can be overwritten by  <code>@Independent(absent=true)</code>  or  <code>@Independent(hc=true)</code>  when the method 'leaks' content via its parameters.</p>
+This can be overwritten by  <code>@Independent(absent=true)</code>  or  <code>@Independent(hc=true)</code>  when the method exposes parts of the fields' object graph via its parameters.</p>
 </div>
 <div class="paragraph">
 <p>When a type is not immutable, dependence is the normal state for methods, parameters and types.
-It is only explicitly written as  <code>@Independent(absent=true)</code>  on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate which property is missing to reach immutability.
+It is only explicitly written as  <code>@Independent(absent=true)</code>  on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate that it is the independence property that is missing to reach immutability.
 Marking a non-immutable type with  <code>@Independent</code>  specifies that no parameter or return value can be dependent.
 The hidden content parameter given by the user is ignored: you will still have to mark any method or parameter which communicates hidden content with  <code>@Independent(hc=true)</code> .</p>
 </div>
@@ -5832,13 +5855,10 @@ The hidden content parameter given by the user is ignored: you will still have t
 You must still use  <code>@Independent(hc=true)</code>  to indicate communication of hidden content.</p>
 </div>
 <div class="paragraph">
-<p>The analyser computes the final independence value of the type by inspecting the methods and their parameters.</p>
-</div>
-<div class="paragraph">
 <p>Methods marked  <code>@Fluent</code>  are always  <code>@Independent</code> , because returning the type itself does not expose any additional information.</p>
 </div>
 <div class="paragraph">
-<p>Following its definition, a  <code>@UtilityClass</code>  implies  <code>@Immutable</code> .</p>
+<p>Following its definition,  <code>@UtilityClass</code>  on a type implies  <code>@Immutable</code> .</p>
 </div>
 <div class="paragraph">
 <p>In the  <code>@Immutable</code>  annotation, we generally do not write <code>hc = false</code>, as that is the default value in the annotation.
@@ -5858,8 +5878,25 @@ This property is only relevant when the type is immutable; the absence of <code>
 <div class="paragraph">
 <p>A factory method is a static method returning an object of the type of the class.
 Independence of a factory method is always with respect to the method&#8217;s parameters, rather than to the type.
-This rule applies to any static method in a  <code>@UtilityClass</code>  as well.
-(Utility classes are immutable and cannot be instantiated.)</p>
+This rule also applies to any static method in an immutable type.
+Note that utility classes are classes that are immutable and cannot be instantiated, so it applies to their static methods.</p>
+</div>
+<div class="paragraph">
+<p>In general, annotations are inherited on types, methods and parameters.
+The properties can deviate,</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>from  <code>@Modified</code>  to  <code>@NotModified</code> is possible, from  <code>@NotModified</code> to  <code>@Modified</code>  is not</p>
+</li>
+<li>
+<p>independence can go from left to right in  <code>@Independent(absent=true)</code>  &#8594;  <code>@Independent(hc=true)</code>  &#8594;  <code>@Independent</code> , but not from right to left</p>
+</li>
+<li>
+<p>a type deriving from an immutable type does not need to be immutable; however, a type deriving from a non-immutable type can never be immutable</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -5868,7 +5905,7 @@ This rule applies to any static method in a  <code>@UtilityClass</code>  as well
 <h2 id="_copyright_and_license">19. Copyright and License</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Copyright &#169; 2020, 2021, Bart Naudts, <a href="https://www.e2immu.org" class="bare">https://www.e2immu.org</a></p>
+<p>Copyright &#169; 2020&#8212;&#8203;2022 Bart Naudts, <a href="https://www.e2immu.org" class="bare">https://www.e2immu.org</a></p>
 </div>
 <div class="paragraph">
 <p>This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
@@ -5880,7 +5917,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-15 08:09:27 +0200
+Last updated 2022-08-17 12:47:30 +0200
 </div>
 </div>
 </body>
