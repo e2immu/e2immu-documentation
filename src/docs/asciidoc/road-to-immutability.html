@@ -5834,7 +5834,27 @@ When required, this can be split into</p>
 </div>
 <div class="paragraph">
 <p>The annotations  <code>@Container</code>  and  <code>@Independent</code>  on types are essentially shorthands to avoid having to write, respectively and where applicable,  <code>@NotModified</code> on parameters, and  <code>@Independent</code>  on parameters and methods.
-Their values on types are computed by the analyser after processing the other information about the type, and the annotations on methods and parameters.</p>
+Due to the large amount of circular type dependencies in the JDK, the current implementation of the Annotated API analyser requires annotations about independence, immutability, and container on the type.
+The following combinations are possible with respect ot independence and immutability:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>no independence information &#8594; independence according to the immutability value (not immutable &#8594; dependent,  <code>@Immutable(hc=true)</code>  &#8594;  <code>@Independent(hc=true)</code> ,  <code>@Immutable</code>  &#8594;  <code>@Independent</code> )</p>
+</li>
+<li>
+<p> <code>@Independent(absent=true)</code>  &#8594; dependent, this requires that the type is not immutable</p>
+</li>
+<li>
+<p> <code>@Independent(hc=true)</code>  &#8594; this is the default for  <code>@Immutable(hc=true)</code> ,  <code>@ImmutableContainer(hc=true)</code> , so only useful on non-immutable types</p>
+</li>
+<li>
+<p> <code>@Independent</code>  &#8594; this is the default for  <code>@Immutable</code> ,  <code>@ImmutableContainer</code> , so only useful for non-immutable or  <code>@Immutable(hc=true)</code>  types</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To support the user, a warning will be raised when the independence value on the type is incompatible with that on methods, parameters and fields.</p>
 </div>
 <div class="paragraph">
 <p>In a  <code>@Container</code>  type, all  <code>@Fluent</code>  methods and all void methods are assumed to be  <code>@Modified</code> .
@@ -5842,11 +5862,11 @@ Change this by explicitly marking the method  <code>@NotModified</code> or  <cod
 </div>
 <div class="paragraph">
 <p>Parameters of a non-modifying method are  <code>@Independent</code>  by default, regardless of an independence annotation on the type.
-This can be overwritten by  <code>@Independent(absent=true)</code>  or  <code>@Independent(hc=true)</code>  when the method exposes parts of the fields' object graph via its parameters.</p>
+This can be overwritten by  <code>@Independent(absent=true)</code>  or  <code>@Independent(hc=true)</code>  when the method exposes parts of the fields' object graph via its parameters.
+Parameters of a modifying method are assumed to be dependent when the type is not immutable, and independent when the type is immutable, the hidden content carrying over from immutable to independent.</p>
 </div>
 <div class="paragraph">
-<p>When a type is not immutable, dependence is the normal state for methods, parameters and types.
-It is only explicitly written as  <code>@Independent(absent=true)</code>  on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate that it is the independence property that is missing to reach immutability.
+<p>Dependence is only explicitly written as  <code>@Independent(absent=true)</code>  on a type after analysis, when this type has (eventually) final fields and no modifying methods, as a marker to the user to indicate that it is the independence property that is missing to reach immutability.
 Marking a non-immutable type with  <code>@Independent</code>  specifies that no parameter or return value can be dependent.
 The hidden content parameter given by the user is ignored: you will still have to mark any method or parameter which communicates hidden content with  <code>@Independent(hc=true)</code> .</p>
 </div>
@@ -5878,7 +5898,8 @@ This property is only relevant when the type is immutable; the absence of <code>
 <div class="paragraph">
 <p>A factory method is a static method returning an object of the type of the class.
 Independence of a factory method is always with respect to the method&#8217;s parameters, rather than to the type.
-This rule also applies to any static method in an immutable type.
+Independence of a factory method&#8217;s parameters corresponds to the immutability of the parameter type.
+These two rules also applies to any static method in an immutable type.
 Note that utility classes are classes that are immutable and cannot be instantiated, so it applies to their static methods.</p>
 </div>
 <div class="paragraph">
