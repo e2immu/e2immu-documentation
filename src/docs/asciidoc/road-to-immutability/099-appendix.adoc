@@ -150,7 +150,7 @@ You must still use {independentHC} to indicate communication of hidden content.
 
 Methods marked {fluent} are always {independent}, because returning the type itself does not expose any additional information.
 
-Following its definition, {utilityClass} on a type implies {immutable}.
+Following its definition, {utilityClass} on a type implies deeply {immutable}.
 
 In the {immutable} annotation, we generally do not write `hc = false`, as that is the default value in the annotation.
 The analyser adds `hc = true` automatically when a type is abstract (it is an interface, or an abstract class).
@@ -167,7 +167,7 @@ A factory method is a static method returning an object of the type of the class
 Independence of a factory method is always with respect to the method's parameters, rather than to the type.
 Independence of a factory method's parameters corresponds to the immutability of the parameter type.
 These two rules also applies to any static method in an immutable type.
-Note that utility classes are classes that are immutable and cannot be instantiated, so it applies to their static methods.
+Note that utility classes are classes that are deeply immutable and cannot be instantiated, so it applies to their static methods.
 
 In general, annotations are inherited on types, methods and parameters.
 The properties can deviate,
@@ -175,3 +175,12 @@ The properties can deviate,
 - from {modified} to {nm} is possible, from {nm} to {modified} is not
 - independence can go from left to right in {independentAbsent} -> {independentHC} -> {independent}, but not from right to left
 - a type deriving from an immutable type does not need to be immutable; however, a type deriving from a non-immutable type can never be immutable
+
+=== Implicit annotations
+
+It is important not to crowd the code with annotations.
+
+When a method has a single statement, returning a constant value, the `@ImmutableContainer("value")` is implicit.
+Similarly, when a field is explicitly final (it has the `final` modifier) and it has an initialiser, then both {final}
+and, if relevant, `@ImmutableContainer("value")`, is implicit.
+

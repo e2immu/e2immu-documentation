@@ -31,7 +31,7 @@ Once the immutable type is ready, it is stored in `TypeInfo`:
 .Example {counter:example}, explaining `org.e2immu.analyser.model.TypeInfo`
 [source,java]
 ----
-@E2Container(after="typeAnalysis,typeInspection")
+@ImmutableContainer(after="typeAnalysis,typeInspection")
 public class TypeInfo {
     public final String fullyQualifiedName;
 

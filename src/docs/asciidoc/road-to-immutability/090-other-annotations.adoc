@@ -26,7 +26,7 @@ Its occurrence in a not-null context directly influences the not-null of the par
 
 ==== Higher order not-null
 
-We use the annotation {nn1} to indicate that none of the object's fields can be null.
+We use the annotation {nnContent} to indicate that none of the object's fields can be null.
 This concept is useful when working with collections.
 
 Consider the following {nn} variants on the `List` API:
@@ -58,7 +58,7 @@ V put(@NotNull K key, @NotNull V value);
 ----
 
 Note how the map copy is only {nn}, while the entry set is not null, the entries in this set are not null, and the keys and values are neither.
-There is currently no plan to implement beyond {nn1}, however.
+There is currently no plan to implement beyond {nnContent}, however.
 
 [#identity-and-fluent]
 === Identity and fluent methods
@@ -70,7 +70,7 @@ Here is an integrated example:
 .Example {counter:example}, methods marked {identity} and {fluent}
 [source,java]
 ----
-@E1Container(builds=List.class)
+@FinalFields(builds=List.class)
 class Builder {
 
     @NotNull
@@ -291,14 +291,14 @@ class Finisher {
 We use the simple and common definition:
 
 ****
-*Definition*: a *utility class* is a level 2 immutable class which cannot be instantiated.
+*Definition*: a *utility class* is a recursively immutable class which cannot be instantiated.
 ****
 
 These definitions imply
 
 . a utility class has no non-static fields,
 . it has a single, private, unused constructor,
-. and its static fields (if it has any) are sufficiently immutable.
+. and its static fields (if it has any) are of recursively immutable type.
 
 === Extension classes
 
