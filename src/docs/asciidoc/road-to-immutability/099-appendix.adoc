@@ -10,7 +10,6 @@ Immutability requires three properties:
 
 Only when all three are satisfied, a type reaches immutability.
 The first table shows which annotations are used in function of the presence of these three properties.
-The reason the analyser add {finalFieldsAbsent}, {independentAbsent} and {modified} is to indicate to the user that there is only one property missing to reach immutability.
 
 .Leading up to immutability
 [cols="5"]
@@ -28,7 +27,7 @@ h|independent
 
 h|modifying methods
 |no annotation (variable, dependent, modified)
-|no annotation (variable, modified)
+|{independent}
 |{finalFields}
 |{finalFields}{modified}
 

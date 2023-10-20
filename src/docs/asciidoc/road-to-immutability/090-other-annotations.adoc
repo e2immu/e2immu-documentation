@@ -35,9 +35,9 @@ Consider the following {nn} variants on the `List` API:
 [source,java]
 ----
 boolean add(@NotNull E e);
-boolean addAll(@NotNull1 Collection<? extends E> collection);
-@NotNull1 static <E> List<E> copyOf(@NotNull1 Collection<? extends E> collection);
-@NotNull1 Iterator<E> iterator();
+boolean addAll(@NotNull(content=true) Collection<? extends E> collection);
+@NotNull(content=true) static <E> List<E> copyOf(@NotNull(content=true) Collection<? extends E> collection);
+@NotNull(content=true) Iterator<E> iterator();
 ----
 
 They effectively block the use of null elements in the collection.
@@ -54,10 +54,11 @@ A second level would be useful when working with entry sets:
 ----
 V put(@NotNull K key, @NotNull V value);
 @NotNull static <K, V> Map<K, V> copyOf(@NotNull Map<? extends K, ? extends V> map);
-@NotNull2 Set<Map.Entry<K, V>> entrySet();
+@NotNull(content2=true) Set<Map.Entry<K, V>> entrySet();
 ----
 
-Note how the map copy is only {nn}, while the entry set is not null, the entries in this set are not null, and the keys and values are neither.
+Note how the map copy is only {nn}, while the entry set is not null, the entries in this set are not null,
+and the keys and values are neither.
 There is currently no plan to implement beyond {nnContent}, however.
 
 [#identity-and-fluent]
@@ -98,7 +99,7 @@ class Builder {
     }
 
     @NotModified
-    @ERContainer
+    @ImmutableContainer
     public List<String> build() {
         return List.copyOf(list);
     }
@@ -170,7 +171,7 @@ Using {fluent} methods to go from construction to finalizer is definitely allowe
 .Example {counter:example}, calling the finalizer method
 [source,java]
 ----
-@ERContainer
+@ImmutableContainer
 public static EventuallyFinal<String> fluent() {
     EventuallyFinal<String> d = new ExampleWithFinalizer()
         .set("a").doSomething().set("b").doSomething().getData();
@@ -186,7 +187,7 @@ Consider:
 .Example {counter:example}, illegal call
 [source,java]
 ----
-@ERContainer
+@ImmutableContainer
 public static EventuallyFinal<String> stepWise() {
     ExampleWithFinalizer ex = new ExampleWithFinalizer();
     ex.set("a");
@@ -272,7 +273,7 @@ class Finisher {
     }
 
     @Finalizer
-    @ERContainer // <4>
+    @ImmutableContainer // <4>
     public EventuallyFinal<String> done(String last) {
         eventuallyFinal.setFinal(last + "; tried " + count);
         return eventuallyFinal;

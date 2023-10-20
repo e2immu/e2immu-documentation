@@ -98,7 +98,7 @@ Linking between fields and parameters, and fields and return values of methods, 
 A method or constructor parameter is *not linked* when it is not linked to any of the fields of the type.
 A method is *not linked* when its return value is not linked to any of the fields of the type.
 
-The absence of linking is marked with {notLinked} on the method for the return value, and on the relevant parameters otherwise.
+The absence of linking is marked with {independent} on the method for the return value, and on the relevant parameters otherwise.
 ****
 
 When a constructor parameter is linked, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor's type.
@@ -245,8 +245,11 @@ One of the central tenets of immutability will be that
 A type is not responsible for modifications to its hidden content.
 ****
 
+Recall that by definition, any modifications to the hidden content must be external to the type.
+
 We end this section by defining what linking means with respect to the accessible and hidden content of the fields.
-The definition of linking given in the previous section is absolute, in the sense that it covers the whole object graphs of the objects being linked, or not.
+The definition of linking given in the previous section is absolute, in the sense that it covers the whole object graph
+of the objects being linked.
 
 When a parameter is linked to a field, we could try to find out if the modifications affect the accessible content, given that we state that modifications to the hidden content are outside the scope of the type anyway.
 In other words, we could distinguish between different forms of linking:
@@ -265,9 +268,11 @@ We will elaborate more in <<hidden-content>>.
 In the following sections, we will often use the term 'independent' when we mean 'not-dependent', i.e., when there is no linking or only linking to the hidden part of the object graph of the fields.
 
 In terms of annotations, dependence will be the default state for objects of types where dependence is possible.
-We will not annotate it most of the time; if we do, we use the annotation {dependent}.
-The annotation {notLinked} on parameters and methods will be used for absence of linking.
-When a type is deeply immutable, {notLinked} is the default state, and therefore it will be omitted.
-We use {independent} for the linking to the hidden part, to be elaborated upon in <<hidden-content-linking>>.
+We will not annotate it most of the time; if we do, we use the annotation `@Independent(absent=true)`.
+The annotation {independent} on parameters and methods will be used for absence of linking.
+When a type is deeply immutable, {independent} is the default state, and therefore it will be omitted.
+We use `@Independent(hc=true)` for the linking to the hidden part.
 
 Now, all pieces of the puzzle are available to introduce immutability of types.
+
+// end of line

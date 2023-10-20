@@ -60,7 +60,7 @@ Example:: In this simple example, an `enum` constant is returned by the `highest
 
 [source,java]
 ----
-@ERContainer
+@ImmutableContainer
 public enum Enum_3 {
     ONE(1), TWO(2), THREE(3);
 
@@ -283,7 +283,7 @@ Example::
 // ********************************************************************************************************************
 
 [#eRcontainer-annotation]
-==== @ERContainer
+==== @ImmutableContainer
 
 |===
 | Basic {y} | Immu {y}| Contract {y}| Type {y} | Field {y} | Method {y} | Param {y}

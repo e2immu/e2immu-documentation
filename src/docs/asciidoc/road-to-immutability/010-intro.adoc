@@ -1,5 +1,5 @@
 Main website: https://www.e2immu.org.
-Fourth major iteration, august 2022.
+Fifth iteration, October 2023.
 
 [dedication]
 == Dedication
@@ -46,21 +46,19 @@ In this section, we impose some limits that are not critical to the substance of
 Think of them as low-hanging fruit programming guidelines:
 
 * Exceptions do not belong to the normal programming flow; they are meant to raise situations that the program does not want to deal with.
-* Parameters of a method cannot be assigned; we act as if they always have the `final` modifier.
+* Parameters of a method cannot be assigned to; we act as if they always have the `final` modifier.
 The simple way around is to create a new local variable, and assign the parameter to it.
 * We make no distinction between the various non-private access modifiers (package-private, protected, public).
 Either a field, method or type is private, or it is not.
-* Static fields can only be used for non-constant purposes in very limited circumstances; one example is a variable to check enforce a singleton.
-The whole topic of using statics to access thread-local variables is outside the scope of {e2immu} at the moment.
 * Methods must be static if they do not access non-static fields, and do not implement or overload some interface or class method.
-* Synchronization is orthogonal to the data of the program; whilst it may have an influence on _when_ certain code runs, it should not be used to influence the semantics of the code.
+* Synchronization is orthogonal to the data flow of the program; whilst it may have an influence on _when_ certain code runs, it should not be used to influence the semantics of the code.
 
 The {e2immu} code analyser warns for many other doubtful practices, as detailed in the user manual.
 
 == The purpose of annotations
 
 In this document we will add many annotations to the code fragments shown.
-We are acutely aware annotations clutter the code and can make it less readable.
+We are acutely aware annotations may clutter the code and can make it less readable.
 Some IDEs, however, like JetBrains' IntelliJ IDEA, have extensive support to make working with annotations visually pleasing.
 
 The {e2immu} code analyser computes almost all the annotations that we add to the code fragments in this document.
@@ -76,6 +74,5 @@ Making the method `final`, or the type `final`, merely _prohibits_ overriding, w
 
 The final situation where explicit annotations in the code are important, is for the development of the analyser.
 We add them to the code as a means of verification: the analyser will check if it generates the same annotation at that location.
-Some annotations, like `@Linked` and `@Constant`, serve no other purpose than debugging.
 
 // ensure a newline at the end

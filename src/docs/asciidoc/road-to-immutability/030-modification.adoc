@@ -12,6 +12,9 @@ The analyser uses the annotations {nm} and {modified}.
 They are exclusive, and the analyser will compute one or the other for every method of the type.
 All non-trivial constructors are modifying, so we avoid clutter by not annotating them.
 
+NOTE: Why not `@Modifying` and `@NotModifying`? The analyser will compute modifications of fields and parameters as well. They will either be _modified_ or _not modified_ by the code. To avoid
+confusion, we only use one set of annotations. This is the only occurrence of a pair of diametrically opposed annotations.
+
 It follows from the definition that directly assigning to the fields also causes the {modified} mark for methods.
 As a consequence, setters are {modified}, while getters are {nm}.
 Consider:
@@ -119,7 +122,7 @@ Other types in the parameters have not been annotated with {nm}:
 * `Object` because it is immutable;
 * `E` because it is of an unbound generic type, it has the same methods available as `Object`.
 No code statically visible to implementations of `Collection` can make modifications to `E`;
-* `Consumer` because it is a functional interface (an interface with a single abstract method) in `java.util.function`; they are {ignoreModifications} by convention.
+* `Consumer` because it is a functional interface (an interface with a single abstract method) in `java.util.function`; they are {ignoreModifications} by convention, as explained later.
 
 In order to keep the narrative going, we defer a discussion of modification in the context of parameters of abstract types to the sections
 <<abstract-methods>> and <<hidden-content>>.

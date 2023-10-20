@@ -1,209 +1,38 @@
-== Constant types
 
-== Definition
+== Further notes on immutability
 
-****
-A *constant type* is a type which is immutable yet cannot have hidden content.
-****
+=== Extendability of types
 
-Let's see how this definition plays out.
+Unless a class is marked `final`, `sealed`, or `private`, it can be extended in a different source file.
+In the context of immutability, this means that any extendable class is like an interface:
+it must allow for hidden content.
 
-The core type `java.lang.String` is a good example: it is non-extensible (`public final class String { ... }`),
+The analyser, however, can be pragmatic about this. Just as in the case of effectively final fields, it can
+compute types to be effectively final, or effectively sealed, _when presented with the complete code base_.
+Indeed, if there is a guarantee of being able to see all code, the analyser can easily compute if
+a type has effectively been extended, or not.
 
-#TODO# how does this chime with transparent types? a constant type can have a transparent component to it??
+=== Eventual immutability
 
-[#independent-type]
-=== Independence of types
+How does the whole story of eventually final fields and eventual immutability mix with hidden content?
+At some point, once a necessary precondition has been met, the hidden content will be well-defined, and modifying methods become unavailable.
+Before that, fields that will eventually contain the hidden content may still be `null`, or may be re-assigned.
+This should not have any effect, however, on the computation of hidden content linking, {independent} annotations, and the propagation of modifications, since the actual types do not change.
+The two concepts are sufficiently perpendicular to each other, and can easily co-exist.
 
-A concrete implementation of an iterator is often a nested type, static or not (inner class), of the iterable type:
-
-.Example {counter:example}, implementation of an `Iterator`
-[source,java]
-----
-@E2Container
-public class ImmutableArray<T> implements Iterable<T> {
-
-    @NotNull1
-    private final T[] elements;
-
-    @SuppressWarnings("unchecked")
-    public ImmutableArray(List<T> input) {
-        this.elements = (T[]) input.toArray();
-    }
-
-    @Override
-    @Independent
-    public Iterator<T> iterator() {
-        return new IteratorImpl();
-    }
-
-    @Container
-    @Independent1
-    class IteratorImpl implements Iterator<T> {
-        private int i;
-
-        @Override
-        public boolean hasNext() {
-            return i < elements.length;
-        }
-
-        @Override
-        @NotNull
-        public T next() {
-            return elements[i++];
-        }
-    }
-}
-----
-
-For `ImmutableArray` to be level 2 immutable, the `iterator()` method must be independent of the field `elements`, in other words, the `IteratorImpl` object must not expose the `ImmutableArray` 's fields to the outside world.
-It cannot be level 2 immutable, because it needs to hold the state of the iterator.
-However, it should protect the fields owned by its enclosing type, up to the same standard as required for level 2 immutability.
-
-We propose to add a definition for the independence of a type, identical to the "shielding off" part of the definition of level 2 immutability.
-Let's first go there in a roundabout way:
+=== Constant types
 
 ****
-*Definition*: an *external modification* is a modification, carried out outside the type,
-
-. on a field, directly accessed from the object, or
-. on an argument or return value, executed after the constructor or method call on the object.
+A *constant type* is an immutable type whose fields are of constant type themselves.
+The basis of the recursion are the primitives, possibly boxed, `java.lang.String`, and `java.lang.Class`.
 ****
 
-Clearly, such external modifications are only possible when the constructor, method or field is non-private.
+The analyser marks a constant type by the string representation of its value, e.g., `@ImmutableContainer("3.14")`.
+Note that types can be constant but not {container}; they can be eventually constant,
+and they can be constant with hidden content.
 
-Armed with this definition, we can define the independence of types:
-
-****
-*Definitions*:
-
-A type is *dependent* when external modifications impact the accessible content of the type.
-
-A type is *independent*, annotated {independent}, when external modifications cannot impact the accessible content of the type.
-The hidden content of the type is mutable or modifiable.
-****
-
-This definition is entirely equivalent to the definition of immutability without rules 0 and 1, and rules 2 and 3 restricted to those fields that are 'exposed' to the outside world via linking or hidden content linking.
-
-A third way of rephrasing the definition would be the following.
-It requires three prior steps:
-
-. Introduce a public getter for every non-private field
-. Define level n independence of a parameter or method return value exactly as level 1 independence for that parameter or method, but then with the parameter type or method return type content linking to that part of the type's hidden content which is level n immutable.
-. Observe that if a type `T` is part of the hidden content of type `C`, then there must be at least one parameter or method return value, of type `P`, which has `T` as part of its content (hidden in `P`, when `T` is hidden rather than transparent in `C`, or either accessible or hidden in `P`, when `T` is transparent).
-
-Then, the independence of a type is the minimum of the independence levels of the parameters and methods of the type.
-
-We hope that rephrasing helps clarify the definition.
-The third way is computationally the most interesting one.
-
-Consider the static variant of `IteratorImpl`, which makes it more obvious that `IteratorImpl` maintains a reference to the element array of its enclosing type:
-
-.Example {counter:example}, implementation of an `Iterator` as a static nested type
-[source,java]
-----
-@E2Container
-public class ImmutableArray<T> implements Iterable<T> {
-    ...
-
-    @Container
-    @Independent1
-    static class IteratorImpl implements Iterator<T> {
-        @Modified
-        private int i;
-
-        private final T[] elements;
-
-        private IteratorImpl(T[] elements) {
-            this.elements = elements;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return i < elements.length;
-        }
-
-        @Override
-        @NotNull
-        @Modified
-        public T next() {
-            return elements[i++];
-        }
-    }
-}
-----
-
-The type `T` is part of the hidden content, the `T[]` and the counter `i` are part of the accessible content.
-No external modification can impact the array or the counter; indeed, only `T` and a `boolean` are exposed.
-The latter is recursively immutable, so does not allow modifications.
-The former allows modifications on the hidden content, whence the {independent1} annotation for `IteratorImpl`.
-
-Recursively immutable types are independent as a type, but a type does not even have to be level 1 immutable to be independent.
-In fact, any type communicating via recursively immutable types to the outside world is independent:
-
-.Example {counter:example}, simple getter and setter, independent
-[source,java]
-----
-@Independent
-@Container
-class GetterSetter {
-    private int i;
-
-    public int getI() {
-        return i;
-    }
-
-    public void setI(int i) {
-        this.i = i;
-    }
-}
-----
-
-The following table summarizes the relationship between immutability and independence:
-
-|===
-| |Mutable, Level 1 imm (modifiable) |Level 2 immutable |Level 3 immutable |Level n immutable |Recursively immutable
-
-|Dependent
-|{y} `Set`
-|{n}
-|{n}
-|{n}
-|{n}
-
-|Independent1
-|{y} `Iterator<T>`
-|{y} `Optional<T>`, `Set.of(T)`
-|{n}
-|{n}
-|{n}
-
-|Independent2
-|{y} `Iterator<Optional<T>>`
-|{n}
-|{y} `Set.of(Optional<T>)`
-|{n}
-|{n}
-
-|Independent n-1
-|{y}
-|{n}
-|{n}
-|{y}
-|{n}
-
-|Independent
-|{y} `Writer`, `Iterator<String>`
-|{n}
-|{n}
-|{n}
-|{y} `int`, `String`, `Class`
-|===
-
-There is no need to define different levels of hidden content linking of parameters and fields, beyond "independent or not".
-The important aspect there is whether linking to the hidden content is possible or not.
-Either it is not, or it is structurally impossible.
-The latter is only possible when the type is recursively immutable, which corresponds to the type being independent.
+Note that not every immutable type without hidden content is constant, even though it can technically be rewritten as one.
+At the moment, we see no practical use of distinguishing constant types from immutable ones.
 
 === Field access restrictions
 

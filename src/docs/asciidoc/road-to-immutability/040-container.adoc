@@ -5,10 +5,11 @@ Loosely speaking, a container is a type to which you can safely pass on your obj
 This is the formal rule:
 
 ****
-*Definition*: a type is a *container* when no non-private method or constructor modifies its parameters.
+*Definition*: a type is a *container* when no non-private method or constructor modifies its arguments.
 ****
 
-Whatever else the container does, storing the parameters in fields or not, it will not change your objects.
+Whatever else the container does, storing the parameters in fields or not, it will not change the objects
+you pass to it.
 You obviously remain free to change them elsewhere; then the container may hold on to the changed object.
 
 Containers are complementary to immutable objects, and we will find that many immutable objects are containers, while some containers are the precursors to immutable types.
@@ -100,7 +101,7 @@ class BinaryExpression extends Expression {
 
 The `BinaryExpression` class is not a container, because it uses one of the parameters of a public method, `errorRegistry` of `evaluate`, as a writable container.
 
-We conclude this section by noting that arrays are essentially containers holding the {finalFields} property: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
+Arrays are essentially containers holding the {finalFields} property: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
 Indeed, consider the following semi-realistic implementation of an `Integer` array based on a `ByteBuffer`:
 
 .Example {counter:example}, an array is a level 1 immutable container
@@ -150,5 +151,36 @@ public void test() {
     assertEquals(3, ia.get(2));
 }
 ----
+
+It would have been better to show an `ErrorMessage` array, because, contrary to `Integer`, the former is
+mutable (it has a modifying method `setMessage`). The sole difference is in the technical aspect of storing and
+retrieving the reference to the object, which is not normally available.
+
+To conclude this section, note that the definition of `@Container` carefully words
+_... modifies its arguments_. This is almost equivalent
+to ensuring that all non-private methods have all their parameters marked as {nm}. However, under those
+conditions, it is still possible to change the object graph of the arguments, as the following example shows:
+
+.Example {counter:example}, an instance where {nm} on the parameters is not enough to ensure {container}
+[source,java]
+----
+class ErrorRegistry {
+    private final List<ErrorMessage> messages = new ArrayList<>();
+
+    @Modified
+    public void add(@NotModified ErrorMessage message) {
+        messages.add(message);
+    }
+
+    @Modified
+    public void changeFirst() {
+        if(!messages.isEmpty()) {
+            messages.get(0).setMessage("changed!");
+        }
+    }
+}
+----
+
+Here, objects passed on to the `ErrorRegistry` are not modified by the `add` method, but they may be modified later by a call to the `changeFirst` method, violating the idea that _all objects passed to the container are safe from modification_. The analyser will need to guard against this; and its tool to this end is _linking_.
 
 // ensure a newline at the end

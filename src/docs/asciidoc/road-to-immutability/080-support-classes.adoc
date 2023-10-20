@@ -1,20 +1,23 @@
 [#support-classes]
 == Support classes
 
-The `e2immu-support-1.0.0.jar` library (in whichever version it comes) essentially contains the annotations of the analyser, and a small selection of support types.
-They are the eventually immutable building blocks that you can use in your project, irrespective of whether you want analyser support or not.
+The `e2immu-support-1.0.0.jar` library (in whichever version it comes) essentially contains the
+annotations of the analyser, and a small selection of support types.
+They are the eventually immutable building blocks that you can use in your project, irrespective
+of whether you want analyser support or not.
 
 We discuss a selection of the building blocks here.
 
 [#support-flipswitch]
 === FlipSwitch
 
-Simpler than `FlipSwitch` is not possible for an eventually immutable type: it consists solely of a single boolean, which is at the same time the data and the guard:
+Simpler than `FlipSwitch` is not possible for an eventually immutable type: it consists solely of a
+single boolean, which is at the same time the data and the guard:
 
 .Example {counter:example}, most of `org.e2immu.support.FlipSwitch`
 [source,java]
 ----
-@ERContainer(after = "t")
+@ImmutableContainer(after = "t")
 public class FlipSwitch {
 
     @Final(after = "t")
@@ -57,7 +60,7 @@ One step up from `FlipSwitch` is `SetOnce`: a place-holder for one object which 
 .Example {counter:example}, parts of `org.e2immu.support.SetOnce`
 [source,java]
 ----
-@E2Container(after = "t")
+@ImmutableContainer(hc = true, after = "t")
 public class SetOnce<T> {
 
     @Final(after = "t")
@@ -65,7 +68,7 @@ public class SetOnce<T> {
 
     @Mark("t")
     @Modified
-    public void set(@NotNull @Independent1 T t) {
+    public void set(@NotNull @Independent(hc = true) T t) {
         if (t == null) throw new NullPointerException("Null not allowed");
         if (this.t != null) {
             throw new IllegalStateException("Already set: have " + this.t + ", try to set " + t);
@@ -75,7 +78,7 @@ public class SetOnce<T> {
 
     @Only(after = "t")
     @NotNull
-    @Independent1
+    @Independent(hc = true)
     @NotModified
     public T get() {
         if (t == null) {
@@ -90,7 +93,7 @@ public class SetOnce<T> {
         return t != null;
     }
 
-    @Independent1 // <1>
+    @Independent(hc = true) // <1>
     @NotModified
     public T getOrDefault(T defaultValue) {
         if (isSet()) return get();
@@ -101,31 +104,32 @@ public class SetOnce<T> {
 
 <1> Even if it is only linked to the hidden content conditionally.
 
-The analyser relies heavily on this type, with additional support to allow setting multiple times, with exactly the same value.
+The analyser relies heavily on this type, with additional support to allow setting multiple times, with exactly
+the same value.
 This can be ascertained with a helper method, which, as noted in the previous section, also gets the {mark} annotation.
 
 [#support-eventuallyfinal]
 === EventuallyFinal
 
-Slightly more flexible than `SetOnce` is `EventuallyFinal`: the type allows you to keep writing objects using the `setVariable`
-method, until you write using `setFinal`.
+Slightly more flexible than `SetOnce` is `EventuallyFinal`: the type allows you to keep writing objects using the
+`setVariable` method, until you write using `setFinal`.
 Then, the state changes and the type becomes level 2 immutable:
 
 .Example {counter:example}, `org.e2immu.support.EventuallyFinal`
 [source,java]
 ----
-@E2Container(after = "isFinal")
+@ImmutableContainer(hc = true, after = "isFinal")
 public class EventuallyFinal<T> {
     private T value;
     private boolean isFinal;
 
-    @Independent1
+    @Independent(hc = true)
     public T get() {
         return value;
     }
 
     @Mark("isFinal")
-    public void setFinal(@Independent1 T value) {
+    public void setFinal(@Independent(hc = true) T value) {
         if (this.isFinal) {
             throw new IllegalStateException("Trying to overwrite a final value");
         }
@@ -134,7 +138,7 @@ public class EventuallyFinal<T> {
     }
 
     @Only(before = "isFinal")
-    public void setVariable(@Independent1 T value) {
+    public void setVariable(@Independent(hc = true) T value) {
         if (this.isFinal) throw new IllegalStateException("Value is already final");
         this.value = value;
     }
@@ -151,7 +155,8 @@ public class EventuallyFinal<T> {
 }
 ----
 
-Note the occurrence of a negated {testMark} annotation: `isVariable` returns the negation of the normal `iFinal` mark test.
+Note the occurrence of a negated {testMark} annotation: `isVariable` returns the negation of the normal
+`iFinal` mark test.
 
 [#support-freezable]
 === Freezable
@@ -162,7 +167,7 @@ allow free modifications, until the type is _frozen_ and no modifications can be
 .Example {counter:example}, `org.e2immu.support.Freezable`
 [source,java]
 ----
-@ERContainer(after = "frozen")
+@ImmutableContainer(after = "frozen") // <1>
 public abstract class Freezable {
 
     @Final(after = "frozen")
@@ -179,19 +184,20 @@ public abstract class Freezable {
         return frozen;
     }
 
-    private boolean ensureNotFrozen$Precondition() { return !frozen; } // <1>
+    private boolean ensureNotFrozen$Precondition() { return !frozen; } // <2>
     public void ensureNotFrozen() {
         if (frozen) throw new IllegalStateException("Already frozen!");
     }
 
-    private boolean ensureFrozen$Precondition() { return frozen; } // <1>
+    private boolean ensureFrozen$Precondition() { return frozen; } // <2>
     public void ensureFrozen() {
         if (!frozen) throw new IllegalStateException("Not yet frozen!");
     }
 }
 ----
 
-<1> This companion method is present in the code to validate the computation of the precondition.
+<1> Because the type is abstract, `hc = true` is implied.
+<2> This companion method is present in the code to validate the computation of the precondition.
 See <<preconditions-and-instance-state>> for more details.
 
 Note that as discussed in <<inheritance>>, it is important for `Freezable`, as an abstract class, to be recursively immutable:
@@ -205,13 +211,14 @@ We discuss one example that makes use of (derives from) `Freezable`: a freezable
 .Example {counter:example}, part of `org.e2immu.support.SetOnceMap`
 [source,java]
 ----
-@E2Container(after = "frozen")
+@ImmutableContainer(hc = true, after = "frozen")
 public class SetOnceMap<K, V> extends Freezable {
 
     private final Map<K, V> map = new HashMap<>();
 
     @Only(before = "frozen")
-    public void put(@Independent1 @NotNull K k, @Independent1 @NotNull V v) {
+    public void put(@Independent(hc = true) @NotNull K k,
+                    @Independent(hc = true) @NotNull V v) {
         Objects.requireNonNull(k);
         Objects.requireNonNull(v);
         ensureNotFrozen();
@@ -222,7 +229,7 @@ public class SetOnceMap<K, V> extends Freezable {
         map.put(k, v);
     }
 
-    @Independent1
+    @Independent(hc =  true)
     @NotNull
     @NotModified
     public V get(K k) {
@@ -241,9 +248,10 @@ public class SetOnceMap<K, V> extends Freezable {
 <1> The analyser will warn for a potential null pointer exception here, not (yet) making the connection between
 `isSet` and `containsKey`.
 This connection can be implemented using the techniques described in <<preconditions-and-instance-state>>.
-<2> Implicitly, the parameter `K k` is {independent}, because the method is {nm}, and it is not of abstract type.
+<2> Implicitly, the parameter `K k` is {independent}, because the method is {nm}.
 
-The code analyser makes frequent use of this type, often with an additional guard that allows repeatedly putting the same value to a key.
+The code analyser makes frequent use of this type, often with an additional guard that allows repeatedly putting
+the same value to a key.
 
 [#support-lazy]
 === Lazy
@@ -254,21 +262,21 @@ Properly implemented, it is an eventually level 2 immutable type:
 .Example {counter:example}, `org.e2immu.support.Lazy`
 [source,java]
 ----
-@E2Container(after = "t")
+@ImmutableContainer(hc = true, after = "t")
 public class Lazy<T> {
 
-    @NotNull1
-    @Independent1(after = "t")
+    @NotNull(content = true)
+    @Independent(hc = true, after = "t")
     private Supplier<T> supplier;
 
     @Final(after = "t")
     private volatile T t;
 
-    public Lazy(@NotNull1 @Independent1 Supplier<T> supplier) { // <1>
+    public Lazy(@NotNull(content = true) @Independent(hc = true) Supplier<T> supplier) { // <1>
         this.supplier = supplier;
     }
 
-    @Independent1
+    @Independent(hc = true)
     @NotNull
     @Mark("t") // <2>
     public T get() {
@@ -285,22 +293,24 @@ public class Lazy<T> {
 }
 ----
 
-<1> The annotation has travelled from the field to the parameter; therefore the parameter has {independent1}.
+<1> The annotation has travelled from the field to the parameter; therefore the parameter has `@Independent(hc = true)`.
 <2> The {mark} annotation is conditional; the transition is triggered by nullity of `t`
 <3> Here `t`, part of the hidden content, links to `supplier`, as explained in <<hidden-content-linking>>.
-The statement also causes the {nn1} annotation, as defined in <<nullable-section>> and <<identity-and-fluent>>.
+The statement also causes the {nncontent} annotation, as defined in <<nullable-section>> and <<identity-and-fluent>>.
 <4> After the transition from mutable to effectively immutable, the field `supplier` moves out of the picture.
 
 After calling the marker method `get()`, `t` cannot be assigned anymore, and it becomes {final}.
-The constructor parameter `supplier` is {independent1}, as its hidden content (the result of `get()`) links to that of `Lazy`, namely the field `t`.
+The constructor parameter `supplier` is `@Independent(hc = true)`, as its hidden content (the result of `get()`)
+links to that of `Lazy`, namely the field `t`.
 
 But why is `supplier` as a field not linked to the constructor parameter?
 Clearly, `supplier` is part of the accessible content of `Lazy`, as its `get()` method gets called.
 The criterion is: a modification on one may cause a modification on the other.
 Modifications can only be made by calling the `get()` method, as there are no other methods, and no fields.
-Consequently, the constructor should link to the field, and `supplier` cannot be {independent1}.
+Consequently, the constructor should link to the field, and `supplier` cannot be `@Independent`.
 
-The answer lies in the eventual nature of `Lazy`: _before_ the first call to `get`, the `supplier` field is of relevance to the type, and `t` is not.
+The answer lies in the eventual nature of `Lazy`: _before_ the first call to `get`, the `supplier` field
+is of relevance to the type, and `t` is not.
 _After_ the call to `get()`, the converse is true, because `supplier` has been emptied.
 We should extend rule 2 of effective immutability by slightly augmenting rule 2:
 
@@ -309,23 +319,26 @@ We should extend rule 2 of effective immutability by slightly augmenting rule 2:
 ****
 
 A null field cannot be modified, and cannot be but {independent}, so no changes are necessary to rules 1 and 3.
-One can argue that they do not belong to the accessible content, nor to the hidden content, since they cannot be accessed, and are content-less: rule 4 should not be affected.
-In combination with effective finality, this allows the eventually "blanking out" of modifiable fields in immutable types.
+One can argue that they do not belong to the accessible content, nor to the hidden content, since they cannot be
+accessed, and are content-less: rule 4 should not be affected.
+In combination with effective finality, this allows the eventually "blanking out" of modifiable fields in
+immutable types.
 
 [#support-firstthen]
 === FirstThen
 
-A variant on `SetOnce` is `FirstThen`, an eventually level 2 immutable container which starts off with one value, and transitions to another:
+A variant on `SetOnce` is `FirstThen`, an eventually immutable container which starts off with one
+value, and transitions to another:
 
 .Example {counter:example}, `org.e2immu.support.FirstThen`
 [source,java]
 ----
-@E2Container(after = "mark")
+@ImmutableContainer(hc = true, after = "mark")
 public class FirstThen<S, T> {
     private volatile S first;
     private volatile T then;
 
-    public FirstThen(@NotNull @Independent1 S first) {
+    public FirstThen(@NotNull @Independent(hc = true) S first) {
         this.first = Objects.requireNonNull(first);
     }
 
@@ -342,7 +355,7 @@ public class FirstThen<S, T> {
     }
 
     @Mark("mark")
-    public void set(@Independent1 @NotNull T then) {
+    public void set(@Independent(hc = true) @NotNull T then) {
         Objects.requireNonNull(then);
         synchronized (this) {
             if (first == null) throw new IllegalStateException("Already set");
@@ -352,7 +365,7 @@ public class FirstThen<S, T> {
     }
 
     @Only(before = "mark")
-    @Independent1
+    @Independent(hc = true)
     @NotModified 
     @NotNull 
     public S getFirst() {
@@ -364,7 +377,7 @@ public class FirstThen<S, T> {
     }
 
     @Only(after = "mark")
-    @Independent1
+    @Independent(hc = true)
     @NotModified 
     @NotNull 
     public T get() {
@@ -391,10 +404,13 @@ public class FirstThen<S, T> {
 ----
 
 <1> This is a bit convoluted.
-The precondition is on the field `first`, and the current implementation of the precondition analyser requires an explicit check on the field.
-Because this field is not final, we cannot assume that it is still null after the initial check; therefore, we assign it to a local variable, and do another null check to guarantee that the result that we return is `@NotNull`.
+The precondition is on the field `first`, and the current implementation of the precondition analyser requires
+an explicit check on the field.
+Because this field is not final, we cannot assume that it is still null after the initial check; therefore,
+we assign it to a local variable, and do another null check to guarantee that the result that we return is `@NotNull`.
 
-<2> Largely in line with the previous comment: we stick to the precondition on `first`, and have to check `then` to guarantee that the result is `@NotNull`.
+<2> Largely in line with the previous comment: we stick to the precondition on `first`, and have to check `then`
+to guarantee that the result is `@NotNull`.
 <3> The `equals` and `hashCode` methods inherit the {nm} annotation from `java.lang.Object`.
 
 Note that if we were to annotate the methods as contracts, rather than relying on the analyser to detect them, we could have a slightly more efficient implementation.
