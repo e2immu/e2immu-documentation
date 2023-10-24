@@ -189,6 +189,9 @@ class ErrorRegistry {
 }
 ----
 
-Here, objects passed on to the `ErrorRegistry` are not modified by the `add` method, but they may be modified later by a call to the `changeFirst` method, violating the idea that _all objects passed to the container are safe from modification_. The analyser will need to guard against this; and its tool to this end is _linking_.
+Here, objects passed on to the `ErrorRegistry` are not modified by the `add` method, but they may be modified later
+by a call to the `changeFirst` method, violating the idea that _all objects passed to the container are safe
+from modification_.
+The analyser will need to guard against this; and its tool to this end is _linking_.
 
 // ensure a newline at the end

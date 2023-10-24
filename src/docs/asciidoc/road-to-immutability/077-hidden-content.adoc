@@ -1,5 +1,5 @@
 [#hidden-content]
-== Hidden content
+== More on hidden content
 
 In this section, we consider modifications to the hidden content of a type, and explain when they are of importance.
 
