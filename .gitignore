@@ -1,3 +1,5 @@
+# easily generated when running asciidoctor by hand:
+src/docs/asciidoc/road-to-immutability.html
 **/build/
 **/.gradle/
 **/out/

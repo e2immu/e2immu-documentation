@@ -444,12 +444,12 @@ Consider the static variant of `IteratorImpl`, which makes it more obvious that 
 .Example {counter:example}, implementation of an `Iterator` as a static nested type
 [source,java]
 ----
-@E2Container
+@ImmutableContainer
 public class ImmutableArray<T> implements Iterable<T> {
     ...
 
     @Container
-    @Independent1
+    @Independent(hc=true)
     static class IteratorImpl implements Iterator<T> {
         @Modified
         private int i;

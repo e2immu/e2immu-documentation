@@ -8,11 +8,15 @@ This is the formal rule:
 *Definition*: a type is a *container* when no non-private method or constructor modifies its arguments.
 ****
 
-Whatever else the container does, storing the parameters in fields or not, it will not change the objects
+Whatever else the container does, storing the arguments in fields or not, it will not change the objects
 you pass to it.
 You obviously remain free to change them elsewhere; then the container may hold on to the changed object.
 
-Containers are complementary to immutable objects, and we will find that many immutable objects are containers, while some containers are the precursors to immutable types.
+NOTE: We will use the term _argument_ to denote the value passed to a _parameter_.
+The latter is the variable, bound to a specific method, that receives this value.
+
+Containers are complementary to immutable objects, and we will find that many immutable objects are containers,
+while some containers are the precursors to immutable types.
 There are two archetypes for containers: collections and builders.
 
 The simple but useful utility type `Pair` trivially satisfies the container requirements:
@@ -46,7 +50,8 @@ However, it is easily recognized as a container: a type you use and trust to hol
 Containers occur frequently as static nested types to build immutable objects.
 Examples of these will follow later, after the definition of immutability.
 
-In the following example, the first class is computed to be a container, the second is a container according to the contract, and the third is a class which cannot be a container:
+In the following example, the first class is computed to be a container, the second is a container according to the
+contract, and the third is a class which cannot be a container:
 
 .Example {counter:example}, two containers and a type that is not a container
 [source,java]
@@ -96,12 +101,15 @@ class BinaryExpression extends Expression {
 }
 ----
 
-<1> Implementations of `ErrorRegistry` will not be allowed to use the `setMessage` setter in `addError`.
+<1> Implementations of `ErrorRegistry` will not be allowed to use the `setMessage` setter in `addError`, or in any
+other method not mentioned here, if the `errorMessage` has been assigned or added to any of the fields.
 <2> Here a modifying method call takes place.
 
-The `BinaryExpression` class is not a container, because it uses one of the parameters of a public method, `errorRegistry` of `evaluate`, as a writable container.
+The `BinaryExpression` class is not a container, because it uses one of the parameters of a public method,
+`errorRegistry` of `evaluate`, as a writable container.
 
-Arrays are essentially containers holding the {finalFields} property: a chunk of memory is held in an effectively final field, and array access reads and writes from this memory object.
+Arrays are essentially containers holding the {finalFields} property: a chunk of memory is held in an effectively final
+field, and array access reads and writes from this memory object.
 Indeed, consider the following semi-realistic implementation of an `Integer` array based on a `ByteBuffer`:
 
 .Example {counter:example}, an array is a level 1 immutable container
@@ -153,8 +161,8 @@ public void test() {
 ----
 
 It would have been better to show an `ErrorMessage` array, because, contrary to `Integer`, the former is
-mutable (it has a modifying method `setMessage`). The sole difference is in the technical aspect of storing and
-retrieving the reference to the object, which is not normally available.
+mutable (it has a modifying method `setMessage`). The technical aspect of storing and
+retrieving the reference to the object, which is not normally available, prevents us from doing this here.
 
 To conclude this section, note that the definition of `@Container` carefully words
 _... modifies its arguments_. This is almost equivalent

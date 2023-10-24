@@ -26,7 +26,7 @@ class EffectivelyFinal1 {
         random = new Random(seed);
     }
 
-    // no methods access initialize()
+    // no methods in the class call initialize()
 
     public int nextInt() {
         return random.nextInt();
@@ -34,7 +34,7 @@ class EffectivelyFinal1 {
 }
 ----
 
-Obviously, if the same method is also accessible after construction, the field becomes variable:
+Obviously, if the same method can be called after construction, the field becomes variable:
 
 .Example {counter:example}, the method setting the field is accessible after construction
 [source,java]

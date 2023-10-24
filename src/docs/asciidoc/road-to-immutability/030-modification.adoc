@@ -12,12 +12,14 @@ The analyser uses the annotations {nm} and {modified}.
 They are exclusive, and the analyser will compute one or the other for every method of the type.
 All non-trivial constructors are modifying, so we avoid clutter by not annotating them.
 
-NOTE: Why not `@Modifying` and `@NotModifying`? The analyser will compute modifications of fields and parameters as well. They will either be _modified_ or _not modified_ by the code. To avoid
-confusion, we only use one set of annotations. This is the only occurrence of a pair of diametrically opposed annotations.
+NOTE: Why not `@Modifying` and `@NotModifying`? The analyser will compute modifications of fields and parameters as well.
+They will either be _modified_ or _not modified_ by the code. To avoid
+confusion, we only use one set of annotations.
+Moreover, this is the only occurrence of a pair of diametrically opposed annotations.
 
 It follows from the definition that directly assigning to the fields also causes the {modified} mark for methods.
 As a consequence, setters are {modified}, while getters are {nm}.
-Consider:
+Consider
 
 .Example {counter:example}, modifying and non-modifying methods
 [source,java]
@@ -51,13 +53,14 @@ class CountedInfo {
 ----
 
 We also see in the example that the `printInfo` method is {modified}.
-This is because it calls a modifying method on one of the fields: `increment`.
+This is because it calls a modifying method on one of its fields, `increment`.
 
 Moving from methods to parameters and fields, keeping the same two annotations,
 
 ****
 *Definition*:
-The analyser marks a *parameter* as *modified* when the parameter's method applies an assignment or modifying methods on the object that enters the method via the parameter.
+The analyser marks a *parameter* as *modified* when the parameter's method applies an assignment or modifying methods
+to the object that enters the method via the parameter.
 This definition holds with respect to the parameter's entire object graph.
 ****
 
@@ -65,18 +68,22 @@ We will apply a similar reasoning to a field:
 
 ****
 *Definition*:
-The analyser marks a *field* as *modified* when at least one of the type's methods, transitively reachable from a non-private non-constructor method, applies at least one assignment to or modifying method on this field.
+The analyser marks a *field* as *modified* when at least one of the type's methods, transitively reachable from a
+non-private non-constructor method, applies at least one assignment to or modifying method to this field.
 ****
 
 Let us start by agreeing that the methods of `Object` and `String` are all {nm}.
 This is pretty obvious in the case of `toString`, `hashCode`, `getClass`.
-It is less obvious for the `wait` and other synchronization-related methods, but remember that as discussed in the <<assumptions>>, we exclude synchronization support from this discussion.
+It is less obvious for the `wait` and other synchronization-related methods, but remember that as discussed in
+the <<assumptions>>, we exclude synchronization support from this discussion.
 
 Note also that we cannot add modifying methods to the type `DeeplyImmutable1` defined <<deeply-immutable1,earlier>>.
 
-Proceeding, let us also look at (a part of) the `Collection` interface, where we've restricted the annotations to {nm} and {modified}.
+Proceeding, let us also look at (a part of) the `Collection` interface, where we have restricted the annotations
+to {nm} and {modified} --  others will be introduced later.
 An abstract method without {modified} is assumed to be non-modifying, i.e., {nm} is implicitly present.
-(The reason for this choice is explained later, in <<abstract-methods>>.) While in normal classes the analyser computes the annotations, in interfaces the user stipulates or _contracts_ behaviour by annotating:
+(The reason for this choice is explained later, in <<abstract-methods>>.) While in normal classes the analyser
+computes the annotations, in interfaces the user stipulates or _contracts_ behaviour by annotating:
 
 .Example {counter:example}, [[collection-interface]] modification aspects of the `Collection` interface
 [source,java]
@@ -121,7 +128,7 @@ Other types in the parameters have not been annotated with {nm}:
 
 * `Object` because it is immutable;
 * `E` because it is of an unbound generic type, it has the same methods available as `Object`.
-No code statically visible to implementations of `Collection` can make modifications to `E`;
+No code visible to implementations of `Collection` can make modifications to `E` without explicit down-casting;
 * `Consumer` because it is a functional interface (an interface with a single abstract method) in `java.util.function`; they are {ignoreModifications} by convention, as explained later.
 
 In order to keep the narrative going, we defer a discussion of modification in the context of parameters of abstract types to the sections

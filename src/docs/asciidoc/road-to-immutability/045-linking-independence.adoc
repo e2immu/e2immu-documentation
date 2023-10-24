@@ -20,7 +20,8 @@ class LinkExample1<X> {
 }
 ----
 
-After construction, an instance of `LinkExample1` contains a reference to the set that was passed on as an argument to its constructor.
+After construction, an instance of `LinkExample1` contains a reference to the set that was passed on as an argument
+to its constructor.
 We say the field `set` links to the parameter `xs` of the constructor.
 In this example, this is an expensive way of saying that there is an assignment from one to the other.
 However, linking can become more complicated.
@@ -46,7 +47,8 @@ class LinkExample1<X> {
 ----
 
 The parameter `x` of `LinkExample1.add` is {nm} because the first parameter of `Set.add` is {nm}.
-The `add` method modifies the field, which causes the annotation first on the method, then on the field, and finally on the parameter of the constructor.
+The `LinkExample1.add` method modifies the field, which causes the annotation first on the method,
+then on the field, and finally on the parameter of the constructor.
 Because of the latter, `LinkExample1` cannot be marked {container}.
 
 Linking looks at the underlying object, and not at the variable.
@@ -95,10 +97,8 @@ Linking between fields and parameters, and fields and return values of methods, 
 
 ****
 *Definition*:
-A method or constructor parameter is *not linked* when it is not linked to any of the fields of the type.
+A method or constructor parameter is not linked when it is not linked to any of the fields of the type.
 A method is *not linked* when its return value is not linked to any of the fields of the type.
-
-The absence of linking is marked with {independent} on the method for the return value, and on the relevant parameters otherwise.
 ****
 
 When a constructor parameter is linked, any modification made to the object presented to this parameter as an argument may have an influence on the object graph of the fields of the constructor's type.

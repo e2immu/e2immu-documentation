@@ -50,7 +50,6 @@ Think of them as low-hanging fruit programming guidelines:
 The simple way around is to create a new local variable, and assign the parameter to it.
 * We make no distinction between the various non-private access modifiers (package-private, protected, public).
 Either a field, method or type is private, or it is not.
-* Methods must be static if they do not access non-static fields, and do not implement or overload some interface or class method.
 * Synchronization is orthogonal to the data flow of the program; whilst it may have an influence on _when_ certain code runs, it should not be used to influence the semantics of the code.
 
 The {e2immu} code analyser warns for many other doubtful practices, as detailed in the user manual.
