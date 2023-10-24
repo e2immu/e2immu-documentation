@@ -6,7 +6,8 @@ We discuss them briefly, and refer to the user manual for an in-depth analysis.
 [#nullable-section]
 === Nullable, not null
 
-Nullability is a standard static code analyser topic, which we approach from a computational side: the analyser infers where possible, the user adds annotations to abstract methods.
+Nullability is a standard static code analyser topic, which we approach from a computational side: the analyser
+infers where possible, the user adds annotations to abstract methods.
 The complement of not-null (marked {nn}) is nullable (marked {nullable}).
 
 * A method marked {nn} will never return a null result.
@@ -14,15 +15,15 @@ This is very standard.
 * Calling a parameter marked {nn} will result in a null pointer exception at some point during the object life-cycle.
 * A {nn} or {nullable} annotation on a field is a consequence of not-null computations on the assignments to the field.
 
-To be able to compute the not-null of parameters, we must specify some sort of flow or direction to break chicken-and-egg situations.
+To be able to compute the not-null of parameters, we must specify some sort of flow or direction to break
+chicken-and-egg situations.
 We compute in the following order:
 
-. context not-null of parameters.
-. field not-null
-. external not-null of parameters linked to fields
-
-First, we examine the parameter's usage in the method.
-Its occurrence in a not-null context directly influences the not-null of the parameter.
+. context not-null of parameters: do parameters occur in a not-null context?
+. field not-null: has the field been assigned a value (or values) that are possibly null? does the field
+occur in a not-null context?
+. external not-null of parameters linked to fields: once the first two have been computed, warnings can be given
+when a parameter, assigned to a nullable field, occurs in a not-null context
 
 ==== Higher order not-null
 
@@ -64,7 +65,8 @@ There is currently no plan to implement beyond {nnContent}, however.
 [#identity-and-fluent]
 === Identity and fluent methods
 
-The analyser marks methods which returns their first parameter with `@Identity`, and methods which return `this` with `@Fluent`.
+The analyser marks methods which returns their first parameter with `@Identity`, and methods which return
+`this` with `@Fluent`.
 The former are convenient to introduce preconditions, the latter occur frequently when chaining methods in builders.
 Here is an integrated example:
 
@@ -111,18 +113,25 @@ class Builder {
 [#finalizers]
 === Finalizers
 
-Up to now, we have focused on the distinction between the building phase of an object's life-cycle, and its subsequent immutable phase.
-We have ignored the destruction of objects: critically important for some applications, but often completely ignored by Java programmers because of the silent background presence of the garbage collector.
-In this section we introduce an annotation, {finalizer}, with the goal of being able to mark that calling a certain method means that the object has reached the end of its life-cycle:
+Up to now, we have focused on the distinction between the building phase of an object's life-cycle, and its
+subsequent immutable phase.
+We have ignored the destruction of objects: critically important for some applications, but often completely
+ignored by Java programmers because of the silent background presence of the garbage collector.
+In this section we introduce an annotation, {finalizer}, with the goal of being able to mark that calling a
+certain method means that the object has reached the end of its life-cycle:
 
 ****
 Once a method marked {finalizer} has been called, no other methods may be subsequently applied.
 ****
 
 Why is this useful?
-The most obvious use-case for immutability is the meaning of the `build()` method in a builder: can you call it once, or is the builder somehow incremental?
+The most obvious use-case for immutability is the meaning of the `build()` method in a builder: can you call it once,
+or is the builder somehow incremental?
+Secondly, consider "terminal" operations such as `findAny` or `collect` on a stream. They close the stream,
+after which you are not allowed to use it anymore.
 
 How can the analyser enforce the sequence of method calling on an object?
+
 The simplest way is by some severe restrictions:
 
 ****
@@ -292,19 +301,20 @@ class Finisher {
 We use the simple and common definition:
 
 ****
-*Definition*: a *utility class* is a recursively immutable class which cannot be instantiated.
+*Definition*: a *utility class* is an immutable class which cannot be instantiated.
 ****
 
 These definitions imply
 
 . a utility class has no non-static fields,
 . it has a single, private, unused constructor,
-. and its static fields (if it has any) are of recursively immutable type.
+. and its static fields (if it has any) are of immutable type.
 
 === Extension classes
 
-In Java, many classes cannot easily be extended.
-Implementations of extensions typically use a utility class with the convention that the first parameter of the static method is the object of the extended method call:
+In Java, many classes cannot be extended easily.
+Implementations of extensions typically use a utility class with the convention that the first parameter of the
+static method is the object of the extended method call:
 
 .Example {counter:example}, an extension class
 [source,java]

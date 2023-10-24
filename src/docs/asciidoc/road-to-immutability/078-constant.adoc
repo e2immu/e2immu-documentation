@@ -26,19 +26,16 @@ The two concepts are sufficiently perpendicular to each other, and can easily co
 
 === Constant types
 
-****
-A *constant type* is an immutable type whose fields are of constant type themselves.
-The basis of the recursion are the primitives, possibly boxed, `java.lang.String`, and `java.lang.Class`.
-****
+A constant type can be defined as an immutable type whose fields are of constant type themselves.
+The basis of this recursion are the primitives, possibly boxed, `java.lang.String`, and `java.lang.Class`, i.e.,
+all the types that can have a Java literal as a value.
 
-The analyser marks a constant type by the string representation of its value, e.g., `@ImmutableContainer("3.14")`.
-It is clear that types can be constant but not {container}; they can be eventually constant,
+The analyser marks a constant type by the string representation of its value, e.g., `@ImmutableContainer("3.14")`,
+but obviously only in case of fields and method return types.
+This seems to be the only practical use of this definition.
+
+So while not really relevant, observe that types can be constant but not {container}; they can be eventually constant,
 and they can be constant with hidden content.
-
-Note that not every immutable type without hidden content is constant, even though it can technically
-be rewritten as one [this statement may require a proof, but it seems obvious: every class can be unpacked into
-its constituent data fields, which recursively must be of primitive type].
-At the moment, we see no practical use of distinguishing constant types from immutable ones.
 
 === Field access restrictions
 
@@ -57,7 +54,7 @@ Consider:
 ----
 public class NestedTypeExample {
 
-    @E1Container // <1>
+    @FinalFields @Container // <1>
     static class HoldsStringBuilder {
 
         @Modified // <2>
@@ -98,8 +95,8 @@ public class NestedTypeExample {
 }
 ----
 
-<1> Would have been {e2container}, were it not for the `break` methods
-<2> Because of `break2`
+<1> Would have been {immutableContainer}, were it not for the `break` methods
+<2> Because of `break2`, not because of the presence of `add(s).add(s)` in the constructor!
 <3> Not only part of construction, because of `break1`
 <4> Introduces a dependence of `sb` on a method return value
 
