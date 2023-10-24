@@ -120,11 +120,13 @@ public void forEach(@Independent(hc=true) Consumer<T> consumer) {
 }
 ----
 
-Modifications to the parameter, made by the concrete implementation, are propagated into the hidden content of `list`, as shown in the next section.
+Modifications to the parameter, made by the concrete implementation, are propagated into the hidden content of `list`,
+as shown in the next section.
 The {independent} annotation appears because hidden content in `list` is exposed to the `consumer` parameter.
 This annotation does not appear for the accessible content of the immutable type.
 
-Recall that parameters of modifiable type can already be shielded from external modification by the {notLinked} annotation.
+Recall that parameters of modifiable type can already be shielded from external modification by
+the {independent} annotation.
 
 === Propagating modifications
 

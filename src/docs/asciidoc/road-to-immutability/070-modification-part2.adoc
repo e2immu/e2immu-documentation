@@ -7,7 +7,8 @@ We start with cyclic references.
 === Cyclic references
 
 We need to study the situation of seemingly non-modifying methods with modifying parameters.
-Up to now, a method is only modifying when it assigns to a field, calls a modifying method on one of the fields, or directly calls a modifying method on `this`.
+Up to now, a method is only modifying when it assigns to a field, calls a modifying method on one of the fields, or
+directly calls a modifying method on `this`.
 However, there could be indirect modifications, as in:
 
 .Example {counter:example}, indirect modifications
@@ -16,7 +17,7 @@ However, there could be indirect modifications, as in:
 @ImmutableContainer
 public class CyclicReferences {
 
-    @MutableModifiesArguments
+    // not @FinalFields, not @Container
     static class C1 {
 
         // variable
@@ -34,7 +35,7 @@ public class CyclicReferences {
 
     }
 
-    @FinalFields
+    @FinalFields // not @Container
     static class C2 {
 
         private final int j;
@@ -57,17 +58,21 @@ public class CyclicReferences {
 
 <1> `useC2` does not directly modify `i`, but `incrementAndGetWithI` does so indirectly.
 
-This observation forces us to tighten the definition of a non-modifying method: on top of the definition given above, we have to ensure that none of the modifying methods called on a parameter which is {modified}, call one of 'our' modifying methods.
+This observation forces us to tighten the definition of a non-modifying method: on top of the definition given above,
+we have to ensure that none of the modifying methods called on a parameter which is {modified}, call one of 'our'
+modifying methods.
 These rules are mostly, but not easily, enforceable when all code is visible.
 
 An additional interface can help to remove the circular dependency between the types.
-This has the advantage of simplicity, both for the programmer and the analyser, which at this point doesn't handle circular dependencies very well.
+This has the advantage of simplicity, both for the programmer and the analyser, which at this point doesn't handle
+circular dependencies very well.
 It imposes more annotation work on the programmer, however, because the interface's methods need contracts.
 
 [#computing-dependence]
 === How to compute linking
 
-To compute linking, the analyser tries to track actual objects, with the aim of knowing if a field links to another field or a parameter.
+To compute linking, the analyser tries to track actual objects, with the aim of knowing if a field links to
+another field or a parameter.
 It computes a dependency graph of variables depending on other variables, with the following four basic rules:
 
 ****
@@ -78,14 +83,15 @@ Rule 1: in an assignment `v = w`, variable `v` links to variable `w`.
 Rule 2: in an assignment `v = a.method(b)`,`v` potentially links to `a` and `b`.
 ****
 
-Note that saying `v` links to `a` is the same as saying that the return value of `method` links to some field inside `A`, the type of `a`.
+Note that saying `v` links to `a` is the same as saying that the return value of `method` links to some field
+inside `A`, the type of `a`.
 This is especially clear when `a == this`.
 
 We discern a number of special cases:
 
 . When `v` is of {immutable} type, there cannot be any linking; `v` does not link to `a` nor `b`.
 . If `b` is of {immutable} type, `v` cannot link to `b`.
-. When `method` has the annotation {notLinked} (or the version for hidden content, {independent}), `v` cannot link to `a`.
+. When `method` has the annotation {independent} (allowing for hidden content, or not), `v` cannot link to `a`.
 
 Recall that primitives, `java.lang.Object`, `java.lang.String`, and unbound parameter types, are {immutable}.
 
@@ -95,7 +101,7 @@ Rule 3: in an assignment `v = new A(b)`, `v` potentially links to `b`.
 
 . When `b` is of {immutable} type, `v` cannot link to `b`.
 . If `A` is {immutable}, then `v` cannot link to `b`, because all its constructor parameters are independent.
-. When `b` has been marked {notLinked} or {independent}, `v` cannot link to `b`.
+. When `b` has been marked {independent}, `v` cannot link to `b`.
 
 ****
 Rule 4: in a modifying method call `a.method(b)`, `a` potentially links to `b`
@@ -109,7 +115,8 @@ For example,
 . in an assignment `v = condition ? a : b`, `v` links to both `a` and `b`.
 . type casting does not prevent linking: in `v = (Type)w`, `v` links to `w`
 . a pattern variable `p` in an instance-of statement `a instanceof P p` links to `a`
-. Binary operators return primitives or `java.lang.String`, which prevents linking: in `v = a + b`, `v` does not link to `a` nor `b`.
+. Binary operators return primitives or `java.lang.String`, which prevents linking: in `v = a + b`, `v` does not
+link to `a` nor `b`.
 
 Note: in a method call `v = a.method(b, c, d)`, links between `b`, `c`, and `d` are possible.
 They are covered by the {modified} annotation:
@@ -119,9 +126,11 @@ We do not compute individual linking, because we advocate the use of containers:
 === Locally implemented abstract methods
 
 Abstract methods are present in interfaces, and abstract classes.
-Their very definition is that no implementation is present at the place of definition: only the ins (parameters) and outs (return type) are pre-defined.
+Their very definition is that no implementation is present at the place of definition: only the ins (parameters)
+and outs (return type) are pre-defined.
 
-Functional interfaces are interfaces with a single abstract method; any other methods in the interface are required to have a `default` implementation.
+Functional interfaces are interfaces with a single abstract method; any other methods in the interface are
+required to have a `default` implementation.
 The following table lists some frequently used ones:
 
 [options=header]
@@ -135,14 +144,18 @@ The following table lists some frequently used ones:
 | `Predicate<T>` | `boolean test(T t);`
 |===
 
-It is important not to forget that _any_ interface defining a single abstract method can be seen as a functional interface.
-While the examples above all employ generics (more specifically, unbound type parameters), generics are not a requirement for functional interfaces.
-The Java language offers syntactic sugar for functional programming, but the types remain abstract Java types.
+It is important not to forget that _any_ interface defining a single abstract method can be seen as a functional
+interface.
+While the examples above all employ generics (more specifically, unbound type parameters), generics are not a
+requirement for functional interfaces.
+The Java language offers syntactic sugar for functional programming, but the types remain normal Java types.
 
 We will not make any distinction between a functional interface and an abstract type.
-If one were forced to make one, the _intention to hold data_ would be the dividing line between a functional interface, which conveys no such intention, and an abstract type, which does.
+If one were forced to make one, the _intention to hold data_ would be the dividing line between a functional interface,
+which conveys no such intention, and an abstract type, which does.
 
-In this section we want to discuss a limited application of functional interfaces: the one where the SAMs have a local implementation.
+In this section we want to discuss a limited application of functional interfaces: the one where the SAMs have a
+local implementation.
 The general case, where objects of abstract types come in via a parameter, will be addressed in <<hidden-content>>.
 Consider the following example:
 
@@ -189,14 +202,18 @@ class ApplyLocalFunctions {
 ----
 
 <1> Modified in `getAndIncrement` and `explicitGetAndIncrement`
-<2> Modified because its modifying method (`get`) is called in `myIncrementer`
+<2> {modified} because its modifying method `get` is called in `myIncrementer`
 
-The fields `getAndIncrement` and `explicitGetAndIncrement` hold instances of anonymous _inner classes_ of `ApplyLocalFunctions`: these inner classes hold data, they have access to the `myCounter` field.
+The fields `getAndIncrement` and `explicitGetAndIncrement` hold instances of anonymous _inner classes_ of
+`ApplyLocalFunctions`: these inner classes hold data, they have access to the `myCounter` field.
 Their concrete implementations of `get` each modify `myCounter`.
-A straightforward application of the rules of modification of fields makes  `getAndIncrement` and `explicitGetAndIncrement` {modified}:
-in `myIncrementer`, a modifying method is applied to `getAndIncrement`, and in `myExplicitIncrementer`, a modifying method is applied to `explicitGetAndIncrement`.
+A straightforward application of the rules of modification of fields makes  `getAndIncrement` and
+`explicitGetAndIncrement` {modified}:
+in `myIncrementer`, a modifying method is applied to `getAndIncrement`, and in `myExplicitIncrementer`,
+a modifying method is applied to `explicitGetAndIncrement`.
 
-Given that `ApplyLocalFunctions` is clearly {finalFields}, and the inner classes hold no other data, the inner classes are {finalFields} as well.
+Given that `ApplyLocalFunctions` is clearly {finalFields}, and the inner classes hold no other data,
+the inner classes are {finalFields} as well.
 
 Now, if we move away from suppliers, but use consumers, we can discuss:
 
