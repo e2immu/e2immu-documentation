@@ -113,7 +113,7 @@ This can be ascertained with a helper method, which, as noted in the previous se
 
 Slightly more flexible than `SetOnce` is `EventuallyFinal`: the type allows you to keep writing objects using the
 `setVariable` method, until you write using `setFinal`.
-Then, the state changes and the type becomes level 2 immutable:
+Then, the state changes and the type becomes immutable:
 
 .Example {counter:example}, `org.e2immu.support.EventuallyFinal`
 [source,java]
@@ -257,7 +257,7 @@ the same value to a key.
 === Lazy
 
 `Lazy` implements a lazily-initialized immutable field, of unbound generic type `T`.
-Properly implemented, it is an eventually level 2 immutable type:
+Properly implemented, it is an eventually immutable type:
 
 .Example {counter:example}, `org.e2immu.support.Lazy`
 [source,java]
@@ -315,7 +315,7 @@ _After_ the call to `get()`, the converse is true, because `supplier` has been e
 We should extend rule 2 of effective immutability by slightly augmenting rule 2:
 
 ****
-*Rule 2*: All fields are either private, level 2 immutable type, or equal to null.
+*Rule 2*: All fields are either private, of immutable type, or equal to null.
 ****
 
 A null field cannot be modified, and cannot be but {independent}, so no changes are necessary to rules 1 and 3.

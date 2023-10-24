@@ -112,7 +112,7 @@ Arrays are essentially containers holding the {finalFields} property: a chunk of
 field, and array access reads and writes from this memory object.
 Indeed, consider the following semi-realistic implementation of an `Integer` array based on a `ByteBuffer`:
 
-.Example {counter:example}, an array is a level 1 immutable container
+.Example {counter:example}, an array is a container with final fields
 [source,java]
 ----
 @Container

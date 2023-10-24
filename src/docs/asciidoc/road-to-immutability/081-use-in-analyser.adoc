@@ -42,5 +42,6 @@ public class TypeInfo {
 }
 ----
 
-In this way, if we keep playing by the book recursively downward, `TypeInfo` will become an eventually level 2 immutable type.
-Software engineers writing applications which use the {e2immu} analyser as a library, can feel secure that once the analysis phase is over, all the inspected and analysed information remains stable.
+In this way, if we keep playing by the book recursively downward, `TypeInfo` will become an eventually immutable type.
+Software engineers writing applications which use the {e2immu} analyser as a library, can feel secure that once the
+analysis phase is over, all the inspected and analysed information remains stable.

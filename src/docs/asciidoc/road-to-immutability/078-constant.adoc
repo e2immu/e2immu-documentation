@@ -1,6 +1,7 @@
 
 == Further notes on immutability
 
+[#extendability]
 === Extendability of types
 
 Unless a class is marked `final`, `sealed`, or `private`, it can be extended in a different source file.
