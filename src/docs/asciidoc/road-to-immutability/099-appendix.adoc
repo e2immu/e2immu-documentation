@@ -1,137 +1,32 @@
 == Appendix
 
-=== Immutability and independence
-
-Immutability requires three properties:
-
-. the fields are effectively final
-. there are no modifying methods
-. the fields' values are not exposed: there is independence of method return values and parameters
-
-Only when all three are satisfied, a type reaches immutability.
-The first table shows which annotations are used in function of the presence of these three properties.
-
-.Leading up to immutability
-[cols="5"]
-|===
-
-h|
-2+^h|variable fields
-2+^h|(eventually) final fields
-
-h|
-h|dependent
-h|independent
-h|dependent
-h|independent
-
-h|modifying methods
-|no annotation (variable, dependent, modified)
-|{independent}
-|{finalFields}
-|{finalFields}{modified}
-
-h|no modifying methods
-|no annotation (variable, dependent)
-|`@FinalFields(absent=true)`
-|{finalFields}{independentAbsent}
-|{immutable}
-
-|===
-
-Immutability comes in three different forms: with or without hidden content, and, when without, constant or not constant.
-Because of the importance and hopefully abundant presence of the container property, we combine both annotations.
-
-.Different forms of immutability
-[cols="4"]
-|===
-
-h|type has
-^h|hidden content
-2+^h|no hidden content
-
-h|type is
-h|
-h|not constant
-h|constant
-
-h|type is not container
-|`@Immutable(hc=true)`
-|`@Immutable`
-|-
-
-h|type is container
-|`@ImmutableContainer(hc=true)`
-|`@ImmutableContainer`
-|`@ImmutableContainer(value="abc")`
-
-h|independence
-|{independentHC} or {independent}
-2+^|{independent}
-|===
-
-The independence levels are
-
-* dependent: modification of communicated values potentially implies a change to the accessible part of the object graph of the fields
-* independent: defined as not dependent.
-When required, this can be split into
-** allow hidden content transfer, or `hc = true`: modification of communicated values potentially implies a change to the hidden part of the object graph of the fields, but not to the accessible part
-** don't allow any transfer, or `hc = false`: modification of communicated values is either impossible or cannot change the object graph of the fields
-
-.Possible combinations of dependence of communicated values in relation to immutability
-[cols=4]
-|===
-
-h|type is
-^h|not immutable
-2+^h|immutable
-
-h|type has
-h|
-^h|hidden content
-^h|no hidden content
-
-h|dependent (no annotation)
-^|{y}
-^|{n}
-^|{n}
-
-h|{independentHC}
-^|{y}
-^|{y}
-^|{n}
-
-h|{independent}
-^|{y}
-^|{y}
-^|{y}
-
-|===
-
-Immutable types with hidden content in the form of a type parameter, take the immutability level of the concrete types when that type parameter receives them:
-
-* if the concrete type is mutable, then the combination is mutable, e.g., `Optional<StringBuilder>` is mutable
-* if the concrete type is immutable, but has hidden content, the combination is immutable with hidden content, e.g., `Optional<Object>`
-* if the concrete type is deeply immutable (no hidden content), the combination is deeply immutable, e.g., `Optional<Integer>`
-
-The immutable type with hidden content acts as a wrapper.
-
 === Default annotations
 
 When annotating abstract types and methods, or types in the Annotated APIs, observe the following rules.
 
-A method is {nm} unless otherwise specified, its parameters are assumed to be {modified}, unless they are of immutable type.
+A method is {nm} unless otherwise specified, its parameters are assumed to be {modified}, unless they are of
+immutable type.
 
-The annotations {container} and {independent} on types are essentially shorthands to avoid having to write, respectively and where applicable, {nm} on parameters, and {independent} on parameters and methods.
-Due to the large amount of circular type dependencies in the JDK, the current implementation of the Annotated API analyser requires annotations about independence, immutability, and container on the type.
+Due to the large amount of circular type dependencies in the JDK, combined with the current limitations of the analyser,
+the implementation of the Annotated API analyser requires contracted annotations about independence,
+immutability, and container on the type.
 The following combinations are possible with respect ot independence and immutability:
 
-* no independence information -> independence according to the immutability value (not immutable -> dependent, {immutableHC} -> {independentHC}, {immutable} -> {independent})
-* {independentAbsent} -> dependent, this requires that the type is not immutable
-* {independentHC} -> this is the default for {immutableHC}, {immutableContainerHC}, so only useful on non-immutable types
-* {independent} -> this is the default for {immutable}, {immutableContainer}, so only useful for non-immutable or {immutableHC} types
+* no independence information: (in)dependence according to the immutability value
+(not immutable -> dependent, {immutableHC} -> {independentHC}, {immutable} -> {independent})
+* {independentAbsent}: dependent; this requires that the type is not immutable
+* {independentHC}: this is the default for {immutableHC}, {immutableContainerHC}, so explicitly writing this annotation
+ is only necessary on non-immutable types
+* {independent}: this is the default for {immutable}, {immutableContainer}, so so explicitly writing this annotation
+is only useful for mutable or {immutableHC} types
 
-To support the user, a warning will be raised when the independence value on the type is incompatible with that on methods, parameters and fields.
+Recall that abstract types always have hidden content, so the `hc=true` is always implicitly present on
+{independent} and {immutable}, {immutableContainer} on the type.
+We generally do not write `hc=false`, as that is the default value in the annotation.
+The analyser will complain when `hc=false` is present on the {immutable} annotation of an abstract type.
+
+To support the user, a warning will be raised when the independence value on the type is incompatible with
+that on its methods, parameters and fields.
 
 In a {container} type, all {fluent} methods and all void methods are assumed to be {modified}.
 Change this by explicitly marking the method {nm} or {sse}.
@@ -149,16 +44,13 @@ You must still use {independentHC} to indicate communication of hidden content.
 
 Methods marked {fluent} are always {independent}, because returning the type itself does not expose any additional information.
 
-Following its definition, {utilityClass} on a type implies deeply {immutable}.
-
-In the {immutable} annotation, we generally do not write `hc = false`, as that is the default value in the annotation.
-The analyser adds `hc = true` automatically when a type is abstract (it is an interface, or an abstract class).
-It will complain when `hc = false` is present on an abstract type.
+Following its definition, {utilityClass} on a type implies {immutable}.
 
 In application mode, the analyser will regard every class that is never extended as effectively final.
-This property is only relevant when the type is immutable; the absence of `hc = true` is a marker.
+This property is only relevant when the type is immutable; the absence of `hc=true` is a marker.
 
-Parameters of "official" functional interface type (i.e., the type is a functional interface type in the package `java.util.function`) have the {ignoreModifications} annotation, unless explicitly overwritten by {modified}.
+Parameters of "official" functional interface type (i.e., the type is a functional interface type in the package
+`java.util.function`) have the {ignoreModifications} annotation, unless explicitly overwritten by {modified}.
 
 The default nullable annotation for parameters and return values of non-primitive type is {nullable}.
 
@@ -172,12 +64,10 @@ In general, annotations are inherited on types, methods and parameters.
 The properties can deviate,
 
 - from {modified} to {nm} is possible, from {nm} to {modified} is not
-- independence can go from left to right in {independentAbsent} -> {independentHC} -> {independent}, but not from right to left
-- a type deriving from an immutable type does not need to be immutable; however, a type deriving from a non-immutable type can never be immutable
-
-=== Implicit annotations
-
-It is important not to crowd the code with annotations.
+- independence can go from left to right in {independentAbsent} -> {independentHC} -> {independent},
+but not from right to left
+- a type deriving from an immutable type does not need to be immutable; however, a type deriving from a
+non-immutable type can never be immutable
 
 When a method has a single statement, returning a constant value, the `@ImmutableContainer("value")` is implicit.
 Similarly, when a field is explicitly final (it has the `final` modifier) and it has an initialiser, then both {final}

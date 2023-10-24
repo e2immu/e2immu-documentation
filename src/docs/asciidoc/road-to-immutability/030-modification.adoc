@@ -16,7 +16,6 @@ All non-trivial constructors are modifying, so we avoid clutter by not annotatin
 NOTE: Why not `@Modifying` and `@NotModifying`? The analyser will compute modifications of fields and parameters as well.
 They will either be _modified_ or _not modified_ by the code. To avoid
 confusion, we only use one set of annotations.
-Moreover, this is the only occurrence of a pair of diametrically opposed annotations.
 
 It follows from the definition that directly assigning to the fields also causes the {modified} mark for methods.
 As a consequence, setters are {modified}, while getters are {nm}.
