@@ -12,6 +12,9 @@ compute types to be effectively final, or effectively sealed, _when presented wi
 Indeed, if there is a guarantee of being able to see all code, the analyser can easily compute if
 a type has effectively been extended, or not.
 
+This observation shows that the distinction between immutability with and without
+hidden content, is rather small.
+
 === Eventual immutability
 
 How does the whole story of eventually final fields and eventual immutability mix with hidden content?
@@ -28,10 +31,12 @@ The basis of the recursion are the primitives, possibly boxed, `java.lang.String
 ****
 
 The analyser marks a constant type by the string representation of its value, e.g., `@ImmutableContainer("3.14")`.
-Note that types can be constant but not {container}; they can be eventually constant,
+It is clear that types can be constant but not {container}; they can be eventually constant,
 and they can be constant with hidden content.
 
-Note that not every immutable type without hidden content is constant, even though it can technically be rewritten as one.
+Note that not every immutable type without hidden content is constant, even though it can technically
+be rewritten as one [this statement may require a proof, but it seems obvious: every class can be unpacked into
+its constituent data fields, which recursively must be of primitive type].
 At the moment, we see no practical use of distinguishing constant types from immutable ones.
 
 === Field access restrictions
