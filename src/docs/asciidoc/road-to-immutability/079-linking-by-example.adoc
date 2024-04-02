@@ -1,0 +1,85 @@
+== Linking by example
+
+Let `X` be an unbound type parameter, and `M` be a mutable type.
+We'll use `String` as the archetype recursively immutable type.
+
+.Example {counter:example}, assignments
+[source,java]
+----
+void method(int index, List<String> listS, List<X> listX, List<M> listM) {
+    // assignment
+    List<String> aS = listS;
+    List<X> aX = listX;
+    List<M> aM = listM;
+}
+----
+
+.Example {counter:example}, method annotations
+[source,java]
+----
+// mutable
+interface List$<X> {
+    @Modified // dependent implicitly
+    boolean add(@Independent(hc = true) X x);
+
+    @Independent(hc=true) // @NotModified implicitly
+    X get(int index);
+
+    // @NotModified, dependent implicitly
+    List<X> subList(int from, int to);
+}
+
+// mutable
+class ArrayList$<X> {
+    ArrayList(@Independent(hc = true) Collection<? extends X> c) {}
+}
+----
+
+
+The normal situation for well-designed, non-modifying instance methods is to link the method's object to the method's return value:
+
+.Example {counter:example}, from method object into method result
+[source,java]
+----
+void method(int index, List<String> listS, List<X> listX, List<M> listM) {
+    // independent (upgrade from independent HC)
+    String s = listS.get(index);
+
+    // independent HC, *-4-0
+    X x = listX.get(index);
+
+    // independent HC, *M-4-0M (no downgrade, modification travels)
+    M m = listM.get(index);
+
+    // dependent, irrespective of String, X, M
+    List<String> subS = listS.subList(0, 2);
+    List<X> subX = listX.subList(0, 2);
+    List<M> subM = listM.subList(0, 2);
+
+    // independent, upgrade from independent HC
+    List<String> copyS = new ArrayList<>(listS.subList(0, 2));
+
+    // independent HC, 0-4-0
+    List<X> copyX = new ArrayList<>(listX.subList(0, 2));
+
+    // independent HC, 0M-4-0M (no downgrade, modification travels)
+    List<M> copyM = new ArrayList<>(listM.subList(0, 2));
+}
+----
+
+The normal situation for well-designed modifying methods is to link the method's arguments to the method's object.
+
+.Example {counter:example}, from method arguments into method object
+[source,java]
+----
+void method(String s, X x, M m, List<String> listS, List<X> listX, List<M> listM) {
+    // independent
+    list.add(s);
+
+    // independent HC, *-4-0
+}
+----
+
+=== From method parameters into method result
+
+An {identity} method passes on its links to the result:
