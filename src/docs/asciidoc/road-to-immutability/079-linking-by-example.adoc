@@ -176,10 +176,11 @@ The analyser applies the following linking rule:
 
 No other combinations have currently been implemented.
 
-.Example {counter:example}, links between parameters
+.Example {counter:example}, forEach at independent HC level
 [source,java]
 ----
-void method() {
+void method(List<X> inX, List<X> outX) {
+    // independent HC: 0-4-0
     inX.forEach(outX::add);
     inX.forEach(x -> outX.add(x));
     inX.forEach(new Consumer<X> {
@@ -187,5 +188,24 @@ void method() {
             outX.add(x);
         }
     });
+    Consumer<X> c = outX::add;
+    inX.forEach(c);
+}
+----
+
+.Example {counter:example}, forEach at independent HC level with a mutable type
+[source,java]
+----
+void method(List<M> inM, List<M> outM) {
+    // independent HC: inM 0M-4-0M outM (no downgrade, modifications travel)
+    inM.forEach(outM::add);
+    inM.forEach(x -> outM.add(x));
+    inM.forEach(new Consumer<X> {
+        void accept(X x) {
+            outM.add(x);
+        }
+    });
+    Consumer<X> c = outM::add;
+    inM.forEach(c);
 }
 ----
